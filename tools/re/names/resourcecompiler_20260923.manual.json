@@ -745,6 +745,42 @@
    "note": "one vertex per CMesh vertex; triangles repeating an index skipped; streams then bone weights; MeshID, NoCollapse (+0x14c), PackToSharedVB (+0x14d), UseBaseVertex, UseTintColor, TintColor as DmeMesh attributes"
   },
   {
+   "addr": "18243b690",
+   "name": "CMeshToHalfEdge_StreamRows",
+   "module": "s2c:mapbuilder",
+   "note": "0x2c rows: name[0x20], float count +0x20, per face vertex +0x24, half-edge type +0x28; named rows, then by count 1-4 at 18243b820 (types 3, 8, 11, 17); 'invalid' (18243b958, type 0) adds nothing"
+  },
+  {
+   "addr": "1812e0b10",
+   "name": "CMesh_FindBlendStreams",
+   "module": "s2c:mapbuilder",
+   "note": "the lowest-index blendweight(s) and blendindices streams, which CMeshToHalfEdge passes over"
+  },
+  {
+   "addr": "181320d30",
+   "name": "HalfEdgeData_AddField",
+   "module": "s2c:mapbuilder",
+   "note": "appends a field (name, type) to a half-edge data list; -1 when the name exists"
+  },
+  {
+   "addr": "180d4f480",
+   "name": "HalfEdge_WriteDmeMesh",
+   "module": "s2c:geometry/mesh-export",
+   "note": "vertex fields (+0x38), then face-vertex (+0xb0), each as 180d4cfe0 type 12, float 180d4cc00, Vector2 180d4cdf0, Vector3 180d4cfe0, Vector4 180d4d1d0, int 180d4ca10, color 180d4d3c0; blend fields 180d4f1f0 after: WorldNodeModels.DmeFieldOrder"
+  },
+  {
+   "addr": "1822b73e0",
+   "name": "HalfEdge_TypeToDmeGroup",
+   "module": "s2c:geometry/mesh-export",
+   "note": "0x2c rows: half-edge type, DMX group +8 (2 int, 3 float, 8 color, 9 Vector2, 10 Vector3, 11 Vector4)"
+  },
+  {
+   "addr": "180d463b0",
+   "name": "DmeMeshToCMesh_ListFields",
+   "module": "s2c:geometry/mesh-export",
+   "note": "the vertex data's fields in its vertex format order, those the mesh's +0x84 mask takes"
+  },
+  {
    "addr": "18131e190",
    "name": "HalfEdge_JoinCoincident",
    "module": "s2c:mapbuilder",
