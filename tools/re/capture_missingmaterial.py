@@ -48,9 +48,53 @@ function strings(p) {
   }
   return out.slice(0, 40);
 }
+// GROUND_TRUTH 42 / ledger 40: the material's own answers for the entry keys (CMaterial2 vf 0x48,
+// GetBoolAttribute(this, bool *out, key)), its vtable's module, the attribute block at +0x180 (12 keys, values
+// at +0x30) and the parent block pointer at +0x1e0 (block +0x60) with the same keys read from it.
+const KEYS = {AllowBackfaceCulling: 0x3ed9fd4a, SupportsLightmapping: 0xfff20b87,
+              SupportsAggregateInstancing: 0x67d9d859, NeedsLightProbe: 0x9885dce5};
+function where(p) { const m = Process.findModuleByAddress(p); return m ? m.name + '+' + p.sub(m.base).toString(16) : p.toString(); }
+function block(b) {
+  const keys = [];
+  for (let i = 0; i < 12; i++) keys.push(b.add(i * 4).readU32().toString(16) + '=' + b.add(0x30 + i * 4).readU32().toString(16));
+  return {keys: keys, chain: b.add(0x68).readPointer().toString(), parent: b.add(0x60).readPointer().toString()};
+}
+function attrs(t) {
+  const out = {};
+  try {
+    const vt = t.readPointer();
+    out.vtable = where(vt);
+    const get = new NativeFunction(vt.add(0x48).readPointer(), 'uint8', ['pointer', 'pointer', 'uint32']);
+    const box = Memory.alloc(8);
+    for (const [name, key] of Object.entries(KEYS)) {
+      box.writeU64(0);
+      const found = get(t, box, key);
+      out[name] = {found: found, value: box.readU8()};
+    }
+    out.block = block(t.add(0x180));
+    const parent = t.add(0x1e0).readPointer();
+    out.parentAt = where(parent);
+    if (!parent.isNull()) { out.parent = block(parent); out.parentHead = hex(parent, 0x80); }
+  } catch (err) { out.err = String(err); }
+  return out;
+}
+const pending = [];
+let late = 0;
 function hook() {
   const mod = Process.findModuleByName('resourcecompiler.dll');
   if (mod === null) { setTimeout(hook, 5); return; }
+  // The same handles again when WRB_MeshEntryFlags returns, by which time the resource has loaded.
+  Interceptor.attach(mod.base.add(%(flags)d), {
+    onLeave() {
+      late++;
+      for (const p of pending) {
+        try {
+          const t = p.handle.readPointer(), a = attrs(t), key = t.toString() + JSON.stringify(a);
+          if (key !== p.last) { p.last = key; send({stage: 'late', call: late, name: p.name, target: t.toString(), attrs: a}); }
+        } catch (err) { send({stage: 'late', name: p.name, err: String(err)}); }
+      }
+    }
+  });
   Interceptor.attach(mod.base.add(%(load)d), {
     onEnter(args) {
       this.n = args[1].toInt32();
@@ -73,6 +117,8 @@ function hook() {
             r.target = t.toString();
             r.targetHead = hex(t, 0x80);
             r.targetStrings = strings(t);
+            r.attrs = attrs(t);
+            if (pending.length < 16) pending.push({name: this.names[i] || this.names[0], handle: h});
           } catch (err) { r.err = String(err); }
         }
         e.handles.push(r);
@@ -104,7 +150,7 @@ def main():
         raise SystemExit("another resourcecompiler is running; not starting")
     if shutil.disk_usage(os.path.splitdrive(CS2)[0] + "\\").free < 10 * 1024 ** 3:
         raise SystemExit("under 10 GB free on the game drive; not starting")
-    rvas = {"load": installed("resourcecompiler", 0x1d4dc0), "match": json.dumps(a.match)}
+    rvas = {"load": installed("resourcecompiler", 0x1d4dc0), "flags": installed("resourcecompiler", 0x252ae0), "match": json.dumps(a.match)}
     out_path = a.out or os.path.join(os.environ.get("TEMP", "."), "missingmaterial_capture", a.map + ".jsonl")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     vpk = os.path.join(CS2, "game", "csgo_addons", a.addon, "maps", a.map + ".vpk")
