@@ -15,7 +15,8 @@ A CMesh (capture_physshapes.py's reading): vertex floats +0, stream table +8 (0x
 index +0x10, first float +0x14, float count +0x18), vertex count +0x18, stride +0x1c, streams +0x20; the
 material name is a CBufferString at +0x60 (WRB_MeshesToModelDoc reads it there). For meshes whose material
 matches --match, each stream also says whether all its values are zero, and the layout hook sends a
-backtrace (installed RVAs); --dump tangent sends a matched mesh's whole tangent stream as hex (A.13). CS2 must be closed; the package is backed up and restored, cmp-checked.
+backtrace (installed RVAs); --dump tangent sends a matched mesh's whole tangent stream as hex (A.13); the tangent check (1812e1450) and
+recompute (1812db920) are logged for matched meshes too (A.14). CS2 must be closed; the package is backed up and restored, cmp-checked.
 """
 import argparse
 import filecmp
@@ -135,6 +136,40 @@ function hook() {
       if (meshes.some(m => m.match)) send({stage: 'aggregate', entries: n, meshes: meshes});
     }
   });
+  // OPEN 1.c7 / CS2_CLOSED_QUEUE A.14: the model compile's tangent check (1812e1450) and recompute
+  // (CMesh_ComputeTangents 1812db920) on the matched meshes: the verdict, the first vertex the check
+  // refuses (w, |t|^2, the four floats as hex) and the tangent stream after the recompute.
+  Interceptor.attach(mod.base.add(%(check)d), {
+    onEnter(args) { this.m = args[0]; },
+    onLeave(ret) {
+      const m = cmesh(this.m);
+      if (!m.match) return;
+      const p = this.m, nv = p.add(0x18).readS32(), stride = p.add(0x1c).readS32(), ns = p.add(0x20).readS32();
+      const t = p.add(8).readPointer();
+      let bad = null;
+      for (let i = 0; i < ns && i < 64; i++) {
+        const e = t.add(i * 0x28), name = cstr(e.readPointer());
+        if (name.toLowerCase().indexOf('tangent') < 0 || e.add(0x18).readS32() !== 4) continue;
+        const first = e.add(0x14).readS32();
+        const v = new Float32Array(p.readPointer().readByteArray(nv * stride * 4)), u = new Uint32Array(v.buffer);
+        for (let k = 0; k < nv && bad === null; k++) {
+          const x = v[k * stride + first], y = v[k * stride + first + 1], z = v[k * stride + first + 2], w = v[k * stride + first + 3];
+          const l = x * x + y * y + z * z;
+          if (!((w === 1 || w === -1) && (Math.abs(l - 1) < 0.001 || l === 0)))
+            bad = {vertex: k, w: w, len2: l, hex: [0, 1, 2, 3].map(c => u[k * stride + first + c].toString(16).padStart(8, '0'))};
+        }
+        break;
+      }
+      send({stage: 'tangentcheck', ok: ret.toInt32() & 0xff, firstBad: bad, mesh: m});
+    }
+  });
+  Interceptor.attach(mod.base.add(%(compute)d), {
+    onEnter(args) { this.m = args[0]; },
+    onLeave(ret) {
+      const m = cmesh(this.m);
+      if (m.match) send({stage: 'tangentcompute', ok: ret.toInt32() & 0xff, mesh: m});
+    }
+  });
   send({hooked: true});
 }
 hook();
@@ -162,7 +197,8 @@ def main():
         raise SystemExit("under 10 GB free on the game drive; not starting")
     rvas = {"modeldoc": installed("resourcecompiler", 0x1fee20), "dme": installed("resourcecompiler", 0xd47b90),
             "layout": LAYOUT_1103, "load": installed("resourcecompiler", 0x1d30d0),
-            "aggregate": installed("resourcecompiler", 0x268e80), "match": json.dumps(a.match),
+            "aggregate": installed("resourcecompiler", 0x268e80),
+            "check": installed("resourcecompiler", 0x12e1450), "compute": installed("resourcecompiler", 0x12db920), "match": json.dumps(a.match),
             "dump": json.dumps(a.dump.lower())}
     out_path = a.out or os.path.join(os.environ.get("TEMP", "."), "aggstreams_capture", a.map + ".jsonl")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
