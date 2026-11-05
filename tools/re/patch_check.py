@@ -58,11 +58,13 @@ BIN = os.path.join(CS2, "game", "bin", "win64")
 # The rest carry hand-kept names too (names/<dll>_<build>.manual.json): the cubemap face render
 # (scenesystem, materialsystem2, meshsystem, worldrenderer), nav generation (navsystem), the settle's
 # animation helper (animationsystem), Steam Audio (steamaudio, phonon), bomb damage and the VData strip
-# (modtools), server entities (server) and the BC7 encoder (bc7e).
+# (modtools), server entities (server) and the BC7 encoder (bc7e). pulse_system: the Pulse graph library
+# resourcecompiler loads to compile .vpulse (the 1.41.9.6 update rebuilt it alone of the toolchain side; no
+# .vpulse author of ours yet, watched so the next change is seen).
 DLLS = ["resourcecompiler", "vphysics2", "physicsbuilder", "tier0", "visbuilder", "smartprops", "hammer",
         "rendersystemvulkan", "rendersystemdx11", "vrad3", "client",
         "scenesystem", "materialsystem2", "meshsystem", "worldrenderer", "navsystem", "animationsystem",
-        "steamaudio", "phonon", "bc7e", "modtools", "server"]
+        "steamaudio", "phonon", "bc7e", "modtools", "server", "pulse_system"]
 # DLLs not directly in bin/win64: Hammer's build dialog (compile-map follows its command line), the game's
 # client, server and modtools (csgo/bin/win64).
 CSGO_BIN = os.path.join("..", "..", "csgo", "bin", "win64")
