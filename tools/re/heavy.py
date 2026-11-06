@@ -105,7 +105,9 @@ def run(a, cmd):
         with open(os.path.join(DIR, "current.json"), "w") as h:
             json.dump(info, h)
         print(f"heavy: running {a.what}", flush=True)
-        code = subprocess.call(cmd)
+        # With the game open the job runs below normal (its children inherit the class), as the rule above says.
+        flags = subprocess.BELOW_NORMAL_PRIORITY_CLASS if a.allow_cs2 and running("cs2.exe") else 0
+        code = subprocess.call(cmd, creationflags=flags)
         return code
     finally:
         try:
