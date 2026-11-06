@@ -41,6 +41,7 @@ SP = "s2c:smartprops"
 MS = "s2c:physics/material-sampler"
 IO = "s2c:io"
 SA = "s2c:baked/steamaudio"
+MD = "s2c:models/modeldoc"
 
 RESOURCECOMPILER = [
     ("180f88460", "MapNode_WorldTransforms", ENT, "mode 1/2: up the parents (vf 0x600) while vf 0x400; a node referenced through 'target' collects its referrers (g_pDataModel vf 0x3b8 / 0x3c0 on 1800d3270's handle), recurses into each in that order, then composes its own transform (vf 0x110, 180ffd750); no kind-0 reference starts from its own (180f82b60). Ledger 46"),
@@ -508,6 +509,14 @@ RESOURCECOMPILER = [
     ("180344980", "ModelCompile_LoadAndMergeMeshes", WN, "the mesh compile's meshes from the DmeModel (180d49a80), WeldMesh with preserve_tangents, then the merge 180344ae0"),
     ("18020be10", "WRB_SetNodeModelArgs", WN, "the node model's compile arguments from WRB_CompileNodeModel's block: preserve_tangents (byte 0, 1), generate_draw_bounds, embedded_map_mesh (1), embedded_aggregate_mesh, keep_vertices, create_pooled_vb, generate_meshlets"),
     ("180344ae0", "ModelCompile_MergeMeshes", WN, "groups untaken later meshes by material (V_stricmp), +0x184, tint and stream layout; a group of 2+ is CMesh_Concatenate'd and appended, its members removed, so unmerged meshes keep their order before the merged groups"),
+    ("180d49a80", "ModelCompile_LoadDmeModelMeshes", MD, "options record for DmeMeshToCMesh (+0x84 mask -1, +0x89 0, +0x8a 0: a vertex per corner, +0x8b 1: group face sets, +0x8c 1, +0x8d 0), walks the DmeModel (180d49d20), returns its CMeshes"),
+    ("180d49d20", "DmeModel_WalkMeshes", MD, "the model's bind base state (1818b59f0) gives each joint its matrix; each child DmeDag: its joint's matrix else its own transform's, concatenated with the identity (182771b20), its DmeMesh to 180d47970, children through 180d49bb0"),
+    ("180d47970", "DmeDag_MeshToCMeshes", MD, "mode 1: the mesh's 'bind' base state (1818be180) into DmeMeshToCMesh with the dag matrix and import scale"),
+    ("1818bde50", "DmeFaceSet_TriangulateFace", MD, "a face of three corners copied as listed; longer ones projected (18125b510) and triangulated (18136f810)"),
+    ("1818be180", "DmeMesh_FindBaseState", MD, "base state by name, V_stricmp_fast"),
+    ("1818b59f0", "DmeModel_FindBaseState", MD, "the model's base state (transform list) by name"),
+    ("180cb1b50", "DmeMesh_Field100", MD, "returns +0x100; DmeMeshToCMesh sets NoCollapse on grouped meshes when > 0 (what it counts is not read)"),
+    ("183014ae8", "CMesh_PackedLayoutStreamTable", MD, "data: 31 (name, semantic index, DXGI format) rows CMesh_BuildPackedInputLayout looks up first; texcoord 0/1 R16G16_FLOAT; count table 183014ec0 after"),
     ("1803447d0", "ModelCompile_WeldMesh", WN, "tangents (CMesh_ComputeTangents) unless preserved, UseMikkTSpace, then CMesh_Weld at the given tolerance"),
     ("1812d9920", "Mesh_UvDensity", WN, "sqrt(world area / uv area), sorted, index ((n-1)*pct)/100; pct 20 or 95"),
     ("18025f9d0", "WRB_UseAggregateInstances", WN, "gameinfo ResourceCompiler/WorldRendererBuilder/UseAggregateInstances; enables agg_prop and agg_merge"),

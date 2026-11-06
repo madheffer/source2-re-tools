@@ -2779,6 +2779,54 @@
    "note": "groups untaken later meshes by material (V_stricmp), +0x184, tint and stream layout; a group of 2+ is CMesh_Concatenate'd and appended, its members removed, so unmerged meshes keep their order before the merged groups"
   },
   {
+   "addr": "180d49a80",
+   "name": "ModelCompile_LoadDmeModelMeshes",
+   "module": "s2c:models/modeldoc",
+   "note": "options record for DmeMeshToCMesh (+0x84 mask -1, +0x89 0, +0x8a 0: a vertex per corner, +0x8b 1: group face sets, +0x8c 1, +0x8d 0), walks the DmeModel (180d49d20), returns its CMeshes"
+  },
+  {
+   "addr": "180d49d20",
+   "name": "DmeModel_WalkMeshes",
+   "module": "s2c:models/modeldoc",
+   "note": "the model's bind base state (1818b59f0) gives each joint its matrix; each child DmeDag: its joint's matrix else its own transform's, concatenated with the identity (182771b20), its DmeMesh to 180d47970, children through 180d49bb0"
+  },
+  {
+   "addr": "180d47970",
+   "name": "DmeDag_MeshToCMeshes",
+   "module": "s2c:models/modeldoc",
+   "note": "mode 1: the mesh's 'bind' base state (1818be180) into DmeMeshToCMesh with the dag matrix and import scale"
+  },
+  {
+   "addr": "1818bde50",
+   "name": "DmeFaceSet_TriangulateFace",
+   "module": "s2c:models/modeldoc",
+   "note": "a face of three corners copied as listed; longer ones projected (18125b510) and triangulated (18136f810)"
+  },
+  {
+   "addr": "1818be180",
+   "name": "DmeMesh_FindBaseState",
+   "module": "s2c:models/modeldoc",
+   "note": "base state by name, V_stricmp_fast"
+  },
+  {
+   "addr": "1818b59f0",
+   "name": "DmeModel_FindBaseState",
+   "module": "s2c:models/modeldoc",
+   "note": "the model's base state (transform list) by name"
+  },
+  {
+   "addr": "180cb1b50",
+   "name": "DmeMesh_Field100",
+   "module": "s2c:models/modeldoc",
+   "note": "returns +0x100; DmeMeshToCMesh sets NoCollapse on grouped meshes when > 0 (what it counts is not read)"
+  },
+  {
+   "addr": "183014ae8",
+   "name": "CMesh_PackedLayoutStreamTable",
+   "module": "s2c:models/modeldoc",
+   "note": "data: 31 (name, semantic index, DXGI format) rows CMesh_BuildPackedInputLayout looks up first; texcoord 0/1 R16G16_FLOAT; count table 183014ec0 after"
+  },
+  {
    "addr": "1803447d0",
    "name": "ModelCompile_WeldMesh",
    "module": "s2c:geometry/world-nodes",
