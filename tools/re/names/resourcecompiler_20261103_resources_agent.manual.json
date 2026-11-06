@@ -17,6 +17,30 @@
    "name": "MaterialChild_LogicalCrcSpew_Skip1",
    "module": "s2c:resources/texture",
    "note": "cmovz r9, rsi (file offset 0x10b05c, 4 bytes); NOP it and the je at 18010bd48 (file offset 0x10b148, 6 bytes) and the child-naming function logs its logical-CRC text (tools/re/texture/rc_spew.py; 20261009's file offsets 0x10afbc / 0x10b0a8, moved 0xa0)"
+  },
+  {
+   "addr": "18012e640",
+   "name": "CResourceCompilerSurfaceProperties_Compile",
+   "module": "s2c:resources/containers",
+   "note": "0923 18012e470, the same 452 instructions with relocations masked (ledger 260)"
+  },
+  {
+   "addr": "18012ed50",
+   "name": "SurfaceProperties_MergeBase",
+   "module": "s2c:resources/containers",
+   "note": "0923 18012eb80, the same 537 instructions (ledger 260)"
+  },
+  {
+   "addr": "18012e530",
+   "name": "SurfaceProperties_MergeTable",
+   "module": "s2c:resources/containers",
+   "note": "0923 18012e360, the same 453 instructions (ledger 260)"
+  },
+  {
+   "addr": "18015acf0",
+   "name": "CResourceCompilerVCompMat_Compile",
+   "module": "s2c:resources/containers",
+   "note": "vf11 of the vtable at 1827847b8 (0923 18015aa40) (ledger 261)"
   }
  ]
 }

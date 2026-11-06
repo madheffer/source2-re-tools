@@ -119,6 +119,84 @@
    "name": "Material_RepresentativeTextureSize",
    "module": "s2c:resources/containers",
    "note": "over the attributes: at the one named RepresentativeTexture, its bound texture's size as RepresentativeTextureWidth / Height int attributes (ledger 239)"
+  },
+  {
+   "addr": "18012e470",
+   "name": "CResourceCompilerSurfaceProperties_Compile",
+   "module": "s2c:resources/containers",
+   "note": "vf11: SurfacePropertiesList; 'default' must exist; per entry a new table: base chain merged (18012eb80), the entry merged on top (18012e360, nothing skipped), m_nameHash = token of surfacePropertyName (uint32, 181eb98c0 subtype 0x17) + surface_prop definition (ctx vf2), duplicate names refused, m_baseNameHash; the table replaces the entry; audiosounds values -> soundevent references (ctx vf3) (ledger 260)"
+  },
+  {
+   "addr": "18012eb80",
+   "name": "SurfaceProperties_MergeBase",
+   "module": "s2c:resources/containers",
+   "note": "first list entry named base (V_stricmp_fast), visited set (this+8) refuses a loop, recurses into its own base, then copies its members but 'hidden' (hash 0x244342da) (ledger 260)"
+  },
+  {
+   "addr": "18012e360",
+   "name": "SurfaceProperties_MergeTable",
+   "module": "s2c:resources/containers",
+   "note": "member by member: a table merged (FindOrAdd 181eac8c0, to-table 181eac2d0), anything else set (181eb93b0 find-or-add + copy 181eaaec0); param 3 skips 'hidden' (ledger 260)"
+  },
+  {
+   "addr": "18015aa40",
+   "name": "CResourceCompilerVCompMat_Compile",
+   "module": "s2c:resources/containers",
+   "note": "vf11: refuses no m_Points, then 180159960 and 18015a270 (ledger 261)"
+  },
+  {
+   "addr": "180159960",
+   "name": "VCompMat_StripAndCheck",
+   "module": "s2c:resources/containers",
+   "note": "root m_KVthumbnail removed (181eb7070); per point the 7 preview members (181eb70f0); per procedure: includes and specific container materials must exist in CONTENT, disabled (181eae3f0 default true) input containers and property mutators removed, back to front (ledger 261)"
+  },
+  {
+   "addr": "18015a270",
+   "name": "VCompMat_CompileTextureInputs",
+   "module": "s2c:resources/containers",
+   "note": "per enabled container's loose variable with m_strTextureContentAssetPath: the vtex template with $TEXTURE_REPLACEMENT_TOKEN, child texture '%s_%s_%x.vtex', m_strTextureRuntimeResourcePath; not ported (ledger 261)"
+  },
+  {
+   "addr": "1800f9db0",
+   "name": "CResourceCompilerKV3_CompileResource",
+   "module": "s2c:resources/containers",
+   "note": "LoadKV3, the type's vf11, then 1800f8950, 1800f8b70, 1800f8d90, save DATA, FLCI when vf12 (ledger 262)"
+  },
+  {
+   "addr": "1800f8950",
+   "name": "KV3Compile_FixupResourceNames",
+   "module": "s2c:resources/containers",
+   "note": "every resource / resource_name string through 181c1e960 (FixupResourceName_NoExtension), flag kept; a refused name is 'Bad resource reference' (ledger 262)"
+  },
+  {
+   "addr": "1800f8b70",
+   "name": "KV3Compile_RegisterReferences",
+   "module": "s2c:resources/containers",
+   "note": "flag 4 soundevent -> AddSubassetReference(soundevent, 1); flag 1 resource -> ctx vf0 (strong set +0xd8); flag 2 resource_name -> ctx vf1 (weak set +0xf8) (ledger 262)"
+  },
+  {
+   "addr": "1800f8d90",
+   "name": "KV3Compile_PanoramaImageReferences",
+   "module": "s2c:resources/containers",
+   "note": "flag 3 panorama strings naming images become references; not ported (ledger 262)"
+  },
+  {
+   "addr": "180166b40",
+   "name": "CResourceCompilerContext_AddStrongReference",
+   "module": "s2c:resources/containers",
+   "note": "vf0: hash set keyed by the resource id (ledger 262)"
+  },
+  {
+   "addr": "180166c10",
+   "name": "CResourceCompilerContext_AddWeakReference",
+   "module": "s2c:resources/containers",
+   "note": "vf1: hash set keyed by the resource id; the edit info finalize (18016c650) copies it to m_WeakReferenceList and sorts it with std_sort_ResourceRefs 18017a5a0 (ledger 262)"
+  },
+  {
+   "addr": "180175570",
+   "name": "CResourceCompilerContext_AddSubassetDefinition",
+   "module": "s2c:resources/containers",
+   "note": "vf2: type and name keyed by A-Z folded token; a name listed once, first spelling (ledger 260)"
   }
  ]
 }

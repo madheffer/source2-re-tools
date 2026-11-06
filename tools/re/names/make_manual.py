@@ -3423,6 +3423,19 @@ RESOURCES_AGENT_0923 = [
     ("180c71290", "TGA_Decode", TEX, "types 1/3 (palette or grey), 2 (24 bits 180c70c20, 32 bits 180c70da0), 9 (palette refused), 10, 11; rows bottom-up unless descriptor & 0x20; no other descriptor bit read (ledger 238)"),
     ("180c70da0", "TGA_Row32", TEX, "BGRA to RGBA per pixel, the fourth byte as alpha as it is (ledger 238)"),
     ("18010c660", "Material_RepresentativeTextureSize", RES, "over the attributes: at the one named RepresentativeTexture, its bound texture's size as RepresentativeTextureWidth / Height int attributes (ledger 239)"),
+    ("18012e470", "CResourceCompilerSurfaceProperties_Compile", RES, "vf11: SurfacePropertiesList; 'default' must exist; per entry a new table: base chain merged (18012eb80), the entry merged on top (18012e360, nothing skipped), m_nameHash = token of surfacePropertyName (uint32, 181eb98c0 subtype 0x17) + surface_prop definition (ctx vf2), duplicate names refused, m_baseNameHash; the table replaces the entry; audiosounds values -> soundevent references (ctx vf3) (ledger 260)"),
+    ("18012eb80", "SurfaceProperties_MergeBase", RES, "first list entry named base (V_stricmp_fast), visited set (this+8) refuses a loop, recurses into its own base, then copies its members but 'hidden' (hash 0x244342da) (ledger 260)"),
+    ("18012e360", "SurfaceProperties_MergeTable", RES, "member by member: a table merged (FindOrAdd 181eac8c0, to-table 181eac2d0), anything else set (181eb93b0 find-or-add + copy 181eaaec0); param 3 skips 'hidden' (ledger 260)"),
+    ("18015aa40", "CResourceCompilerVCompMat_Compile", RES, "vf11: refuses no m_Points, then 180159960 and 18015a270 (ledger 261)"),
+    ("180159960", "VCompMat_StripAndCheck", RES, "root m_KVthumbnail removed (181eb7070); per point the 7 preview members (181eb70f0); per procedure: includes and specific container materials must exist in CONTENT, disabled (181eae3f0 default true) input containers and property mutators removed, back to front (ledger 261)"),
+    ("18015a270", "VCompMat_CompileTextureInputs", RES, "per enabled container's loose variable with m_strTextureContentAssetPath: the vtex template with $TEXTURE_REPLACEMENT_TOKEN, child texture '%s_%s_%x.vtex', m_strTextureRuntimeResourcePath; not ported (ledger 261)"),
+    ("1800f9db0", "CResourceCompilerKV3_CompileResource", RES, "LoadKV3, the type's vf11, then 1800f8950, 1800f8b70, 1800f8d90, save DATA, FLCI when vf12 (ledger 262)"),
+    ("1800f8950", "KV3Compile_FixupResourceNames", RES, "every resource / resource_name string through 181c1e960 (FixupResourceName_NoExtension), flag kept; a refused name is 'Bad resource reference' (ledger 262)"),
+    ("1800f8b70", "KV3Compile_RegisterReferences", RES, "flag 4 soundevent -> AddSubassetReference(soundevent, 1); flag 1 resource -> ctx vf0 (strong set +0xd8); flag 2 resource_name -> ctx vf1 (weak set +0xf8) (ledger 262)"),
+    ("1800f8d90", "KV3Compile_PanoramaImageReferences", RES, "flag 3 panorama strings naming images become references; not ported (ledger 262)"),
+    ("180166b40", "CResourceCompilerContext_AddStrongReference", RES, "vf0: hash set keyed by the resource id (ledger 262)"),
+    ("180166c10", "CResourceCompilerContext_AddWeakReference", RES, "vf1: hash set keyed by the resource id; the edit info finalize (18016c650) copies it to m_WeakReferenceList and sorts it with std_sort_ResourceRefs 18017a5a0 (ledger 262)"),
+    ("180175570", "CResourceCompilerContext_AddSubassetDefinition", RES, "vf2: type and name keyed by A-Z folded token; a name listed once, first spelling (ledger 260)"),
 ]
 
 # resourcecompiler 20261103 (the installed 1.41.9.5 build; capstone on tools/re/binaries).
@@ -3430,6 +3443,10 @@ RESOURCES_AGENT_1103 = [
     ("182fecf08", "ImageFormat_NameTable", TEX, "24-byte entries from RGBA8888 (0): 20 DXT1, 23 DXT5, 24 ATI1N, 25 ATI2N, 26 BC6H, 27 BC7, 15 RGBA16161616F, 67 R8_UNORM (new after IMAGE_FORMAT_NV12); a shader's m_outputTextureFormat indexes it (ledger 239)"),
     ("18304f840", "Schema_CVoiceContainerBase_Fields", RES, "m_bRegisteredVMix (+0x10), m_nResourceName (+0x14), m_vSound (+0x30), m_pEnvelopeAnalyzer (+0x70); the first two since the 20261023 build (ledger 237)"),
     ("18010bc5c", "MaterialChild_LogicalCrcSpew_Skip1", TEX, "cmovz r9, rsi (file offset 0x10b05c, 4 bytes); NOP it and the je at 18010bd48 (file offset 0x10b148, 6 bytes) and the child-naming function logs its logical-CRC text (tools/re/texture/rc_spew.py; 20261009's file offsets 0x10afbc / 0x10b0a8, moved 0xa0)"),
+    ("18012e640", "CResourceCompilerSurfaceProperties_Compile", RES, "0923 18012e470, the same 452 instructions with relocations masked (ledger 260)"),
+    ("18012ed50", "SurfaceProperties_MergeBase", RES, "0923 18012eb80, the same 537 instructions (ledger 260)"),
+    ("18012e530", "SurfaceProperties_MergeTable", RES, "0923 18012e360, the same 453 instructions (ledger 260)"),
+    ("18015acf0", "CResourceCompilerVCompMat_Compile", RES, "vf11 of the vtable at 1827847b8 (0923 18015aa40) (ledger 261)"),
 ]
 
 
