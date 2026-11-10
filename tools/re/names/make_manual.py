@@ -2655,6 +2655,10 @@ SMARTPROPS = [
 ]
 
 TIER0 = [
+    ("1800cf320", "KV1ToKV3_SetValueFromText", "s2c:resources/containers", "strtoll(10) end ie, strtod end fe: '' string; 18 chars 0x.. uint64; ie < fe == end and no ERANGE -> double (double)(float)d; ie == end and int32 -> int; else string (ledger 264)"),
+    ("1800cf9c0", "KV1ToKV3_ParseValue", "s2c:resources/containers", "a value token: '{' table (1800ce210), quoted or unquoted text through 1800cf320, 'Expected value after =' (ledger 264)"),
+    ("1800ce210", "KV1ToKV3_ParseTable", "s2c:resources/containers", "'Expected {', members until '}', 'Bad keyname' on { } = (ledger 264)"),
+    ("1800cdce0", "KV1ToKV3_ParseRoot", "s2c:resources/containers", "root key, its table, _root_keyname set when the root has a name (ledger 264)"),
     ("1800d7940", "KV3Text_WriteValue", "s2c:containers", "binary blob (case 6): member over 32 bytes opens line break, #[ at column 1, rows of 32 upper-case pairs, depth + 1 tabs on every row but the first, close line break, depth tabs, ]"),
     ("180050840", "CBlockCompress::FastCompress", "s2c:entities/lump", "export; LZSS: u32 size (bit 31 stored), u16 flags per 16 tokens, literal or u16 ((distance-1)<<4 | length-3), 3..18 bytes, 4096 back; 2048-slot hash of 3 bytes, last position wins; stored once the write reaches size-4 (Compression/BlockCompress.cs)"),
     ("180050ae0", "CBlockCompress::FastDecompress", "s2c:entities/lump", "export; the decoder of 180050840"),
@@ -3432,6 +3436,17 @@ RESOURCES_AGENT_0923 = [
     ("180c71290", "TGA_Decode", TEX, "types 1/3 (palette or grey), 2 (24 bits 180c70c20, 32 bits 180c70da0), 9 (palette refused), 10, 11; rows bottom-up unless descriptor & 0x20; no other descriptor bit read (ledger 238)"),
     ("180c70da0", "TGA_Row32", TEX, "BGRA to RGBA per pixel, the fourth byte as alpha as it is (ledger 238)"),
     ("18010c660", "Material_RepresentativeTextureSize", RES, "over the attributes: at the one named RepresentativeTexture, its bound texture's size as RepresentativeTextureWidth / Height int attributes (ledger 239)"),
+    ("18010f480", "CResourceCompilerMaterial::CompileResourceInternal", RES, "compilematerial.cpp: shader removed from the KV3 root; each member: int -> int param (18010e280), double -> float param (18010e430), ''/'['-string -> vector param (18010e550), else by name attributes/DecalAttributes/SystemAttributes (ints, + float lanes outside SystemAttributes, doubles, vectors, strings), ToolAttributes, dynamicparams; all else skipped (legacy_import); lists sorted by 1801156e0; searchable: nonzero feature combos (181fac660 decode, ctx vf18), shader, then int / float / string attributes; PhysicsSurfaceProperties -> surface_prop subasset ref (ctx vf3) (ledger 264)"),
+    ("18010e280", "Material_TryIntParam", RES, "KV3 type 3 only: a param stored as (float)(int)value (ledger 264)"),
+    ("18010e430", "Material_TryFloatParam", RES, "KV3 type 5 only: four lanes the float value (ledger 264)"),
+    ("18010e550", "Material_TryVectorParam", RES, "type 6 string empty or starting '[' (V_sscanf '[%f %f %f %f]' into zeros) or type 8 array (ledger 264)"),
+    ("18010f200", "Material_ValidateBlocks", RES, "schema check (181f15c80) of the root, dynamicparams and attributes (ledger 264)"),
+    ("1801156e0", "std_sort_MaterialParams", RES, "MSVC std::sort of a material param / attribute list; insertion step 180115f60 compares names with V_stricmp_fast (ledger 264)"),
+    ("18010edf0", "LoadVfxAndFeatureCombo", RES, "opens the shader (181f90140), builds the feature combo record (181fa2f30) (ledger 264)"),
+    ("181fa2f30", "Vfx_BuildFeatureComboRecord", RES, "per program: fixed combos from the feature combo (181fa9b30) and Tool modes (181faa3b0), walks the free static combos (181fa99b0 / 181faa690 / 181faa4b0) checking rules; the walk is not ported (ledger 264)"),
+    ("181faa3b0", "Vfx_PinToolModeCombos", RES, "each mode whose name contains 'Tool' (strstr 18200efc8, string 18274ef4c): its static combo settings are pinned, never walked (ledger 264)"),
+    ("181fac660", "Vfx_DecodeFeatureCombo", RES, "a feature combo id to its per-combo values (ledger 264)"),
+    ("18010aa00", "CResourceCompilerMaterial::ProcessTexture", RES, "child name: the first input, a materials/default/ pick replaced by the next non-default one, a '[' constant by the next image; '%s_%x.%s'; a constant left names it <material>_<variable> (ledger 264)"),
     ("18012e470", "CResourceCompilerSurfaceProperties_Compile", RES, "vf11: SurfacePropertiesList; 'default' must exist; per entry a new table: base chain merged (18012eb80), the entry merged on top (18012e360, nothing skipped), m_nameHash = token of surfacePropertyName (uint32, 181eb98c0 subtype 0x17) + surface_prop definition (ctx vf2), duplicate names refused, m_baseNameHash; the table replaces the entry; audiosounds values -> soundevent references (ctx vf3) (ledger 260)"),
     ("18012eb80", "SurfaceProperties_MergeBase", RES, "first list entry named base (V_stricmp_fast), visited set (this+8) refuses a loop, recurses into its own base, then copies its members but 'hidden' (hash 0x244342da) (ledger 260)"),
     ("18012e360", "SurfaceProperties_MergeTable", RES, "member by member: a table merged (FindOrAdd 181eac8c0, to-table 181eac2d0), anything else set (181eb93b0 find-or-add + copy 181eaaec0); param 3 skips 'hidden' (ledger 260)"),

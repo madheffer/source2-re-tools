@@ -1,6 +1,30 @@
 {
  "functions": [
   {
+   "addr": "1800cf320",
+   "name": "KV1ToKV3_SetValueFromText",
+   "module": "s2c:resources/containers",
+   "note": "strtoll(10) end ie, strtod end fe: '' string; 18 chars 0x.. uint64; ie < fe == end and no ERANGE -> double (double)(float)d; ie == end and int32 -> int; else string (ledger 264)"
+  },
+  {
+   "addr": "1800cf9c0",
+   "name": "KV1ToKV3_ParseValue",
+   "module": "s2c:resources/containers",
+   "note": "a value token: '{' table (1800ce210), quoted or unquoted text through 1800cf320, 'Expected value after =' (ledger 264)"
+  },
+  {
+   "addr": "1800ce210",
+   "name": "KV1ToKV3_ParseTable",
+   "module": "s2c:resources/containers",
+   "note": "'Expected {', members until '}', 'Bad keyname' on { } = (ledger 264)"
+  },
+  {
+   "addr": "1800cdce0",
+   "name": "KV1ToKV3_ParseRoot",
+   "module": "s2c:resources/containers",
+   "note": "root key, its table, _root_keyname set when the root has a name (ledger 264)"
+  },
+  {
    "addr": "1800d7940",
    "name": "KV3Text_WriteValue",
    "module": "s2c:containers",

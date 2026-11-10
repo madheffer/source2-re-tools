@@ -121,6 +121,72 @@
    "note": "over the attributes: at the one named RepresentativeTexture, its bound texture's size as RepresentativeTextureWidth / Height int attributes (ledger 239)"
   },
   {
+   "addr": "18010f480",
+   "name": "CResourceCompilerMaterial::CompileResourceInternal",
+   "module": "s2c:resources/containers",
+   "note": "compilematerial.cpp: shader removed from the KV3 root; each member: int -> int param (18010e280), double -> float param (18010e430), ''/'['-string -> vector param (18010e550), else by name attributes/DecalAttributes/SystemAttributes (ints, + float lanes outside SystemAttributes, doubles, vectors, strings), ToolAttributes, dynamicparams; all else skipped (legacy_import); lists sorted by 1801156e0; searchable: nonzero feature combos (181fac660 decode, ctx vf18), shader, then int / float / string attributes; PhysicsSurfaceProperties -> surface_prop subasset ref (ctx vf3) (ledger 264)"
+  },
+  {
+   "addr": "18010e280",
+   "name": "Material_TryIntParam",
+   "module": "s2c:resources/containers",
+   "note": "KV3 type 3 only: a param stored as (float)(int)value (ledger 264)"
+  },
+  {
+   "addr": "18010e430",
+   "name": "Material_TryFloatParam",
+   "module": "s2c:resources/containers",
+   "note": "KV3 type 5 only: four lanes the float value (ledger 264)"
+  },
+  {
+   "addr": "18010e550",
+   "name": "Material_TryVectorParam",
+   "module": "s2c:resources/containers",
+   "note": "type 6 string empty or starting '[' (V_sscanf '[%f %f %f %f]' into zeros) or type 8 array (ledger 264)"
+  },
+  {
+   "addr": "18010f200",
+   "name": "Material_ValidateBlocks",
+   "module": "s2c:resources/containers",
+   "note": "schema check (181f15c80) of the root, dynamicparams and attributes (ledger 264)"
+  },
+  {
+   "addr": "1801156e0",
+   "name": "std_sort_MaterialParams",
+   "module": "s2c:resources/containers",
+   "note": "MSVC std::sort of a material param / attribute list; insertion step 180115f60 compares names with V_stricmp_fast (ledger 264)"
+  },
+  {
+   "addr": "18010edf0",
+   "name": "LoadVfxAndFeatureCombo",
+   "module": "s2c:resources/containers",
+   "note": "opens the shader (181f90140), builds the feature combo record (181fa2f30) (ledger 264)"
+  },
+  {
+   "addr": "181fa2f30",
+   "name": "Vfx_BuildFeatureComboRecord",
+   "module": "s2c:resources/containers",
+   "note": "per program: fixed combos from the feature combo (181fa9b30) and Tool modes (181faa3b0), walks the free static combos (181fa99b0 / 181faa690 / 181faa4b0) checking rules; the walk is not ported (ledger 264)"
+  },
+  {
+   "addr": "181faa3b0",
+   "name": "Vfx_PinToolModeCombos",
+   "module": "s2c:resources/containers",
+   "note": "each mode whose name contains 'Tool' (strstr 18200efc8, string 18274ef4c): its static combo settings are pinned, never walked (ledger 264)"
+  },
+  {
+   "addr": "181fac660",
+   "name": "Vfx_DecodeFeatureCombo",
+   "module": "s2c:resources/containers",
+   "note": "a feature combo id to its per-combo values (ledger 264)"
+  },
+  {
+   "addr": "18010aa00",
+   "name": "CResourceCompilerMaterial::ProcessTexture",
+   "module": "s2c:resources/containers",
+   "note": "child name: the first input, a materials/default/ pick replaced by the next non-default one, a '[' constant by the next image; '%s_%x.%s'; a constant left names it <material>_<variable> (ledger 264)"
+  },
+  {
    "addr": "18012e470",
    "name": "CResourceCompilerSurfaceProperties_Compile",
    "module": "s2c:resources/containers",

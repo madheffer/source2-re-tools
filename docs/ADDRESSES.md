@@ -2024,7 +2024,7 @@ names (asserts, RTTI, log strings; tens of thousands per DLL) are in
 | address | name | what | cited in |
 |---|---|---|---|
 | `1800ca280` | `MurmurHash2_AsciiLower` | MurmurHash2 folding A-Z; the KV3 member name hash |  |
-| `180175420` | `CResourceCompilerContext::AddSubassetReference` | vf3: table[type][name] += count, members keyed by the A-Z folded hash | `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:208`, `src/Source2.Compiler/Containers/Kv3References.cs:15`, `src/Source2.Compiler/Physics/WorldPhysics.cs:283` |
+| `180175420` | `CResourceCompilerContext::AddSubassetReference` | vf3: table[type][name] += count, members keyed by the A-Z folded hash | `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:208`, `src/Source2.Compiler/Containers/Kv3References.cs:15`, `src/Source2.Compiler/Materials/MaterialCompiler.cs:292` +1 |
 | `180311fd0` | `ModelDoc_CompilePhysicsWithInstance` | builds a CModelDocCompileInstance on the stack (symbol tables +0x458/+0x4b8/+0x518 case-sensitive), calls CompilePhysics |  |
 | `18032e3e0` | `CModelDocCompileInstance::CompilePhysics` | a model's physics, world_physics.vmdl included; RED2 surface_prop = symbol table +0x458, filled at 18032ebd0 from each part's shapes' +0xf0 in order (capture_surfaceprops.py) |  |
 | `1814c70f0` | `PhysConv_AddCapsule` | deformer: 1819d61d0 into a mesh node | `src/Source2.Compiler/Physics/StaticPropHulls.cs:249` |
@@ -2280,7 +2280,7 @@ names (asserts, RTTI, log strings; tens of thousands per DLL) are in
 ## resourcecompiler_20260923_resources.dll, build agent
 
 - file: not found locally
-- 33 addresses
+- 44 addresses
 
 ### s2c:resources/containers
 
@@ -2290,7 +2290,15 @@ names (asserts, RTTI, log strings; tens of thousands per DLL) are in
 | `1800f8b70` | `KV3Compile_RegisterReferences` | flag 4 soundevent -> AddSubassetReference(soundevent, 1); flag 1 resource -> ctx vf0 (strong set +0xd8); flag 2 resource_name -> ctx vf1 (weak set +0xf8) (ledger 262) | `src/Source2.Compiler/Containers/Kv3References.cs:14` |
 | `1800f8d90` | `KV3Compile_PanoramaImageReferences` | flag 3 panorama strings naming images become references; not ported (ledger 262) | `src/Source2.Compiler/Containers/Kv3References.cs:18`, `src/Source2.Compiler/Containers/Kv3References.cs:80` |
 | `1800f9db0` | `CResourceCompilerKV3_CompileResource` | LoadKV3, the type's vf11, then 1800f8950, 1800f8b70, 1800f8d90, save DATA, FLCI when vf12 (ledger 262) | `src/Source2.Compiler/Containers/Kv3References.cs:7` |
-| `18010c660` | `Material_RepresentativeTextureSize` | over the attributes: at the one named RepresentativeTexture, its bound texture's size as RepresentativeTextureWidth / Height int attributes (ledger 239) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:84` |
+| `18010aa00` | `CResourceCompilerMaterial::ProcessTexture` | child name: the first input, a materials/default/ pick replaced by the next non-default one, a '[' constant by the next image; '%s_%x.%s'; a constant left names it <material>_<variable> (ledger 264) | `src/Source2.Compiler/Materials/GeneratedTexture.cs:106` |
+| `18010c660` | `Material_RepresentativeTextureSize` | over the attributes: at the one named RepresentativeTexture, its bound texture's size as RepresentativeTextureWidth / Height int attributes (ledger 239) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:84`, `src/Source2.Compiler/Materials/MaterialCompiler.cs:139` |
+| `18010e280` | `Material_TryIntParam` | KV3 type 3 only: a param stored as (float)(int)value (ledger 264) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:212`, `src/Source2.Compiler/Materials/VmatSource.cs:14`, `src/Source2.Compiler/Materials/VmatSource.cs:76` |
+| `18010e430` | `Material_TryFloatParam` | KV3 type 5 only: four lanes the float value (ledger 264) | `src/Source2.Compiler/Materials/VmatSource.cs:15`, `src/Source2.Compiler/Materials/VmatSource.cs:78` |
+| `18010e550` | `Material_TryVectorParam` | type 6 string empty or starting '[' (V_sscanf '[%f %f %f %f]' into zeros) or type 8 array (ledger 264) | `src/Source2.Compiler/Materials/VmatSource.cs:15`, `src/Source2.Compiler/Materials/VmatSource.cs:78`, `src/Source2.Compiler/Materials/VmatSource.cs:242` |
+| `18010edf0` | `LoadVfxAndFeatureCombo` | opens the shader (181f90140), builds the feature combo record (181fa2f30) (ledger 264) |  |
+| `18010f200` | `Material_ValidateBlocks` | schema check (181f15c80) of the root, dynamicparams and attributes (ledger 264) |  |
+| `18010f480` | `CResourceCompilerMaterial::CompileResourceInternal` | compilematerial.cpp: shader removed from the KV3 root; each member: int -> int param (18010e280), double -> float param (18010e430), ''/'['-string -> vector param (18010e550), else by name attributes/DecalAttributes/SystemAttributes (ints, + float lanes outside SystemAttributes, doubles, vectors, strings), ToolAttributes, dynamicparams; all else skipped (legacy_import); lists sorted by 1801156e0; searchable: nonzero feature combos (181fac660 decode, ctx vf18), shader, then int / float / string attributes; PhysicsSurfaceProperties -> surface_prop subasset ref (ctx vf3) (ledger 264) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:115`, `src/Source2.Compiler/Materials/MaterialCompiler.cs:291`, `src/Source2.Compiler/Materials/MaterialCompiler.cs:387` +4 |
+| `1801156e0` | `std_sort_MaterialParams` | MSVC std::sort of a material param / attribute list; insertion step 180115f60 compares names with V_stricmp_fast (ledger 264) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:117` |
 | `18012e360` | `SurfaceProperties_MergeTable` | member by member: a table merged (FindOrAdd 181eac8c0, to-table 181eac2d0), anything else set (181eb93b0 find-or-add + copy 181eaaec0); param 3 skips 'hidden' (ledger 260) | `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:8`, `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:14`, `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:109` |
 | `18012e470` | `CResourceCompilerSurfaceProperties_Compile` | vf11: SurfacePropertiesList; 'default' must exist; per entry a new table: base chain merged (18012eb80), the entry merged on top (18012e360, nothing skipped), m_nameHash = token of surfacePropertyName (uint32, 181eb98c0 subtype 0x17) + surface_prop definition (ctx vf2), duplicate names refused, m_baseNameHash; the table replaces the entry; audiosounds values -> soundevent references (ctx vf3) (ledger 260) | `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:7` |
 | `18012eb80` | `SurfaceProperties_MergeBase` | first list entry named base (V_stricmp_fast), visited set (this+8) refuses a loop, recurses into its own base, then copies its members but 'hidden' (hash 0x244342da) (ledger 260) | `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:8`, `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:13`, `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:94` |
@@ -2303,6 +2311,9 @@ names (asserts, RTTI, log strings; tens of thousands per DLL) are in
 | `18016dd80` | `Red2_FinalizeAndSort` | MSVC std::sort of each RED2 list (18017a780, 18017a9c0, 18017abe0, 18017ae90, 18017b0a0, 18017a5a0) and of the three searchable tables' members (181ebae60), then Red2_WriteBlock 181c24a70; every comparator V_stricmp_fast (ledger 235) | `src/Source2.Compiler/Containers/EditInfo.cs:31` |
 | `180175570` | `CResourceCompilerContext_AddSubassetDefinition` | vf2: type and name keyed by A-Z folded token; a name listed once, first spelling (ledger 260) | `src/Source2.Compiler/Compiling/SurfacePropertiesCompile.cs:207` |
 | `181ebae60` | `KV3_SortTableMembers` | a table (type 9) only: 181ea5d30 sorts its member index by std::sort 181ea6ae0 with V_stricmp_fast on the names (ledger 235) | `src/Source2.Compiler/Containers/EditInfo.cs:33` |
+| `181fa2f30` | `Vfx_BuildFeatureComboRecord` | per program: fixed combos from the feature combo (181fa9b30) and Tool modes (181faa3b0), walks the free static combos (181fa99b0 / 181faa690 / 181faa4b0) checking rules; the walk is not ported (ledger 264) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:356` |
+| `181faa3b0` | `Vfx_PinToolModeCombos` | each mode whose name contains 'Tool' (strstr 18200efc8, string 18274ef4c): its static combo settings are pinned, never walked (ledger 264) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:357` |
+| `181fac660` | `Vfx_DecodeFeatureCombo` | a feature combo id to its per-combo values (ledger 264) | `src/Source2.Compiler/Materials/MaterialCompiler.cs:387` |
 
 ### s2c:resources/texture
 
@@ -2754,7 +2765,7 @@ names (asserts, RTTI, log strings; tens of thousands per DLL) are in
 - SHA-256 `4e0dcb0af3f6953f37ddaed0f4e67a56d031f1e84964a262148f8a6f80547791`
 - installed: a different build
 - against the installed build (20261105_1.41.9.6.md): 69 tracked addresses: changed 9, identical 32, missing 1, moved 22, relocated 5
-- 54 addresses
+- 58 addresses
 
 ### s2c:baked/bomb
 
@@ -2834,6 +2845,15 @@ names (asserts, RTTI, log strings; tens of thousands per DLL) are in
 | `1802e80c0` | `tanf_fma3` | code label: the FMA3 path, entered by a jcc from tanf | `src/Source2.Compiler/Maps/LightCrt.cs:23` |
 | `18033e3e0` | `Crt_TwoToJOver64` | data: 2^(j/64), j = 0..63 | `src/Source2.Compiler/Simulation/CrtMath.cs:343` |
 | `1803ab28c` | `Crt_Fma3Flag` | data: CPU flag selecting the FMA3 libm paths |  |
+
+### s2c:resources/containers
+
+| address | name | what | cited in |
+|---|---|---|---|
+| `1800cdce0` | `KV1ToKV3_ParseRoot` | root key, its table, _root_keyname set when the root has a name (ledger 264) | `src/Source2.Compiler/Materials/VmatSource.cs:293` |
+| `1800ce210` | `KV1ToKV3_ParseTable` | 'Expected {', members until '}', 'Bad keyname' on { } = (ledger 264) | `src/Source2.Compiler/Materials/VmatSource.cs:294` |
+| `1800cf320` | `KV1ToKV3_SetValueFromText` | strtoll(10) end ie, strtod end fe: '' string; 18 chars 0x.. uint64; ie < fe == end and no ERANGE -> double (double)(float)d; ie == end and int32 -> int; else string (ledger 264) | `src/Source2.Compiler/Materials/VmatSource.cs:12`, `src/Source2.Compiler/Materials/VmatSource.cs:108`, `src/Source2.Compiler/Materials/VmatSource.cs:123` |
+| `1800cf9c0` | `KV1ToKV3_ParseValue` | a value token: '{' table (1800ce210), quoted or unquoted text through 1800cf320, 'Expected value after =' (ledger 264) | `src/Source2.Compiler/Materials/VmatSource.cs:293` |
 
 ## tier0.dll, build 20261015
 
