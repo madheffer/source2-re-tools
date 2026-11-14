@@ -59,6 +59,19 @@ function block(b) {
   for (let i = 0; i < 12; i++) keys.push(b.add(i * 4).readU32().toString(16) + '=' + b.add(0x30 + i * 4).readU32().toString(16));
   return {keys: keys, chain: b.add(0x68).readPointer().toString(), parent: b.add(0x60).readPointer().toString()};
 }
+// Where each entry key sits: the block at b and its chain (+0x68), up to 64 blocks, as "link:slot=value".
+function locate(b) {
+  const at = {};
+  for (let link = 0; link < 64 && !b.isNull(); link++) {
+    for (let i = 0; i < 12; i++) {
+      const k = b.add(i * 4).readU32();
+      for (const [name, key] of Object.entries(KEYS))
+        if (k === key && !(name in at)) at[name] = link + ':' + i + '=' + b.add(0x30 + i * 4).readU32().toString(16);
+    }
+    b = b.add(0x68).readPointer();
+  }
+  return at;
+}
 function attrs(t) {
   const out = {};
   try {
@@ -72,9 +85,14 @@ function attrs(t) {
       out[name] = {found: found, value: box.readU8()};
     }
     out.block = block(t.add(0x180));
+    out.own = locate(t.add(0x180));
     const parent = t.add(0x1e0).readPointer();
     out.parentAt = where(parent);
-    if (!parent.isNull()) { out.parent = block(parent); out.parentHead = hex(parent, 0x80); }
+    if (!parent.isNull()) { out.parent = block(parent); out.parentHead = hex(parent, 0x80); out.inParent = locate(parent); }
+    // The refcounted object CMaterial2's constructor (18003abf0) stores at +0x60 (its fifth argument).
+    const owner = t.add(0x60).readPointer();
+    out.owner = where(owner);
+    if (!owner.isNull()) { out.ownerVtable = where(owner.readPointer()); out.ownerStrings = strings(owner).slice(0, 12); }
   } catch (err) { out.err = String(err); }
   return out;
 }
@@ -118,7 +136,7 @@ function hook() {
             r.targetHead = hex(t, 0x80);
             r.targetStrings = strings(t);
             r.attrs = attrs(t);
-            if (pending.length < 16) pending.push({name: this.names[i] || this.names[0], handle: h});
+            if (pending.length < %(pending)d) pending.push({name: this.names[i] || this.names[0], handle: h});
           } catch (err) { r.err = String(err); }
         }
         e.handles.push(r);
@@ -143,6 +161,9 @@ def main():
     p.add_argument("map")
     p.add_argument("--match", default="teleport|error")
     p.add_argument("--out")
+    p.add_argument("--flags-rva", type=lambda x: int(x, 16),
+                   help="WRB_MeshEntryFlags in the installed build when rva_map refuses it (1.41.9.7: 253940, only __LINE__ 0x248 -> 0x228 differs)")
+    p.add_argument("--pending", type=int, default=16, help="handles re-read after every WRB_MeshEntryFlags")
     a = p.parse_args()
     if running("cs2.exe"):
         raise SystemExit("CS2 is running; not starting")
@@ -150,7 +171,7 @@ def main():
         raise SystemExit("another resourcecompiler is running; not starting")
     if shutil.disk_usage(os.path.splitdrive(CS2)[0] + "\\").free < 10 * 1024 ** 3:
         raise SystemExit("under 10 GB free on the game drive; not starting")
-    rvas = {"load": installed("resourcecompiler", 0x1d4dc0), "flags": installed("resourcecompiler", 0x252ae0), "match": json.dumps(a.match)}
+    rvas = {"load": installed("resourcecompiler", 0x1d4dc0), "flags": a.flags_rva or installed("resourcecompiler", 0x252ae0), "match": json.dumps(a.match), "pending": a.pending}
     out_path = a.out or os.path.join(os.environ.get("TEMP", "."), "missingmaterial_capture", a.map + ".jsonl")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     vpk = os.path.join(CS2, "game", "csgo_addons", a.addon, "maps", a.map + ".vpk")
