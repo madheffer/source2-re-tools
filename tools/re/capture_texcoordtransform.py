@@ -108,6 +108,7 @@ def main():
     p.add_argument("addon")
     p.add_argument("map")
     p.add_argument("--out")
+    p.add_argument("--shift", type=lambda x: int(x, 0), default=0, help="added to every hook RVA: the installed build minus 20261103 (1.41.9.7: -0xe0, ConvertMeshForBuilder moved)")
     a = p.parse_args(argv)
     if running("cs2.exe") or running("resourcecompiler.exe"):
         raise SystemExit("CS2 or a compile is running; not starting")
@@ -139,7 +140,7 @@ def main():
     dev = frida.get_local_device()
     pid = dev.spawn(cmd, cwd=BIN, stdio="pipe")
     ses = dev.attach(pid)
-    sc = ses.create_script(AGENT % {"transform": AFTER_TRANSFORM_RVA, "flag": AFTER_FLAG_RVA, "handle": HANDLE_RVA})
+    sc = ses.create_script(AGENT % {"transform": AFTER_TRANSFORM_RVA + a.shift, "flag": AFTER_FLAG_RVA + a.shift, "handle": HANDLE_RVA + a.shift})
     sc.on("message", on_message)
     sc.load()
     done = threading.Event()
