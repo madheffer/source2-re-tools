@@ -1846,7 +1846,25 @@
    "addr": "180255b90",
    "name": "WRBNode_AddStaticProps",
    "module": "s2c:geometry/world-nodes",
-   "note": "props of node +0x198 baked into entries unless clutterinstance: baketoworld, materialoverride (+0x40), a deformer (+0x80), +0x17c with the node's flag, non-uniform scale (max |s| - min |s| > 0.0001, BakePropsWithNonUniformScale) or extra vertex streams (BakePropsWithExtraVertexStreams); instances walked last to first"
+   "note": "props of node +0x198 baked into entries unless clutterinstance: baketoworld, materialoverride (+0x40), a deformer (+0x80), +0x17c with the node's flag, non-uniform scale (max |s| - min |s| > 0.0001, BakePropsWithNonUniformScale) or extra vertex streams (BakePropsWithExtraVertexStreams); instances walked last to first; afterwards every entry with +0x1a0, no placement bit 0x10, no attribute 2 and a CMesh with LOD switch distances (+0x40) gains 0x2002 (the agg_prop list); renderwithdynamic adds 2|4 (ledger 306)"
+  },
+  {
+   "addr": "18122d020",
+   "name": "SmartProp_PartKeys",
+   "module": "s2c:geometry/world-nodes",
+   "note": "a smart prop part's prop_static key table from the CMapSmartProp node (+0x658 alpha, +0x65c cull, +0x660 fade start, +0x670 disableShadows, +0x674 bakedLigthtingMode, +0x69b bakeToWorld ...) and the part's tint and KV (castShadows, lodlevel -1) (ledger 306)"
+  },
+  {
+   "addr": "1810a3e00",
+   "name": "CMapSmartProp_RegisterProperties",
+   "module": "s2c:geometry/world-nodes",
+   "note": "the node's .vmap attributes with getters and setters (field offsets); tintColor's key rendercolor (ledger 306)"
+  },
+  {
+   "addr": "1810994f0",
+   "name": "CMapSmartProp_Ctor",
+   "module": "s2c:geometry/world-nodes",
+   "note": "defaults: alpha 255, fade start -1, bakedLigthtingMode -1, emissive 1, boost 1, emissive_mode 0, collisionMode -1, renderToCubeMaps 1 (ledger 306)"
   },
   {
    "addr": "1802b4ab0",
@@ -1948,7 +1966,7 @@
    "addr": "1801d30d0",
    "name": "WRB_LoadPropMeshes",
    "module": "s2c:geometry/world-nodes",
-   "note": "a model's draw calls as CMeshes of 18 floats a vertex (position, normal, tangent, texcoord, color, texcoord) plus the extra fields; vertices from the resource system's geometry info (vf 0xf0), unpacked there; the color stream renamed by the colour field's shader semantic or the material's attribute (1801d3050) when the material has a signature, extras named the same way, typed 0x22 (DXGI 0x2a/0x2b) or by component count (ledger 243)"
+   "note": "a model's draw calls as CMeshes of 18 floats a vertex (position, normal, tangent, texcoord, color, texcoord) plus the extra fields; vertices from the resource system's geometry info (vf 0xf0), unpacked there; the color stream renamed by the colour field's shader semantic or the material's attribute (1801d3050) when the material has a signature, extras named the same way, typed 0x22 (DXGI 0x2a/0x2b) or by component count (ledger 243); with LOD -1 copies the model's switch distances (+0xb8) into CMesh +0x40, the mesh LOD mask into +0x58; texcoord / tangent streams high precision from the draw record's +0x66 / +0x67 (ledger 306)"
   },
   {
    "addr": "1812d7510",

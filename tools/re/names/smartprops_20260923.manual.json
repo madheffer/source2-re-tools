@@ -25,6 +25,24 @@
    "note": "each enabled modifier; false when a filter stops the element"
   },
   {
+   "addr": "18001aae0",
+   "name": "CSmartPropOperation_SetTintColor_Apply",
+   "module": "s2c:smartprops",
+   "note": "selection RANDOM 0 / FIRST 1 / SPECIFIC 2; mode MULTIPLY_OBJECT 0 (+0x190) / MULTIPLY_CURRENT 1 (+0x120) / REPLACE 2; (a * b + 0x7f) / 0xff per channel (ledger 306)"
+  },
+  {
+   "addr": "18005dcf2",
+   "name": "CSmartPropOperation_SetTintColor_Ctor",
+   "module": "s2c:smartprops",
+   "note": "m_SelectionMode and m_Mode literal 0 (ledger 306)"
+  },
+  {
+   "addr": "18000eb00",
+   "name": "SmartProp_EvaluateStart",
+   "module": "s2c:smartprops",
+   "note": "object and current tint (+0x190, +0x120) set to the node's tint (ledger 306)"
+  },
+  {
    "addr": "18000f320",
    "name": "SmartProp_EvaluateChild",
    "module": "s2c:smartprops",
