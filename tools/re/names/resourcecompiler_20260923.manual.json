@@ -976,7 +976,7 @@
    "addr": "1810bbc40",
    "name": "Tube_Ring",
    "module": "s2c:physics/world",
-   "note": "s = normalise(N x T); point j = ((sin s) r + (cos N) h) + centre for j in 0..sides (j % sides); normals, tangents, texcoords, tint"
+   "note": "s = normalise(N x T); point j = ((sin s) r + (cos N) h) + centre for j in 0..sides (j % sides); normals, tangents, texcoords, tint; tangent (list 6): orientation 0 the path direction T, else the unnormalised ring normal x T, times a sign; w from orientation, textureScale < 0, textureRepeatsCircumference < 0, flipFaces (ledger 315)"
   },
   {
    "addr": "1810be5b0",
@@ -1012,7 +1012,31 @@
    "addr": "18023ce80",
    "name": "EntityModel_Build",
    "module": "s2c:mapbuilder",
-   "note": "an entity's model in the map compile: its keys, then each node's meshes (180209e20)"
+   "note": "an entity's model in the map compile: its keys, then each node's meshes (180209e20); with a skin list (vf 0x1a0) a MaterialGroupList, group \"%i\" from 1 remapping skin 0 to skin i (ledger 315)"
+  },
+  {
+   "addr": "18114d400",
+   "name": "CMapCable_Skins",
+   "module": "s2c:physics/world",
+   "note": "vf220: cable_dynamic with a non-empty secondary_material: [materialName (+0x1868), secondary_material] (ledger 315)"
+  },
+  {
+   "addr": "180f7a660",
+   "name": "MapNode_ExportChildren",
+   "module": "s2c:physics/world",
+   "note": "vf201: the visible children (+0x370) and their subtrees by 180f86e70 (flags 0x20, mode 1), each one's vf200 export records unserialised into the list (MapMeshBuffer_Unserialize) (ledger 315)"
+  },
+  {
+   "addr": "1810b7af0",
+   "name": "BuilderRecord_Add",
+   "module": "s2c:physics/world",
+   "note": "a 0xf0 builder record: +0x58 tint -1, +0x5c/+0x60 0, +0x6c 0, +0x6d 1, +0x6e 1, +0x78 1.0, +0x7c 1, +0x84 1.0, +0x88 -1 (ledger 315)"
+  },
+  {
+   "addr": "181003440",
+   "name": "CMapEntity::vf116",
+   "module": "s2c:physics/world",
+   "note": "the class has has_static_mesh (180dd2210) or 180dd2630's metadata"
   },
   {
    "addr": "180d7f9c0",
