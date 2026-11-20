@@ -1,6 +1,6 @@
 # IVP's contacts: the friction system, its contact points, the impacts (CS:GO legacy vphysics.dll, 2026-11-17)
 
-**CS:GO legacy, not CS2** (ze_crazykart's karts, docs/CRAZYKART.md; the free body is crazykart-physics.md 8-11).
+**CS:GO legacy, not CS2** (ze_crazykart's karts, cs2web's docs/CRAZYKART.md; the free body is crazykart-physics.md 8-11).
 vphysics.dll md5 d97cf2194594d7545427cdabc7376db4, Ghidra `/csgo_vphysics_legacy.dll`. All SSE scalar single
 unless said; the sum orders are in the Rust (sim/src/ivp/contact.rs, friction.rs, friction_energy.rs), transcribed
 from the disassembly (float add and multiply are commutative bit for bit, so only the grouping matters, and the

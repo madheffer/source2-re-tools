@@ -1,6 +1,6 @@
 # CS:GO legacy IVP: the impact system and the kart on the ground, end to end (vphysics.dll, 32-bit, 2026-11-17)
 
-**CS:GO legacy, not CS2** (ze_crazykart's karts, docs/CRAZYKART.md). vphysics.dll md5 d97cf2194594d7545427cdabc7376db4,
+**CS:GO legacy, not CS2** (ze_crazykart's karts, cs2web's docs/CRAZYKART.md). vphysics.dll md5 d97cf2194594d7545427cdabc7376db4,
 Ghidra `/csgo_vphysics_legacy.dll`, capstone. The joint between collision detection (ivp-mindist.md: the mindist's time
 event up to do_impact) and the contacts (ivp-contacts.md: the friction system, its solves, the impact solver
 0x1008b0e0): everything a mindist's impact does, the friction system's life on the world, its controllers inside the

@@ -1,35 +1,45 @@
-# math_counter (CMathCounter), traced 2026-11-17
+# math_counter (CMathCounter)
 
-server_20261112.dll (source2-compiler tools/re/binaries), read with tools/re inputs.py / schema.py / fieldwrites.py /
-disasm.py. Port: web/src/world/entities/classes/logic.js `math_counter`, test math-counter-test.mjs beside it.
+server_20261112 (read with tools/re inputs.py / schema.py / fieldwrites.py / disasm.py).
 
-## Fields (schema)
+## Functions
 
-| field | offset |
+| Address | Module | What |
+|---|---|---|
+| 0x180df8ab0 | server | input Add |
+| 0x180df95c0 | server | input Divide |
+| 0x180df9820 | server | input Multiply |
+| 0x180df9cc0 | server | input SetValue |
+| 0x180dfa130 | server | input SetValueNoFire: with a range (min or max not 0) clamps, then m_OutValue's Init; no output, latches untouched |
+| 0x180dfa4d0 | server | input Subtract: m_OutValue (+0x4d0) - the parameter (subss), then UpdateOutValue |
+| 0x180dfaa20 | server | input SetHitMax |
+| 0x180dfade0 | server | input SetHitMin |
+| 0x180dfb1a0 | server | input GetValue |
+| 0x180dfb4f0 | server | input Enable |
+| 0x180dfb760 | server | input Disable |
+| 0x180e36d10 | server | UpdateOutValue (this, activator, float value) |
+| 0x18017b220 | server | clamp (&v, &min, &max) |
+| 0x180e241e0 | server | m_OutValue's Init (no output) |
+| 0x180bbc480 | server | m_OutValue.Set (fires OutValue) |
+
+Every input checks m_bDisabled (+0x4b2) first: set, a console warning and nothing changes.
+
+## Fields
+
+| Offset | Field |
 |---|---|
-| m_flMin | +0x4a8 |
-| m_flMax | +0x4ac |
-| m_bHitMin | +0x4b0 |
-| m_bHitMax | +0x4b1 |
-| m_bDisabled | +0x4b2 |
-| m_OutValue | +0x4b8 (its stored float at +0x4d0) |
-| m_OnHitMin / m_OnHitMax | +0x4f8 / +0x510 (the outputs UpdateOutValue fires) |
-| m_OnChangedFromMin / Max | +0x528 / +0x540 |
+| +0x4a8 | m_flMin |
+| +0x4ac | m_flMax |
+| +0x4b0 | m_bHitMin |
+| +0x4b1 | m_bHitMax |
+| +0x4b2 | m_bDisabled |
+| +0x4b8 | m_OutValue (its stored float at +0x4d0) |
+| +0x4f8 / +0x510 | m_OnHitMin / m_OnHitMax |
+| +0x528 / +0x540 | m_OnChangedFromMin / m_OnChangedFromMax |
 
-The only byte stores to +0x4b0 / +0x4b1 in the class's code are UpdateOutValue's below: the latches are false from
-construction (no Spawn sets them).
+The only byte stores to +0x4b0 / +0x4b1 are UpdateOutValue's: the latches are false from construction (no Spawn sets them).
 
-## Inputs (inputs.py: the CMathCounter_API bindings)
-
-Add 0x180df8ab0, Divide 0x180df95c0, Multiply 0x180df9820, SetValue 0x180df9cc0, SetValueNoFire 0x180dfa130,
-Subtract 0x180dfa4d0, SetHitMax 0x180dfaa20, SetHitMin 0x180dfade0, GetValue 0x180dfb1a0, Enable 0x180dfb4f0,
-Disable 0x180dfb760. Each checks m_bDisabled (+0x4b2) first (set: a console warning, nothing changes). Subtract:
-m_OutValue (+0x4d0) - the parameter (subss), then UpdateOutValue.
-
-**SetValueNoFire** (0x180dfa130): with a range (min or max not 0) the value clamped (0x18017b220 (&v, &min, &max)),
-then m_OutValue's Init (0x180e241e0): no output, the latches untouched.
-
-## UpdateOutValue 0x180e36d10 (this, activator, float value)
+## UpdateOutValue (0x180e36d10)
 
 ```
 if (min != 0 || max != 0) {                      // ucomiss against 0, both
@@ -42,16 +52,12 @@ if (min != 0 || max != 0) {                      // ucomiss against 0, both
 m_OutValue.Set(value, activator, this);          // 0x180bbc480: OutValue
 ```
 
-The limit tests take the unclamped value; OnChangedFrom* compares the value stored before this update (not the
-latch); the limit outputs fire before OutValue. What it fixed: our counter fired OnHitMin only when the value came
-from above the min, so a counter starting on its min and set to it never did. ze_dark_souls' case picker sets
-FCS_Spawn_Floor_Count_Counter (min 0, start 0) to 0..5; on 0 its OnUser1 loop (ForceSpawn FCS_Maker, Subtract 1,
-FireUser1 itself 0.1 s on) never met OnHitMin's Kill, and spawned a func_button, an info_particle_system and a
-filter every 0.1 s for the rest of the round (5400 entities and growing ~90 a second).
+- The limit tests take the unclamped value; OnChangedFrom* compares the value stored before this update (not the latch); the limit outputs fire before OutValue.
+- So a counter starting on its min and set to its min fires OnHitMin (latch false). Example: ze_dark_souls' FCS_Spawn_Floor_Count_Counter (min 0, start 0) set to 0..5; its OnUser1 loop (ForceSpawn FCS_Maker, Subtract 1, FireUser1 itself 0.1 s on) relies on OnHitMin's Kill.
 
 ## Unread
 
-- Spawn: whether a startvalue outside the range is clamped (Source 1's Spawn clamps; ours doesn't), min > max
-- 0x18017b220's own order for min > max; SetHitMin / SetHitMax (0x180dfade0 / 0x180dfaa20): whether they re-test
-  the value against the new limit (ours only sets it)
-- m_OutValue.Set: whether OutValue fires when the value doesn't change (ours fires)
+- Spawn: whether a startvalue outside the range is clamped (Source 1's Spawn clamps); min > max.
+- 0x18017b220's own order for min > max.
+- SetHitMin / SetHitMax (0x180dfade0 / 0x180dfaa20): whether they re-test the value against the new limit.
+- m_OutValue.Set: whether OutValue fires when the value doesn't change.

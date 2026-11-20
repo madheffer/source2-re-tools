@@ -383,8 +383,8 @@ lift-pinned's first output.
 Two runs of a scenario are byte-identical. `KART_ORACLE_STACKS=1` prints, once per distinct chain, the vphysics return
 addresses on the stack at each callback (a raw-stack scan: dwords in vphysics' code preceded by a call), which is how
 section 9's PSI chain was found. The kart's .phy and the BSP come from the map's pakfile
-(`python -I docs/crazykart/tools/extract_kart.py <bsp> <out>`); the surface scripts from csgo/pak01_dir.vpk
-(`docs/crazykart/tools/vpk_get.py <pak01_dir.vpk> surfaceproperties <out>`: the manifest lists only
+(`python -I cs2web's docs/crazykart/tools/extract_kart.py <bsp> <out>`); the surface scripts from csgo/pak01_dir.vpk
+(`cs2web's docs/crazykart/tools/vpk_get.py <pak01_dir.vpk> surfaceproperties <out>`: the manifest lists only
 scripts/surfaceproperties_cs.txt).
 
 Interfaces (no RTTI in this vphysics; vtables found from the trace's known functions, slot order = the Source SDK's
@@ -560,7 +560,7 @@ server.dll mapped with DONT_RESOLVE_DLL_REFERENCES, the leaves called through a 
 inline InverseTR copied out and run on its own stack layout), then `cargo run --release -p ze-sim --bin
 csgo_frame_check -- <out>`. It checks AngleMatrix, MatrixInvert, ConcatTransforms, MatrixAngles, VectorAngles,
 OnActivate's thruster frame, SetupMatrixOrgAngles, MatrixMultiply, InverseTR and a template's placement: 242,172
-cases, 0 differ (math/csgo_mathlib.rs; docs/game/ivp-physbox.md 7 and 8).
+cases, 0 differ (math/csgo_mathlib.rs; docs/crazykart/ivp-physbox.md 7 and 8).
 
 ---------------------------------------------------------------------------------------------------------------
 
@@ -761,7 +761,7 @@ Ported as math/csgo_libm.rs expf (tables EXP_* by tools/re-csgo-libm-tables.py);
 hinged: it is taken when the core's flag 0x8 is set (calc_calc 0x10077d40: inertia nearly spherical) or env+0x114 ==
 5; the kart's inertia isn't, and stage 3 runs with another stage number): per-axis sinf / no gyroscopic term, not read.
 sinf's large-argument path 0x100d9655: the slerp's angles are acosf's (<= pi) times f in [0, 1]; a body whose 1/dt is
-1e10 (made between ticks) or just teleported has q_last == q_next, the lerp branch. The kart's scripts (docs/crazykart
+1e10 (made between ticks) or just teleported has q_last == q_next, the lerp branch. The kart's scripts (cs2web's docs/crazykart
 02 / 05): Wake every Tick, EnableMotion / DisableMotion, teleports (point_teleport TeleportToCurrentPos, trigger_teleport)
 -> CBaseEntity::Teleport -> SetPosition(isTeleport) (+ SetVelocity when a velocity is given): TODO(trace) server.dll's
 Teleport for a VPhysics prop (which of SetPosition / SetVelocity it calls, the order, the Wake) before wiring.
@@ -774,7 +774,7 @@ thruster on a sleeper); multi.txt (460 ticks, five karts: three made after the f
 destroyed awake, asleep and just revived); limits.txt (180: the rot hook, the speed hook every other PSI in a fall at
 the limit); damp-exp.txt (200: damping 20 / rotdamping 30 through expf, then asleep); and air.txt, air-free.txt,
 create-flip.txt still identical.
-## 13. Collision detection, contacts, impacts: docs/game/ivp-mindist.md, ivp-contacts.md, ivp-impact.md, ivp-touch.md
+## 13. Collision detection, contacts, impacts: docs/crazykart/ivp-mindist.md, ivp-contacts.md, ivp-impact.md, ivp-touch.md
 
 Two karts touching (friction systems merging and splitting, units of several cores, vphysics' pair times, the rescue
 push; scenarios touch and touch-world): [ivp-touch.md](ivp-touch.md).
@@ -796,7 +796,7 @@ The BSP's PHYSCOLLIDE lump (29): per model a dphysmodel_t {modelIndex, dataSize,
 solids ([int size][VPHY header, compact surface] each), the key text; the list ends at modelIndex -1. ze_crazykart_v4's
 model 0: two solids (1,314,440 and 30,664 bytes) and the keys `staticsolid { index 0, contents 33570819 }`,
 `staticsolid { index 1, contents 8 }` (CONTENTS_GRATE), `virtualterrain {}` and `materialtable { default_silent 1,
-sand 2, default 3, default 4, glass 5, metalgrate 6, metal 7 }` (python docs/crazykart/tools/extract_world.py <bsp>
+sand 2, default 3, default 4, glass 5, metalgrate 6, metal 7 }` (python cs2web's docs/crazykart/tools/extract_world.py <bsp>
 <folder> writes it as world0.vcollide: int solidCount, the solids, the keys).
 
 **0x1031ab20** (EDX the vcollide_t, read from the disassembly and the decompile):
@@ -822,7 +822,7 @@ sand 2, default 3, default 4, glass 5, metalgrate 6, metal 7 }` (python docs/cra
   the engine's (0x10ba2574) slot 0xa4 / 4 = 41 GetCollideForVirtualTerrain(i); each one a static object named
   `vdisp_%04d` with "DEFAULT"'s numbers, callback flags | 0x200, slot 84 (2). The displacements (56 on this map)
   come from engine.dll's terrain collides over vphysics' virtual mesh: traced, made in the oracle (a scenario's
-  `disp <bsp>` line) and ported, **docs/game/ivp-virtualmesh.md** (2026-11-18).
+  `disp <bsp>` line) and ported, **docs/crazykart/ivp-virtualmesh.md** (2026-11-18).
 
 **The oracle** (rubikon/tests/KartOracle/World.cs, a scenario's `world <file>` line): the same calls in the same
 order through vphysics' own key parser, before the kart; the `.md` gets a `# materials` line (each table index's
@@ -831,7 +831,7 @@ solid's compact surface (ledge.rs surface_at: the whole tree, ivp-mindist.md 11)
 (CreatePolyObjectStatic, the world's params) compared with the DLL's (`world: 2 static solids ... bit-identical`),
 the material table into Collide::materials. world-hub (400 ticks) and world-drive (1200) bit-identical every tick.
 
-## 15. The movers (doors, lifts, rotators, buttons): docs/game/ivp-shadow.md (2026-11-17)
+## 15. The movers (doors, lifts, rotators, buttons): docs/crazykart/ivp-shadow.md (2026-11-17)
 
 func_door / func_movelinear / func_rotating / func_button / func_brush are VPhysics shadows: moving IVP bodies a
 CShadowController drives to the entity's pose each PSI (ComputeShadowControllerIVP 0x10024130), updated by the server

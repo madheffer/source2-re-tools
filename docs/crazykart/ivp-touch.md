@@ -1,6 +1,6 @@
 # CS:GO legacy IVP: two karts touching (vphysics.dll, 32-bit, 2026-11-17)
 
-**CS:GO legacy, not CS2** (ze_crazykart's karts, docs/CRAZYKART.md). vphysics.dll md5 d97cf2194594d7545427cdabc7376db4,
+**CS:GO legacy, not CS2** (ze_crazykart's karts, cs2web's docs/CRAZYKART.md). vphysics.dll md5 d97cf2194594d7545427cdabc7376db4,
 Ghidra `/csgo_vphysics_legacy.dll`, capstone (`python tools/re/game/disasm.py <dll> <va>`, without `-I`). What two dynamic
 bodies do to each other: friction systems as a list (a static floor in several), the systems' merge and split, the
 simulation units' merge and split, vphysics' pair-time listener, the rescue push of two objects through each other (and

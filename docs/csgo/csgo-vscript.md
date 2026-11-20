@@ -51,5 +51,5 @@ keeps `caller` as the player's kart (M:2451-2461: `c.kart = caller`). With a nul
 ## Unread
 
 - `DoEntFire` / `DoEntFireByInstanceHandle` (native): how a delay of 0 is queued against the frame's other events
-  (the frame order question in docs/CRAZYKART.md "Frame order").
+  (the frame order question in cs2web's docs/CRAZYKART.md "Frame order").
 - The rest of the prelude (`__ReplaceClosures`, `UniqueString`, the `Entities` iterator helpers): not needed yet.

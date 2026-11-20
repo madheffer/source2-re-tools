@@ -1,132 +1,140 @@
 # Traces of CS2's game binaries
 
-What has been reverse-engineered from CS2's own game-side binaries (server.dll, client.dll, and the engine DLLs they
-lean on: tier0, engine2, vphysics2, scenesystem, materialsystem2, panorama, particles, networksystem), with
-addresses, field offsets, constants and sum orders, so the next port starts from it instead of from the decompiler.
-Addresses are **server_20261105.dll** (sha256 70c66e85...; image base 0x180000000) unless a file says otherwise;
-archive each build you read in `tools/re/binaries/` (S2C_BINARIES) under `<dll>_<yyyymmdd>.dll` and import it into
-the Ghidra project (ReVa) under that name (`/server_20261105.dll`).
+CS2's game-side DLLs (server, client, and tier0, engine2, vphysics2, scenesystem, materialsystem2, panorama,
+particles, networksystem under them): per subsystem, its functions, field offsets, constants and sum orders.
 
-**Where these came from.** These notes were written alongside cs2web (a browser port of CS2's game modes) and were
-copied here on 2026-11-21 from its `docs/trace/` (commit 55bb0752). Paths such as `sim/...`, `web/...`,
-`rubikon/...` or `tools/capture/...` name that project's code (the ports and the native oracles that check them),
-not files in this repo; the DLL helpers the notes use are in [tools/re/game/](../../tools/re/game/README.md).
-New game-side findings go here, in the subsystem's file.
-
-**Rule: every decompile / reverse session writes down what it found** (addresses, what each function does, offsets,
-constants, sum orders, what's still unread) in the subsystem's file here, and any general helper in the table
-below, in the same change as the port.
-
-**Rule: every decompile / reverse session writes down what it found** (addresses, what each function does, offsets,
-constants, sum orders, what's still unread) in the subsystem's file here, and any general helper in the table
-below, in the same change as the port.
+- **Build**: server_20261105.dll (sha256 70c66e85..., base 0x180000000) unless a file names another. Archive each
+  build in `tools/re/binaries/<dll>_<yyyymmdd>.dll` and import it into Ghidra under that name.
+- **Format**: each file is Functions / Fields / Constants tables, then the order of operations and sum orders, then
+  Unread. Keep it that way: data, not prose.
+- **Tools**: [tools/re/game/](../../tools/re/game/README.md).
+- **Origin**: cs2web's `docs/trace/` (commit 55bb0752, 2026-11-21), cut to the CS2 data. A "cs2web's <path>"
+  mention names that project's file. CS:GO notes are in [../csgo/](../csgo/README.md), ze_crazykart's IVP physics in
+  [../crazykart/](../crazykart/README.md).
+- **Rule**: a reverse session records what it found (addresses, offsets, slots, constants, sum orders, what's
+  unread) in the subsystem's file, and any general helper in the tables below, in the same change.
 
 ## The files
 
-| File | What |
+115 files.
+
+| File | Subject |
 |---|---|
-| [round-sounds.md](round-sounds.md) | The round's cues: the freeze time's beeps (server 180913f80: cs_round_start_beep by m_nLastFreezeEndBeep, cs_round_final_beep; the client's UI.CounterBeep / UI.CounterDoneBeep), RestartRound's round_announce_last_round_half / _final / _match_point (180957e50 at 18095aad4) and the HUD alerts' Music.Match.* stingers (client 180e84c60), a kill's UI.KillCard.1 (CCSPlayerPawn Event_KilledOther 180209da0, the enemy test 180ad2700, gg_killed_enemy), the local death's Player.FreezeCam / death cam music (client 180cee4d9), the HLTV replay's Deathcam.Review_* (client 180500ed0), the buy menu's ground pickup (180b0adf0), and which panorama files play the round report / deathmatch bonus / buymenu_purchase sounds |
-| [gradient-fog.md](gradient-fog.md) | env_gradient_fog: client.dll's C_GradientFog (vtable 0x181adbf60, its fields and the unschema'd blend state), the cooked values 180275400 (the colour sRGB -> linear x strength, the heights zeroed without heightfog), spawn 180271810, FogStateChanged 18027fd10 (the twelve fields that restart the blend), the frame update 180272420 with its lerp 18027f630 (the fade time read live, Disable at once), server.dll's enabled flag |
-| [hostage.md](hostage.md) | Hostage Rescue: CHostage (vtable 0x1817c1bc8; Spawn 1803629a0, the Think 180930450, Use 180931160, the touch 1809610f0, the pickup 180923710, the drop 18035bc40, the rescue 18035d350, OnTakeDamage 180361940 / _Alive 180361960, Event_Killed 18035c280), its fields and states, CCSPlayer_HostageServices 180a7af40 (the back prop), RestartRound's hostage selection (180958e9e..), func_hostage_rescue 180994400 -> the pawn's OnRescueZoneTouch 18023b020, the rescue win 180930260, the clock's HostagesNotRescued (180916fb0), the team / player money tables 180964f60 / 180952190 and the round's money list 1809124d0, PlayerMove's carrier speed (sv_cs_player_speed_has_hostage), the hint's CHostage branch (180ac74c0); client.dll's CCSGO_HudGameIcons 180e7d5d0 / 180e92590 |
-| [pets.md](pets.md) | Chicken pets and the Weekly Care Package: items_game's pet items / pet_definitions / attributes; client.dll's pet clock (GetPetGrowthPercent 180d48150, GetPetLifetimeRemaining 180d481f0, GetPetFeedAmount 180d467d0, IsPetLowOnFood 180d4e340, TryAckPetEventAndCheckExpiration 180ffd4e0: 5 / 22 / 28 / 50 / 90 / 140 days, low food 9 d); rankup_redemption_store.ts's rules; server.dll's match pet (CChicken fields, SetOwner 18034fdd0, spawn 1803518c0, the manager 18034f710 / 18033b940 / 18034f4f0 / 18034e060, the spot lists 180354bf0 / 180354190, ChickenPathCost 1817be3f0, the graph controller 180a4f4e0 / 180a4c030, the activity machine, use / ping 180345830); client.dll's chicken graph controller 18084a1b0 / PlaySequence 18085c680, the overhead pet name 180ed0210, TransitionToCamera 180e65b40; second pass: the ping snap 180ab7ec0 / 180ac6b50 and placement 180adb580 (chicken type 0x1a, freeze-time use), ObjectCaps 18034f440 (0x81), the classic gate 18093df90, Move 1803507d0 + sweep 180353d40 (group 5, water), root motion 180342230, feelers 1803423e0, the jump 18034da90; client ApplyState 180d4f1b0, the vanity chicken frame 180d43380, Interact 180d4e890, the food check 180d520f0, the camera manager blend 180b833b0 / 180b82920 / 181744420, the inventory picture 18118d3d0 / 180dcaa00, the egg's nest 180d52620; third pass: the feeder 180d520f0 / 180d42f50 / 181748480, flinch's clear 18085d0e0, health 1 (180d0e5d0), TakeDamageOld 1803ed610, Event_Killed 180347350 (#Pet_Killed, roasted / tased / chicken_gone 180d51420), the party's pets (180cada50 / 180cae080 / 180e5e960), the eye (18014d780) |
-| [spawns.md](spawns.md) | Team matches' spawn spots: the per-team lists (0x18090d240, 0x180925a50, the shuffle and priority sort 0x1809563e0 / 0x1809635f0), the next spot and its burst reset (0x1809297b0), EntSelectSpawnPoint (0x180207d80: deathmatch spawns only in deathmatch), the 32-try search (0x18023e340), IsSpawnPointValid (0x18093e710), sight / distance (0x18093e660, 0x18032d450, 0x18032d260), PutClientInServer's nudge, facing and drop (0x180216260, 0x18091f260), the spawn cvars' defaults |
-| [armsrace.md](armsrace.md) | Arms Race (CS2's gun game): CCSGameModeRules_ArmsRace's vtable and fields (m_WeaponSequence, the leader / winner slots, the refresh set), the ladder's nine groups and their shuffle (0x180929ca0 / 0x1808ffa60), the kill's points (0x180921c30: m_iScore / 2 a level, knife +2 / -2, taser -1), the cues (0x180951c90), the equip (0x18092c0f0, the knife level's strip 0x180b04ac0), Think's winner (reason 8 / 9 / 10), gamemode_armsrace.cfg |
-| [skins.md](skins.md) | Weapon paint kits: the composite request (1807fa510, the legacy path 1807fa62c, 512 at 1807fab0f), the composite system (mutators 1814d441e, the random roll 1814d4481, GENERATE_TEXTURE 1814d5191), csgo_customweapon's combos; what's open (vpkstuff has the rest) |
-| [store.md](store.md) | The main menu's Store page from pak01's panorama files (UI sources, no DLL): mainmenu_store_fullscreen (tabs from the GC's banner list, the home page's sections), common/store_items (the categories), itemtile_store (the tile, its price row, what a click opens), the styles' sizes; our shelves' rules (the daily / weekly draw) |
-| [cases.md](cases.md) | Weapon cases: items_game's crates, revolving / client loot lists, paint kits and icons; what is the Game Coordinator's (the rare tiers' contents, the odds, wear, StatTrak: stand-ins in the econ tables); popup_capability_decodable.vts's unlock (38-tile reel, display weights, slack, 6 s ease, tick timings, reveal sounds); the match end's drops (CS2's GC message at GoToIntermission, what the client keeps of the old drop, ours); the unbox's chat line (SendPlayerItemFound 180d119c0: the pickup method mask 0xe4003e, the token table 182252c00, the rarity's colour); NEW ITEM for unseen items (the Inventory's trigger, the nav alert, the carousel) |
-| [matchmaking.md](matchmaking.md) | CS2's matchmaking as the client and server show it: the accept popup (layout, styles, script, sounds; the 21 s window: engine2 sv_mmqueue_reservation_extended_timeout, client 0x180fb2410 GetReadyTimeRemainingSeconds, 0x180cf8693 plays found / confirmed), the Reconnect panel, the cooldown alert and client 0x180f93b30 / 0x180f93d10 (penalty_reason -> reason string / type), who starts CT (server 0x180a75eb0: the reservation's first half on CT, xor switched sides), mm_dedicated_search_maxping (matchmaking.dll: 150, 25..350), the Premier tile's wins-needed / expired states; what is the GC's |
-| [shadows.md](shadows.md) | CS2's cascaded sun shadow maps (scenesystem / client 20261015, csgo_environment's pixel shader): the Global Shadow Quality level tables (client 180df13a0 / 1820 / 0f20 / 1ca0), the csm_* / lb_csm_* / sc_shadow_* convars' defaults, the cascade setup (180496ef0: the split scheme, the texture matrix and its bias, the atlas rects), the fit (180494b40: the slice diameter, the texel snap, the caster extrusion, the exclude planes), the lookup and its constants (1801af7b0: the cross / distance fades, the receiver bias), the product with the baked shadow mask |
-| [armsrace-hud.md](armsrace-hud.md) | Arms Race's HUD (client): the weapon list's ladder (#weapon-selection--armsrace-list: build 180ec6bc0 / item 180ea6120, the 0.25 s think 180eafc30 on m_iScore +0x954, the states 180ec3a80, --selected 180ecbfe0, the class tokens 0x1822452b8), the top bar's game_type 1 layout (180ec6730: GameModeGunGame, #TeamAll's 20 sorted by 180eabc80, #ArsenalProgress 180eba820 / 180ecc1f0: level, gglevel-%d, the weapon icon, no health), the immunity's shader inputs (180c67c40, 180c9d440), the game-type helpers (180769d30 / d50 / d90 / e60) |
-| [winpanel.md](winpanel.md) | The round end panel (CCSGO_HudWinPanel, client 20261015): cs_win_panel_round -> the title by reason and local team (180eca700 / 180eb6af0), show / hide (180ec9a20), round_mvp (180ec8f10), music kit, funfact and honor icon rules; the server's MVP (server 20261015: 18090bae0 default, CPlantedC4DefusedMVP 1809f1550 / ExplodedMVP 1809f1910, SetMVP 180a76f50) and CCSFunFactMgr (18029aed0: the score and decay, StatBest / StatSum / Player / Generic evaluators, all 61 registered facts and each one's input and writer, CCSGameStats 0x181f4ea10 and its IncrementStat, the stat table 0x181dfb6b0); the MVP banner's ui/match_mvp scene and its camera blend; the round end's music and announcer (client 180ceaab0, PlayMusic 18076cd70, the music table 182212ae0, snd_roundend_volume / snd_mvp_volume) and round_end's nomusic / legacy (server 1809654b0) |
-| [teammate-colors.md](teammate-colors.md) | CS2's competitive teammate colours: m_iCompTeammateColor (server +0x828, client +0x858), the assignment 180a9b940 (cl_color, the team latch 180a761a0, five tries), the colour mode 18093de70 / 180769bb0, the client's rule 1808a44a0, the colour table 180889bd0 and cl_teammate_color_1..5, GetPlayerColor 180faf660, the chat dot 180ea9f50, the voice name 180eb3e80, the team counter 180ecc1f0, the HUD class 180e92db0; the controller's rank and predicted rating fields copied from the GC list by 180a9e720 (the match stakes) |
-| [team-intro.md](team-intro.md) | CS2's team intro: mp_team_intro_type / _time, the server's period (RestartRound 180957e50, ShouldPlayTeamIntro 180965160, variants 18097ded0, spots 18097d720 / 18097da90, schema 0x13c4..0x13d4), the intro prefabs' spots and cameras, CCSGO_TeamIntroMenu (180dfc510, the JS bindings 180e0db60, AddModel 180df2120), teamintromenu's script / layout / sounds, and C_CSGO_MapPreviewCameraPath's evaluation (180c94f90, 180c6c9c0, 180c6c730, 180c6d9c0, 180c6d7b0, 180c6c050, 180c67d00) |
-| [warmup.md](warmup.md) | The warmup period: the think (server 0x180968600: the all-connected cut, the pause's 6 s rule, the end and its delay), its convars and cfg values, the gamerules fields, the HUD alert (client 0x180e8fea0: WAITING FOR PLAYERS / Warmup / Warmup Ending, Alert.WarmupTimeoutBeep); our load gate |
-| [muzzle-flash.md](muzzle-flash.md) | A gun's muzzle flash and shell (client_20261015): CBasePlayerWeaponVData's muzzle fields (+0x2d0..+0x4e4, unset for every gun), the shoot clips' CNmParticleEvents (Create / Create_CFG, Self / Weapon, the systems' m_controlPointConfigurations), the silencer tag filter 18080a520, the pawn's and viewmodel's event handlers 1808ebfd0 / 1810d7270 |
-| [tagging.md](tagging.md) | Tagging, the slowdown on being hit: the damage hook 180a961f0 (the weapon's / projectile's flinch modifiers, sv_predictable_damage_tag_ticks' delayed message, its handler 18097b670), the tag 180ab76a0 (m_flFlinchStack, mp_tagging_scale, the victim's weapon speed, the stamina, m_flVelocityModifier) with its float order, the stack's recovery in CCSGameRules::Think (180ac8880) |
-| [taser-client.md](taser-client.md) | The Zeus on the client (client_20261015): the charge meter ($taser_charge 1808077c0, callback 1807e3df0, C_WeaponTaser vfn 0xad8 18082ea00, the chargemeter material's expressions), slot3's next-in-gear-slot (180c1e680 -> 180c19e30 -> CCSHudWeaponSelection::SelectSlot 1811a9cb0), the predicted fire and rope start (18082e180: weapon_hand_r + 7.61985 X + 2.32976 Z, the viewmodel's muzzle_flash in first person), cstaserrope's handler (180d1e3d0: CP0 / CP1 / CP3) and the body fx (180d1e300), the dry fire (server 180a1e400) |
-| [equip-info.md](equip-info.md) | The top bar's equipment strip: when CS2 shows it (180ecd9a0: game_type 0, game_mode not casual, an observer, or a teammate during freeze time / warmup / after the round / while you're dead), its rows (money, SHRINK-MONEY, best weapon, grenades, armor, kit, C4), the .vcss |
-| [weapon-selection.md](weapon-selection.md) | The weapon list's flash on a new weapon: the class tokens (180eb8970), an item added (180ea7660: weapon-selection-item--active), a count going up (180ec6b10), the animation-enable count (debug only), the .vcss blink |
-| [weapon-select.md](weapon-select.md) | The weapon selection keys (client_20261015): slot6..slot11 by class (1811aa450 / 5d0 / 6b0 / 790 / 1811aa1e0 / 1811aad90, 180902f90 the by-name find), invnext / invprev (1811a68c0 -> 1811a7530, 1811a6980 -> 1811a77c0: the (gear slot, position) walk), vfn 0x258 180c0cc30 (the position at or after), the confirm vfn 0x268 1811a9bc0 (Player.DenyWeaponSelection), the gear slot positions, user_keys_default.vcfg |
-| [death-panel.md](death-panel.md) | The death panel: CCSUsrMsg_SendLastKillerDamageToClient's fields and handler (180c8d8c0 / 180e8e3c0), when it shows and hides (180e8aaf0 / 180e877b0 / 180e8d660), the damage rows (180e8bbd0), the line (180e89ed0: the weapon names, own grenade / fire / C4 / self), the .vcss |
-| [auto-exposure.md](auto-exposure.md) | CS2's auto exposure: client's per-frame source pick 0x180a71710 (env_tonemap_controller2 0x180272140, the volume 0x18029c500, the reset 0x180272390), the "Histogram" pass 0x181212030 and histogram_cs's bins / average, the readback 0x181208220; scenesystem's CTonemapSystem (vtable 0x1805f9cc8: its fields, params 0x18018d2a0, the adaptation 0x18018d440); the volume's exposure fields and server defaults |
-| [post-layers.md](post-layers.md) | materialsystem2's CPostProcessingState (materialsystem2_20261023 vtable 0x18012ed48): the weighted .vpost layers, their groups and cross-fades, the per-category budget compose (180058500), the tone map / bloom / vignette / local contrast blends, the lookup merge (18005ce80, combine_colorcorrection_lut_cs) and post_process's lookup / vignette constants; who makes the layers in client_20261015 (C_PostProcessingVolume 18029c040 group 0, ClientModeCSNormal's overlays 180cf1d20 / 180d0d540); the overlay .vposts' contents |
-| [death-cam.md](death-cam.md) | CS2's death camera (client_20261015): CalcView 180882530 -> 1808818a0 (the pelvis + m_vDeadViewHeight 14, death_chase_distance 76, the 180889e20 ease over spec_freeze_traveltime, m_flDeathCamTilt, the water lines on 0x18000, the 9 u solid sweep 1808a5910, m_qDeathEyeAngles, point_deathcam_bounds 180ce3c50 / 180ce2950), the view setup chain (CViewRender 180c1a710 -> 180b9c970), the server's m_flDeathTime / m_qDeathEyeAngles (180208400) and m_bKilledByHeadshot (180912130), ClientModeCSNormal::Update's overlay weights (180d0d540) and DeathFadeLayer (180d0ef50) |
-| [rubikon-joint-break.md](rubikon-joint-break.md) | vphysics2 (0924): breaking a joint: the step's break pass (world +0xa28 / +0xa4c after 1801ffe80), the break 1802044c0 (callback +0xb8 / +0xc0 / +0xc8), CRnJoint::SetEnabled 1802058c0 (wake 180205f60 / 1801c0ff0, the shapes re-queued 1802d6c90, bit 0, vtable +0x58 18022aac0 / 180217360, the island update 1801e4000); the break limits +0xac / +0xb0 from the creators' desc +0x64 / +0x68 (18005d370), 0 for a model's joints (180047600, VPhysXJoint_t has none), CPhysicsJoint slots 0x1a0 / 0x1b0, unused by client_20261015's ragdolls |
-| [rubikon-colour-joints.md](rubikon-colour-joints.md) | vphysics2 (0924): a graph-coloured island's joints: the plan (RnSolver_BuildColoured 180338710, its layout), the joint jobs 180337c00 (buckets of more than 8 in parallel chunks of 8, the rest and the overflow whole, bucket order), the chain 1803109c0 (joints, type-1, contacts in every pass), the chunk workers 18030eb50 / 18030fb00 / 18030f500 / 18030f250 against the whole ones 18030f0b0 / 180312650 / 18030f860 / 1803120f0 |
-| [ragdoll.md](ragdoll.md) | A player's death ragdoll: the pawn's ragdoll fields (server 18024a860 / 1802064f0 from player_death 18091da70: bone, force, weapon, headshot, origin), the damage forces (CalculateBulletDamageForce 180fc2430, RadiusDamage's direction, the shockwave's), the client's creation (180c97a60 -> 18095b0b0 -> 18095acd0: the physics world's CreateRagdoll at the bone pose, ragdoll_gravity_scale 1, ragdoll_friction_scale 0.6, the pawn's velocity), the weapon push table 180c63540 and its application 18095aac0, cl_ragdoll_limit 20; the aggregate build (source2-compiler's port) |
-| [ragdoll-settle.md](ragdoll-settle.md) | Ragdolls falling asleep: CS2's client death ragdolls have no settle rule (vphysics2's island sleep only), the world's 8 / 2 iterations (CRnWorld ctors 1801e7df0 / 1801f5fb0; CVPhys2World slots 24-26), VPhysXBodyPart_t's fields; why a pile stays awake; the server's CRagdollProp settle think (180e95f00 / 180e6f920, ragdoll_prop_sleepaftertime 4, sleepdisabletime 1.5), CPhysicsBody slots 125-129 (Sleep 1801be010) |
-| [blood.md](blood.md) | A player's blood: m_bShouldBleed / m_bShouldSpark (the hit group step 180a89430), the damage services' post 180a88a50 (csblood's CEffectData, the helmet's sparks, the blood level, TraceBleed 1803eee10 and UTIL_BloodDecalTrace 180cbb810's Blood / Bloodlvl2..6), the client's fx_cs_blood.cpp 180d226c0 (high / med / low / friendly by damage_impact_heavy 40 / _medium 20, the spray's frame, the local player's variants) |
-| [damage-prediction.md](damage-prediction.md) | Damage prediction (cl_predict_body_shot_fx / head / kill_ragdolls, sv_damage_prediction_allowed): CSGOUserCmdPB fields 11-13 (+0x49..+0x4b) written by client 180d04950 behind the gate 1808845a0 (m_bPredictable, latency <= min(0.07, sv_maxunlag x 0.95), m_bFireBulletsSeedSynchronized = sv_usercmd_custom_random_seed off: server 180a9e270 / 180c7f1e0), the client FireBullet's predicted TakeDamage (180887d60), the victim's predicted damage list and GetHealth (1808de930, 180c671a0), the predicted effects / feedback (180887960, 18089d3b0, 1808a0150), the kill ragdoll and its snap back (180c8f940, 180c8c070, 1808a1250), the server's exclusions (180a77f60, 180a30179) |
-| [kill-cards.md](kill-cards.md) | The kill cards above the health / ammo panel: the round's kills and kill-type queue (180912130, 180b0b6e0, 180a6e260 push, 180931910 types, cleared at the respawn), the client's classes (180e92db0: HUD--NumKills, HUD--Kill{i}--type, animate / HUD--on-kill), the .vcss fan |
-| [source1-bake.md](source1-bake.md) | `lasers-bake --source1`: a CS:GO BSP hand-baked into the CS2 map folder; each Source 1 thing and the CS2 data it becomes (brush contents -> world_physics collision attributes, read off the CS2 maps' own sets and source2-compiler's MaterialCollision table; brushes / displacements / static props through the RnHullCreate / RnMeshCreate ports; lightmaps as the irradiance lightmap; light_environment's CS2 keys); ze_crazykart_v4's unhandled classes |
-| [death-notice.md](death-notice.md) | player_death: the server's fields (18091cf40: the weapon name, _off, penetrated count, noscope, thrusmoke, attackerblind, attackerinair), the death notice (18091da70), the damage assister (1809284a0, cs_AssistDamageThreshold 25, bullets first) and flash assister (180913af0), the damage records (180b00ba0, CDamageRecord), thrusmoke (1809165e0); the client's notice (180e885f0): classes, icons, the assist |
-| [ping.md](ping.md) | The player ping: player_ping (180ab7ec0: the double ping, the 0.3 s spam filter, 5 tokens at player_ping_token_cooldown 20 s, the 2 x 16384 x sqrt 3 trace, smoke, the 36-unit entity snap), placing it (180adb580: m_iType, m_bUrgent, 6 s, the event), the client's icon (team colour bytes on CP1) and sound (UI.PlayerPing / Urgent), teammates only |
-| [box-hull.md](box-hull.md) | A cooked axis-aligned box hull (RnHull_t) as the bake writes it, read from de_dust2's physics.bin: the vertex and plane order, the half-edge tables, the derived fields' rules (for the game's own box models: world/box-physics.js) |
-| [transmit.md](transmit.md) | CSource2GameEntities::CheckTransmit (180dd7150): the per-client pass 180de3590, the per-entity 180de3df0, the transmit-state bits (+0x1b8: 8 always, 4 PVS check, 0x10 never), the cvars; IsInPVS 18018ed80 (clusters, sv_pvs_max_distance), the client record 180b48900 (its eye origin), CCSPlayerPawn ShouldTransmit 18024b840 / 180d11e00 and SetTransmit 180d10cd0; WorldSpaceSurroundingBounds 180d1b7c0 and the m_nSurroundType switch 180cebd90; client_20261015's rules for what the HUD shows of others: scoreboard money 180fb0940 (team or spectator), the top bar's health 180eba820 / 180ce2420 / 1808d9290 IsOtherEnemy |
-| [spotting.md](spotting.md) | CCSEntitySpotting (every 0.5 s): m_bSpotted / m_bSpottedByMask, the observer cone (radarvismethod, the FOV, powf), the line of sight; the client radar's per-player rule (180dde830); the transmit cvars (sv_shared_team_pvs) |
-| [round-restart.md](round-restart.md) | CleanUpMap (180917fd0): the preserve list (181e04220, 86 class names), the world-group test that keeps a skybox map's entities, the "cs_respawn" pass over the spawn groups |
-| [movers.md](movers.md) | CBaseToggle's linear / angular moves, PerformPush, CBaseDoor, CRotDoor, CFuncMoveLinear, CFuncRotating |
-| [trains.md](trains.md) | CFuncTrackTrain (Next, the velocity and orientation updates, the inputs), CPathTrack's LookAhead / GetOrientation |
-| [momentary.md](momentary.md) | CMomentaryRotButton (Use, its thinks, SetPosition), ObjectCaps' use bits, PlayerUse's continuous use |
-| [push.md](push.md) | The pusher: CPhysicsPushedEntities, blocked movers |
-| [tracer-sound.md](tracer-sound.md) | A bullet passing by you: client FX_TracerSound 180c2d0a0 (the crack and tail, cl_tracer_whiz_distance / _infront_distance, the whiz timer), its callers and their tracer types (supersonic: SMG / rifle / sniper without a silencer type) |
-| [switchhands.md](switchhands.md) | switchhands (H): the client's wanted hand, left_hand_desired, Weapon_Switch's eUserInitiatedSwitchHands, SwitchHandedness, the arms' dip (client_20261105.dll too) |
-| [friends.md](friends.md) | The main menu's friends list sidebar (mainmenu.ts Expand / MinimizeSidebar, friendslist / friendtile / context_menu_playercard / popup_add_friend sources and styles), client.dll's friend codes (encode 180f88150, decode 180f87f90, parse 180f88570, GetFriendCode 18106f180, GetXuidFromFriendCode 180fb9280: the Unicorn oracle), TeammatesAPI.GetCoPlayerTime 18106d430 (4500 s "Just Now"), the status strings, Looking to Play's sources (not built). Tools it added: tools/re/game/impat.py (which import an IAT slot holds), friendcode_oracle.py |
-| [loading-screen.md](loading-screen.md) | CS2's loading screen: its layout, style and script (PopulateLoadingScreen's arguments, the slide show), the strings; what ours stands in |
-| [home-menu.md](home-menu.md) | The main menu's UI: the left column's tiles from their layouts (mission, Armory, mini store + item tile, Rush, the carousel nav), the play menu's map tiles / section headers / settings radios / GO, the rating tile (tier colours, GetClampedRating, SplitRating) from pak01's .vcss / .vts (UI sources, no DLL) |
-| [menu-anim.md](menu-anim.md) | The main menu: de_dust2_vanity's preview / UI-slot entities, CS2's uimodel / uimodel_walkup / uimodel_idles graphs (states, parameters, selector weights), the haze cards' csgo_effects parameters (resource data, no DLL) |
-| [holster.md](holster.md) | Holster (vfn 0xa20 -> 0xd40): the base (the reload, the R8 hammer, an empty grenade removed, the holster activity), the gun's (silencer switch, zoom), the grenade's (pin, throw), the C4's, the taser's |
-| [scene-node.md](scene-node.md) | CGameSceneNode: the hierarchy, ConcatTransforms, QuaternionAngles, SetAbs* / SetLocal*, SetParent; template placement (the spawn matrix); Kill / KillHierarchy / UpdateOnRemove's children |
-| [spawngroups.md](spawngroups.md) | info_spawngroup_load_unload (CInfoSpawnGroupLoadUnload): its fields, the four inputs' virtuals, the load request, the loading and unloading thinks and when each output fires; what the engine's half leaves untraced |
-| [io-queue.md](io-queue.md), [io-targets.md](io-targets.md), [inputs.md](inputs.md) | The entity I/O event queue; target searches; the input dispatch and each class's input table |
-| [movement.md](movement.md) | Player movement |
-| [inferno-spread.md](inferno-spread.md) | the server's CInferno spread (not ported yet): CreateFire 180345dc0 (the fire record, its timers: every flame dies at the inferno's start + the lifetime), the think 180352350 (the hashed SetSeed, the round robin under inferno_max_trace_per_tick, the 4 tries' directions, the velocity push into the ground plane, the 55..75 u step, the ground and line traces, inferno_forward_reduction_factor), the cvars by address |
-| [inferno-client.md](inferno-client.md) | client C_Inferno's ground fire (ported): ClientThink, SynchronizeDrawables, the particle (seed, CP0 / CP3), the edge masks, the wall traces and hull planes (Inferno_concav_plane_threshold), the CP1 / 9 / 10 / 11 / 12 snapshots, the remnant; the server's networked fire fields (CreateFire); the particle classes it needed |
-| [spritecard.md](spritecard.md) | particles.dll / spritecard PS: the layer channel mixes (layers 1-3 against the earlier layers), the scene-object layer mask (bloom-only 0x80), the motion-vector scale (PC c3.xy from the motion texture's max distance), how to dump the PS combos; the 1D lookup layer's UV; the trail combo (ropes and trails: the width-projective U, F_ADDRESS_V_CLAMP from m_bClampV at CBaseTrailRenderer +0x3350 / C_OP_RenderRopes +0x34ec, the motion warp and its weights); the vertex writer's sheet time per animation type (MANUAL_FRAMES: attribute 38 as a sequence position) |
-| [music-volume.md](music-volume.md) | The csgo_music stack's volume chain (snd_musicvolume x the event's volume convar by snd_music_mode, 0.16 fallback, x snd_gain), client.dll's snd_music_mode (180d0c420, game_type / game_mode), soundsystem.dll's `volume` / snd_musicvolume / snd_gain |
-| [mouse.md](mouse.md) | client.dll: the mouse to the view angles (sensitivity, sensitivity_y_scale, m_yaw / m_pitch, the zoom's scale, mouse_inverty; AngleNormalize, the cl_pitchup / down clamp), the per-frame input entry that holds the view angles |
-| [net-timeout.md](net-timeout.md) | sv_timeout / cl_timeout: their defaults (engine2's registrations), NETWORK_DISCONNECT_TIMEDOUT's token and text; the checks unread |
-| [usercmd.md](usercmd.md) | The usercmd's timing (client.dll + server.dll): the client's input history and attack1_start_history_index, RunCommand and the tickbase, CPlayerCommandQueue's tickbase, the spread seed's tick |
-| [frame.md](frame.md) | The server frame's order: ServerPreEntityThink, the controllers' usercmds in slot order, the thinks, the I/O queue, ServerPostEntityThink (where CS2Fixes' RunThinks sit) |
-| [shots.md](shots.md), [fire-gate.md](fire-gate.md), [spread.md](spread.md), [aim-punch.md](aim-punch.md), [knockback.md](knockback.md), [use.md](use.md), [grenades.md](grenades.md), [flashbang.md](flashbang.md), [env-explosion.md](env-explosion.md) | Combat: the bullet, damage (TakeDamageOld and its flags), lag compensation, the knife; a gun's fire gate and Deploy; spread; the aim punch; ZR's knockback; +use; grenades; the flashbang's blindness, ring, screen overlay and flashed animation (flashed_amount on the anim graphs); env_explosion's effect (CMsgTEExplosion, C_BaseExplosionEffect) |
-| [reload.md](reload.md) | A gun's reload: the R key's branch, Reload's clocks, the timing graph's WPN_RELOAD_ADD_AMMO / WPN_ACTION_COMPLETE, the empty and silent clips, the held-R silent reload (180a27170, 1809f5880) |
-| [knife.md](knife.md) | The knife swing's hit sounds (flesh from the victim, HitWall from the knife) and its gate: CCSWeaponBase's ItemPostFrame, the swing's 1809f9910 clocks (0.4 / 1.0 s), m_bFirstAttack, the Deploy |
-| [pickups.md](pickups.md), [drops.md](drops.md), [touch.md](touch.md) | Weapon pickups, drops, touches |
-| [radio.md](radio.md) | The radio: ClientCommand's radio commands (1802006b0, 180219840 and its three switches), Radio 180239eb0 (alive, recipients 180202390 through CanPlayerHearPlayer type 1, Game_radio / _location, the voice through the response rules: bot_chatter_use_rr), the throttle 180202570 (sv_radio_throttle_window 10), playerchatwheel / playerradio / ignorerad, the grenade throw's line (1809d4a50); the client's line (1811ac670: the team prefix, "auto"); the radio menus (radiopanel.txt) and the chat wheel's default phrases (cl_radial_radio_tab_*); places: m_szLastPlaceName (pawn + 0xe78), its update 180252d20 / lookup 18020c1b0 over env_cs_place; a match's voice cvars from the cfgs |
-| [buy.md](buy.md) | Buying: CanPlayerBuy (180aba860), IsBuyTimeElapsed and m_fRoundStartTime (the buy time from the freeze's end), CBuyZone's touches and m_bInBuyZone, the buy command's order (180a7cf90: CanAcquire, kevlar / assault suit, GetItemPrice's helmet-only price), the client's buymenu checks and its hint lines (180ca3f90, 180dabe70, ShowHudHintTextLowPriority), the buy menu's layout and CS2's default loadout (items_game.txt) |
-| [hurt.md](hurt.md) | Map damage: CTriggerHurt (the flag test, HurtThink, HurtAllTouchers, HurtEntity's one output, EndTouch), a map damage's hit group and armor, Blocked's DMG_CRUSH, CPointHurt, TakeHealth; filter_multi's ten slots, filter_proximity, filter_activator_attribute_int; AddAttribute and CS2Fixes' Steam ID attribute, FollowEntity, func_movelinear TeleportToTarget |
-| [player-sounds.md](player-sounds.md) | Who hears which sound event: a hit's Victim / AttackerFeedback / Onlooker events (180a95310), a death's (180ac13d0), a pickup's (BumpWeapon's tail), the recipient filters; the physics impact sounds (the collision dispatcher, VPhysicsCollision, the queue and its 0.05 s flush) and vphysics2's collision events behind them (1801fe920, 180059170, 180058a90; the server's speed 180593af0) |
-| [anim-graph.md](anim-graph.md), [aim-ik.md](aim-ik.md), [fp-legs.md](fp-legs.md), [tilt-twist.md](tilt-twist.md) | Animation; tilt-twist.md: animationsystem.dll's CTiltTwistConstraint (the solve 1804b7ca0, its angle 1804b8c60, AngleQuaternion 180490910, the fields), the agents' twist bones |
-| [score.md](score.md) | server_20261105: the kill's score: the contributionscore_* cvars (handles, defaults), Event_KilledOther 180209da0's objective / team kill flags, 18095f4b0 / 18095f620, the suicide in 180952250, the hostage and planted C4 proximity tests (1802225f0 / 180222530); deathmatch's 180922080 (base, weapon price tiers, the bonus weapon, the Zeus streak, the healthshot, the assist) and 18090d0d0's award lines; three behaviours checked to be CS2's |
-| [scoreboard.md](scoreboard.md) | panorama (pak01 2026-11-20, no client.dll): CSGOScoreboard per game mode: _LoadScoreboardTemplate / _GetPlayerRowForGameMode / _GetSortOrderForMode, the sort orders, stat updates and the pulse, the status images, the timeline (_ResetTimeline, _UpdateRound, the clinch, the casualties, the half scores, the loss bonus), the end of match rules, what is client.dll's |
-| [teamid.md](teamid.md) | client.dll: the decorated player name (`{g:player_name}`: the clan tag in CS2's brackets, the name, the puppeteer; its modifier flags and the controller's provider), the overhead team id's entries, panels, head-bone anchor, 0.7 scale and health line. Tools it added: tools/re/game/vtall.py (a class's vtables at every sub-object offset), strtoken.py (CUtlStringToken's hash: find a name for a token), vpkgrep.py (search the game's pak01: localization, panorama) |
-| [bot-takeover.md](bot-takeover.md) | CS2's bot takeover: CCSObserver_UseServices' +use (180a4c2d0), CanControlBot (180a71120), TakeControlOfBot (180a9cbe0), the pawn swap (180a9c710), ReleaseControlOfBot (180a991e0) and what calls it (the death, RestartRound, a team change, a disconnect), m_bCanControlObservedBot (180236ce0), the controller fields, who is credited (the pawn's +0xe14), the client's view, takeover panel and legend hint |
-| [c4-shockwave.md](c4-shockwave.md) | The bomb's blast, ported: CS2's baked shockwave (baked_bomb_damage.vdata's format, the table load 180a508c0, tier0's CVertexKDTree build / nearest, the lookup's RemapVal, the ducked / facing Bias, the 3000 u/s wave and its hit), the KdOracle check, the stand-ins, the RadiusDamage fallback |
-| [settings.md](settings.md) | The Settings menu's sources (pak01's settings layouts / styles / strings, `lasers-bake --settings-ref`, tools/settings-layout.mjs), CS2's styles the page ports; client.dll's crosshair codes (apply_crosshair_code 180dc2c40, the base-57 decoders 180bd3c70 / 180daf640, the 32-byte record and its clamps, the classic code's conversion, the float struct 180daf490, the rescale 180dbca70, the convar writes 180dbafb0, tier0's V_roundf), the Unicorn oracle; the crosshair's drawing (180da0610's spread / dynamic gap / alpha, every style's shapes, csgo_crosshair's pixel shader); convar registrations' two forms and the crosshair family's defaults (tools/re/game/cvardefs.py) |
-| [overtime.md](overtime.md) | The match's end and overtime: the mp_overtime_* / mp_halftime / mp_maxrounds / mp_match_can_clinch registrations and defaults, CheckWinLimit's rounds half (1809101e0: the clinch takes mp_halftime, total = k * ot + maxrounds, the next overtime with no tie test), IsLastRoundBeforeHalftime (18093d850), RestartRound's halftime branch (no swap at an overtime's start), AreTeamsPlayingSwitchedSides (18090ee00), GetStartMoney (18092a5e0) |
-| [match-pause.md](match-pause.md) | The halftime (mp_halftime_duration / pausetimer), tactical and technical timeouts (StartTerroristTimeOut 180964c10, the freeze hold in 180913f80, the gamerules' timeout fields), the vote issues (CSurrender / CStartTimeOutIssue vtables, CanTeamCallVote and m_bAbandonAllowsSurrender, GetNumberOfVotesRequired 1802789f0, the surrender's TerminateRound reasons 17 / 18), the sv_vote_* timers, the vote menu (context_menu_vote.ts) |
-| [vote-controller.md](vote-controller.md) | CS2's CVoteController: callvote 1802905b0, CreateVote 1802690c0, TryCastVote 18028db40, the think 18028f970 (the pass test, sv_vote_command_delay, the 5 s reset), the reset 180286890, its fields (+0x4a8..+0x648), vote_create_failed_t, the sv_vote_* cvars by handle, CBaseIssue's slots, which issues a server registers (18091ba50), Kick / ChangeLevel / NextLevel / RestartGame / Scramble / Swap, StartTimeOut / Surrender's reason maps, client.dll's reason table 0x181cdfa40, context_menu_vote.vjs's menu |
-| [pulse.md](pulse.md) | Pulse graphs on the official maps (point_pulse, vpulse_c2): where each map's graph lives, the compiled format and instructions, the cells (GetIsWingman 1801dbe50 -> IsWingman 1809108d0, EntFire FireAtName 1808950a0 / Run 180894d20, RandomInt::Eval 1815ace70, CycleRandom 1815c9c00, Wait 1815ca640), what GameModeCheck / WorkplaceInjury / the lightning do |
-| [spawns.md](spawns.md) | Team spawn points: CSpawnPoint m_iPriority / m_bEnabled (+0x4a8 / +0x4ac), GenerateSpawnPointLists 180925a50, the enabled lists' shuffle and priority sort 1809563e0, GetNextSpawnPoint 1809297b0 (the 0.03 s wave reset), RestartRound's spawn configuration 1809621f0 (unported) |
-| [prop-doors.md](prop-doors.md) | prop_door_rotating = CPropDoorRotatingBreakable (1819dd938 <- CPropDoorRotating 1819dce10 <- CBasePropDoor 181965e80): fields, keyvalue datamaps (180cd93b0, 180f15360, 180f018b0), Spawn 180f3bd00 / 180d13220, Activate's slave list 180ce0310, PlayerUse 180d16590, DoorOpen / DoorClose, GetOpenAngles 180f14ac0, the path sweep 180f14e50, the sweep bounds 180f148d0, the entity blocker (group 17), MoveTo / MoveDone, StartBlocked / EndBlocked 180d151f0 / 180cf1bf0, the inputs, the sounds 180ce8380, the breakable damage 180f30060 / 180bbe860 |
-| [crazykart-physics.md](crazykart-physics.md) | **CS:GO legacy** (not CS2: ze_crazykart's kart, docs/CRAZYKART.md): the kart's .phy (hull, mass, inertia, mass centre), phys_thruster's SetupForces 0x102eea80 / CalculateVelocityOffset vphysics 0x1001ca30 / the controller 0x1001a4f0, vphysics' step, damping 0x10076f20, gravity, drag, limits, friction, CKeepUpright 0x102f0500 / 0x102f06d0, the prop's spawnflags (0x8 = motion off), VScript TraceLine 0x103e52a0, CGameUI::Think, GetAngles' wrap (VPhysicsUpdate 0x10207cd0); the oracle (rubikon/tests/KartOracle: vphysics.dll's interfaces and vtables, the server's environment setup 0x102f5f60, a raw-stack scan of each callback's IVP call chain) and IVP's PSI 0x10084fb0 (its stages, the simulation unit 0x10072540, the core's next-PSI step 0x100970f0, the hull managers 0x10097db0); sleeping and waking, the unit lists and their walk, several bodies, Sleep / EnableMotion / SetVelocity / SetPosition, the limit hooks, the damping's expf (12) |
-| [ivp-mindist.md](ivp-mindist.md) | **CS:GO legacy** IVP's collision detection for ze_crazykart's kart (sim/src/ivp, mindist_check): compact ledges (.phy, BBoxToCollide 0x1000a860), the cache 0x1006cd90, the minimize solver (recalc_mindist 0x100982d0 and its cases), the mindist's layout, its creation (recheck_ov_element 0x10094de0, init_mindist 0x10094150, insert_and_recalc_exact_mindist 0x10094be0), the hull managers (0x100974e3, 0x100975f0, 0x10097db0, the hull event 0x100957c0, reset 0x10093bb0), the OO watcher 0x100b77f0, the range manager 0x100a1150 / 0x100a1240, update_exact_mindist_events 0x10095310, the KK / PF / PP / PK event solvers (0x100a2d90 / 0x100a2160 / 0x100a35c0 / 0x100a3f40, IVP_3D_Solver 0x100b72a0 / 0x100b7510 / 0x100b7130), the time events (0x10085440, 0x10095dd0) and the hand-off to do_impact (slot 8, 0x1008b020); ledge trees (the walk 0x100789b0 / 0x10078bc0, create_exact_mindists 0x10094300's pair loop with the diff hash 0x10096850 / 0x10096710, the watcher's vector removal 0x1009b470, the mindist's ledges 0x10094110) and calc_unscaled_KK_vals' parallel fallback 0x10079be4 |
-| [ivp-shadow.md](ivp-shadow.md) | **CS:GO legacy** vphysics.dll's shadow controller and server.dll's movers: which brushes are shadows (CreateVPhysics slot 154, VPhysicsInitShadow 0x102083a0 / VPhysicsInitStatic 0x10207ff0, PhysModelCreate 0x1031a3d0, PhysModelParseSolid 0x1031a270 with g_SolidSetup's defaults), when they're updated (PhysicsPusher, FinishPush 0x10303370, the frame's pusher list 0x10303170, UpdatePhysicsShadowToCurrentPosition slot 163), SetShadow 0x1001dac0 / UpdateShadow 0x1001db50, CShadowController (ctor 0x10024990, attach 0x10024a60, Update 0x10024ff0, do_simulation 0x10024f20, ComputeShadowControllerIVP 0x10024130 with 0x10020fa0 / 0x10023fb0), UseShadowMaterial's revival (SetMaterialIndex 0x1001dca0, 0x10076950), SetMass 0x1001c100, CollideGetAABB of a ledge tree 0x10032e60; shadow_check |
-| [ivp-impact.md](ivp-impact.md) | **CS:GO legacy** vphysics.dll's impact system and the kart on the ground end to end: do_impact 0x1008b020, 0x1008ac60, the core's sync 0x100779f0, the rescue 0x1008ba70, the friction system from a mindist 0x10088450 (0x1008df50 / 0x1008def0 / 0x100831f0 / 0x10083110, pairs 0x100870c0, cores and controllers 0x100871f0 / 0x10071d40), the impact system 0x1008b380 / 0x1008b4c0 / 0x10081fe0 / 0x1008b2c0 / rounds 0x1008b590 / end 0x1008bb40 / 0x100730d0, the stage-5 rot step 0x10096fe9, env+0x114's stages, a core leaving a system 0x10087270 / 0x10071dc0, the unit's rebuild 0x10071800 / 0x100713b0, vphysics' friction listener 0x10011eb0, the freeze's collision side 0x10077820 / 0x100775f0, 0x10082ce0; ivp_check's ground mode |
-| [ivp-contacts.md](ivp-contacts.md) | **CS:GO legacy** vphysics.dll's contacts: the friction system (ctor 0x10086de0, its controllers 0x10082e70 / 0x10082ff0 / 0x10082f60 at priorities 2000 / 600 / 0), the contact point (0x1007ec20 from a mindist, its geometry 0x1008d230 with 0x1008c2e0 / 0x1008c490 / 0x1008bd50 / 0x1008c850, its spring mass 0x10082a60), the static friction 0x1007fb40 over IVP_Solver_Core_Reaction 0x1009c010 / 0x1009b4e0 / 0x1009c0c0, the pairs' springs and energy (0x10080720, 0x10080840, 0x100820b0, 0x100826d0, 0x100821a0), the normal pressures' great-matrix solve 0x100a0b30 and the impacts 0x1008b0e0 / 0x10089a50 (call level); IVP_Mindist_Settings 0x1010d23c / 0x1010d240; the oracle's breakpoint probes (Probes.cs) and their `.raw` lines |
-| [ivp-touch.md](ivp-touch.md) | **CS:GO legacy** vphysics.dll with two dynamic bodies touching: friction systems as a list (a static core's infos per system), their merge 0x10081280 (0x10086fb0) and split 0x10082f60 -> 0x100815a0 / 0x100816a0, simulation units of several cores (0x10071d40 / 0x10071dc0 / 0x100713b0 / 0x100718e0 / 0x10071aa0, the unit's PSI 0x10072540, sleep 0x100722d0, revive 0x10071ef0, split test 0x10071710 with the controllers' slot 2 0x10007ca0 / 0x10082e60, split 0x100715c0), vphysics' pair-time listener (0x100127e0 / 0x100128c0, the cleanup 0x10012630), the rescue push 0x100980a0 (0x10083e40, 0x10012a10 / 0x10012cb0, 0x100839a0, 0x10083760, async push 0x10074e10, the core matrix 0x10076b50), the cache ring 0x1006ccb0 / 0x10001b50 |
-| [ivp-collide-off.md](ivp-collide-off.md) | **CS:GO legacy** vphysics.dll: an object's collisions off and on (EnableCollisions slot 12 0x1001b710: the friction snapshot 0x1001c050 / 0x100184c0 with Mark 0x10018610 and DeleteAllMarkedContacts 0x10018570 -> 0x10073be0, the OV element's dtor 0x1009a370, 0x10073ba0, 0x10095180 / 0x1009a2e0), SetPosition 0x1001d4e0 with isTeleport, the beam 0x10074b20 -> 0x10097750 (time code, hull managers, a frozen object's cache let go, 0x10073a50), EnableMotion's collision part 0x10072af0 / 0x10072c90, recheck_ov_element's pair filter (both cores static or pinned), several cores revived in one stage 1 |
-| [ivp-virtualmesh.md](ivp-virtualmesh.md) | **CS:GO legacy** engine.dll / vphysics.dll / server.dll: the displacements' physics. The engine's terrain collides (CollisionBSPData_LoadDispInfo 0x101e6650 and its CCoreDispInfo calls, CDispCollTree's layout, CM_CreateDispPhysCollide 0x101e7760 and the PHYSDISP lump, CVirtualTerrain's three callbacks, AABBTree_GetTrisInSphere 0x101f3360), vphysics' virtual mesh (CreateVirtualMesh 0x1002b980, the frame 0x1002acf0, a triangle's ledge 0x10002fc0, the packed hull's unpack 0x10002cc0, the surface manager 0x100e37a8: get_all_ledges_within_radius 0x1002af50, the point-triangle distance 0x1007a3e0), the server's vdisp_%04d objects 0x1031aa20; the oracle loading engine.dll (Disp.cs), the port (sim/src/ivp/vmesh.rs) and its checks |
-| [csgo-vscript.md](csgo-vscript.md) | **CS:GO legacy** server.dll's embedded Squirrel prelude: EntFire (caller = self, a null activator = self, a false value = ""), EntFireByHandle; found by a byte search, no disassembly (csgo/vscript/ent-fire.js) |
-| [csgo-effects.md](csgo-effects.md) | **CS:GO legacy** client.dll / server.dll / engine.dll: env_steam (C_SteamJet's Start / Update / SimulateParticles / light ramp / RenderParticles, the engine's GetLightForPoint), env_spritetrail (C_SpriteTrail's UpdateTrail / DrawModel, CBeamSegDraw's NextSeg / SpecifySeg), func_precipitation (CClient_Precipitation's systems per type, Simulate / UpdateParticlePrecip's four rays, the dispatches' control points), RayTracingEnvironment's Trace4Rays, the particle library's C_INIT_RtEnvCull and C_INIT_LifespanFromVelocity; what's unread |
-| [csgo-triggers.md](csgo-triggers.md) | **CS:GO legacy** server.dll: CBaseTrigger's vtable (0x108da2f0), datamap offsets (m_OnStartTouch +0x414 ... m_OnNotTouching +0x48c, m_bDisabled +0x408, m_hTouchingEntities +0x4a4), Disable 0x103b5ab0 (FSOLID_TRIGGER off, PhysicsTouchTriggers), EndTouch 0x103b6170 (OnEndTouch fires with no m_bDisabled test), PassesTriggerFilters 0x103b5dd0, OnEndTouchAll 0x103b6030. Not read: a killed trigger, the untouch frame, Enable / StartTouch |
-| [ivp-physbox.md](ivp-physbox.md) | **CS:GO legacy** server.dll / vphysics.dll: func_physbox (CPhysBox::Spawn 0x1031ca00 and CreateVPhysics 0x1031ce60: the debris group, PhysModelParseSolid, PhysSolidOverride 0x102f7de0, the Wake / EnableMotion flags), vphysics ParseSolid 0x100338c0's keys; ze_crazykart's items on IVP |
-| [ivp-pileup.md](ivp-pileup.md) | **CS:GO legacy** vphysics.dll / server.dll with a core past the impacts per PSI: 0x10088f10's anomaly slot 3 (0x10012b00), the frozen branch 0x1008a0aa (speeds into the pending changes, both cores pushed), who reads flags 0xc0 (the impact system's round); the server's ShouldFreezeObject 0x102f7090 with FindMaxContact 0x102f6f80 and the crush damage; ShouldCollide's root move parent and SOLID_NONE (CBaseButton::Spawn 0x10226b10 spawnflag 0x4000); vphysics' friction snapshot (0x100184c0, vtable 0x100e1d94) |
-| [spec-xray.md](spec-xray.md) | The dead's xray (client_20261015): the grenade trail 1807c81c0 (its fields, the 0.05 s point clock, CP 3 / 16, the 1024-point snapshot, who sees it, sv_grenade_trajectory_time_spectator: Competitive's 4), spectator_utility_trail.vpcf; the pawn glow 180c9a3a0 and its xray rule 180c7d380 (spec_show_xray, mp_forcecamera's enemy cut, team / deathmatch colours, the spec_glow_* noise curve over m_flEmitSoundTime), 1808d9120 (enemies), 180ce2420 (a caster); server EmitSoundByHandle 180f698d0 (public.display_broadcast token 0x442583); particles.dll 2026-11-12 0x18006fac5 PF_TYPE_PARTICLE_NUMBER; CS2's glow pass 1811faa40 (solid colour, downsample, blur, stencil, bicubic composite; its materials and shaders, the glow colour path 180ba92f0 / 180b78090 / 180b56b20) |
-| [video-textures.md](video-textures.md) | Texture detail's convar (the presets' builders 0x180deae90 / deb340 / dea9e0 / deb7f0: r_texture_stream_max_resolution 1024 / 2048 / 8192), worldrenderer's r_lightmap_size (default 65536, no preset writes it: full lightmaps on every preset), r_lightmap_size_directional_irradiance (-1), r_lightmap_set |
-| [world-vis.md](world-vis.md) | A CS2 world node's visibility data (vwnod_c) against our PVS culling, the bake's LOD levels, and CS2's LOD switch (scenesystem 2026-11-12): a model's level on the CPU (0x1800fc2c0: bounding sphere -> screen fraction -> pixels of the view's height, 0x1804afed0's 50 / pixels against the switch metrics), the world aggregates' on the GPU (0x18006a1b7: the screen-size LOD scale / sc_instanced_mesh_lod_bias and the view height as render attributes 0x20913434 / 0x6e996b2f; the consuming shader not found). Tool: lasers-bake --shader-names (every shader's variable / attribute names, to hash for a token) |
-| [lobby.md](lobby.md) | CS2's lobby and invite flow from pak01 (party / friend lobby, the invite toast and popup, its strings), the map veto (Premier's pick / ban panel), the server browser: what our custom lobbies take from each |
-| [c4.md](c4.md) | Defuse: func_bomb_target's touch (m_bInBombZone), CC4's plant (the ground hull trace, 3 s arming on a 0.3 s clock, the duck override, AbortPlant), the planted bomb's spawn (mp_c4timer 40), C4Think (beeps, the defuse checks and the spin lockout, the blow + 1 s detonation), Use (CT only, line of sight, 10 / 5 s), OnDefuse, the explosion (500 / 3.5 R RadiusDamage, or the baked bomb damage shockwave at 3000 u/s with its Bias for ducking / facing), the round-start C4 gift, the win check's bomb outcomes and money reasons, the round clock (TargetSaved, nothing while planted), the voice alert, the defuse kit (CItemDefuser), the team damage rule, the duck override / defusing movement; client.dll's C_PlantedC4 beep and light schedule, the top bar's bomb status, the progress bar, the animations; the cvars |
+| [accolades](accolades.md) | End-of-match accolades |
+| [aim-ik](aim-ik.md) | Aim IK (CNmAimCSTask) |
+| [aim-punch](aim-punch.md) | Aim punch (recoil and flinch) |
+| [anim-graph](anim-graph.md) | Anim graph runtime (NmGraph) |
+| [armsrace-hud](armsrace-hud.md) | Arms Race HUD (client) |
+| [armsrace](armsrace.md) | Arms Race (CS2's gun game) |
+| [auto-exposure](auto-exposure.md) | Auto exposure (the histogram, CTonemapSystem, the volume's values) |
+| [barn-lights](barn-lights.md) | Runtime lights ("barn lights"): the GPU record and the shader loop |
+| [blood](blood.md) | A player's blood |
+| [bot-takeover](bot-takeover.md) | Bot takeover |
+| [box-hull](box-hull.md) | A cooked axis-aligned box hull (RnHull_t) |
+| [buy](buy.md) | Buying (CanPlayerBuy, buy time, buy zones, the buy command, the buy menu) |
+| [c4-shockwave](c4-shockwave.md) | The C4's blast: CS2's baked shockwave and the RadiusDamage fallback |
+| [c4](c4.md) | The C4: bomb sites, planting, the planted bomb, defusing, the explosion, the round |
+| [cases](cases.md) | Cases (weapon cases, their loot, the unlock) |
+| [cs2-materials](cs2-materials.md) | World material shaders |
+| [damage-prediction](damage-prediction.md) | Damage prediction (the shooter's own hit effects, predicted kills, the server's half) |
+| [death-cam](death-cam.md) | Death camera |
+| [death-notice](death-notice.md) | player_death: the server's fields, the assist, the client's death notice |
+| [death-panel](death-panel.md) | The death panel ("killed by") |
+| [decals](decals.md) | Projected decals: the client's decal record |
+| [drops](drops.md) | Weapon drops |
+| [entity-index](entity-index.md) | Entity indices: how CS2 hands them out |
+| [env-explosion](env-explosion.md) | env_explosion's effect (CMsgTEExplosion) |
+| [equip-info](equip-info.md) | The top bar's equipment strip (hudteamcounter snippet-equipment-info) |
+| [fire-gate](fire-gate.md) | A gun's fire gate: clocks, PrimaryAttack, burst, zoom, silencer, deploy |
+| [flashbang](flashbang.md) | Flashbang: blindness, ring, screen overlay, flashed animation |
+| [fp-legs](fp-legs.md) | First-person legs |
+| [frame](frame.md) | The server frame: game-system events, usercmds, thinks |
+| [friends](friends.md) | Friends list, friend codes, Recent Teammates, Looking to Play |
+| [gradient-fog](gradient-fog.md) | env_gradient_fog (C_GradientFog) |
+| [grenades](grenades.md) | CS2 grenades |
+| [holster](holster.md) | Holster: putting a weapon away |
+| [home-menu](home-menu.md) | CS2's main menu: the left column, the play menu, the rating tile |
+| [hostage](hostage.md) | Hostage Rescue: CHostage, the carry, func_hostage_rescue, the round's rules and money, the HUD |
+| [hurt](hurt.md) | Map damage, heals, filters, a few base inputs |
+| [inferno-client](inferno-client.md) | C_Inferno on the client: the ground fire particle |
+| [inferno-spread](inferno-spread.md) | Inferno spread (server CInferno: think, CreateFire) |
+| [inputs](inputs.md) | The input dispatch and the classes' input tables |
+| [intermission](intermission.md) | The map's end: time limit, GoToIntermission, the end-of-match cue |
+| [io-queue](io-queue.md) | Entity I/O event queue |
+| [io-targets](io-targets.md) | I/O targets and connections |
+| [kill-cards](kill-cards.md) | Kill cards above the health / ammo panel |
+| [knife](knife.md) | The knife: its swing's sounds and its gate |
+| [knockback](knockback.md) | ZR's knockback |
+| [land-dip](land-dip.md) | The landing dip |
+| [loading-screen](loading-screen.md) | Loading screen |
+| [lobby](lobby.md) | CS2's lobbies, invites, Looking to Play and the map pick |
+| [match-pause](match-pause.md) | Halftime, tactical timeouts and the surrender vote |
+| [matchmaking](matchmaking.md) | Matchmaking, as the client and server show it |
+| [math-counter](math-counter.md) | math_counter (CMathCounter) |
+| [menu-anim](menu-anim.md) | Main menu characters and scene (uimodel graph, de_dust2_vanity) |
+| [menu-look](menu-look.md) | The main menu scene's look (de_dust2_vanity's post volume, the agents' textures) |
+| [momentary](momentary.md) | CMomentaryRotButton, ObjectCaps and PlayerUse's continuous use |
+| [mouse](mouse.md) | The mouse to the view angles |
+| [move-oracle](move-oracle.md) | Running server.dll's movement natively (the movement oracle) |
+| [movement](movement.md) | Player movement (CCSPlayer_MovementServices) |
+| [movers](movers.md) | The movers' own moves: CBaseToggle, CBaseDoor, CRotDoor, CFuncMoveLinear, CFuncRotating |
+| [music-volume](music-volume.md) | Music volume: the csgo_music stack, snd_musicvolume, snd_music_mode, `volume` |
+| [muzzle-flash](muzzle-flash.md) | A gun's muzzle flash and shell |
+| [net-timeout](net-timeout.md) | Connection timeouts (sv_timeout, cl_timeout) |
+| [overtime](overtime.md) | Match end, halftimes and overtime |
+| [pets](pets.md) | Pets: CS2's chicken pets, the Weekly Care Package |
+| [physics-prop](physics-prop.md) | CPhysicsProp (prop_physics, prop_physics_multiplayer) and the script API's Teleport |
+| [pickups](pickups.md) | Weapon pickups: the touch, BumpWeapon, +use, the target ID |
+| [ping](ping.md) | Player ping (`player_ping`, Mouse 3) |
+| [player-sounds](player-sounds.md) | Player and physics sounds (who hears which sound event) |
+| [post-layers](post-layers.md) | The post-processing layers |
+| [prop-doors](prop-doors.md) | prop_door_rotating (CPropDoorRotatingBreakable <- CPropDoorRotating <- CBasePropDoor) |
+| [pulse](pulse.md) | Pulse: point_pulse graphs on CS2's official maps |
+| [push](push.md) | Movers and players: the pusher, the ground's velocity, base velocity |
+| [radio](radio.md) | Radio, chat wheel, places, a match's voice cvars |
+| [ragdoll-settle](ragdoll-settle.md) | Ragdoll settling: prop_ragdoll's sleep rule |
+| [ragdoll](ragdoll.md) | A player's death ragdoll |
+| [reload](reload.md) | A gun's reload and the silent reload |
+| [round-restart](round-restart.md) | The round restart: what CleanUpMap removes and what it leaves |
+| [round-sounds](round-sounds.md) | The round's cues: freeze beeps, match announcements, the kill sound, the death cam's sounds |
+| [rubikon-colour-joints](rubikon-colour-joints.md) | Rubikon: joints in a graph-coloured island |
+| [rubikon-joint-break](rubikon-joint-break.md) | Rubikon: breaking joints, and their break limits |
+| [scene-node](scene-node.md) | Scene node: an entity's transform (CGameSceneNode) |
+| [score](score.md) | The kill's score: contribution score and deathmatch points |
+| [scoreboard](scoreboard.md) | The scoreboard per game mode (CSGOScoreboard) |
+| [settings](settings.md) | Settings menu, crosshair codes and drawing, convar defaults |
+| [shadows](shadows.md) | Sun shadows: cascaded shadow maps (CSM) |
+| [shots](shots.md) | Shots on players (hitboxes, damage, lag compensation, penetration, knife) |
+| [skins](skins.md) | Weapon skins: paint kits, StatTrak, knives, gloves, stickers |
+| [skybox](skybox.md) | The 3D skybox and the 2D sky |
+| [smoke](smoke.md) | CS2's smoke volume |
+| [spawngroups](spawngroups.md) | Spawn groups: info_spawngroup_load_unload |
+| [spawns](spawns.md) | Spawn spots (team matches) |
+| [spec-xray](spec-xray.md) | Spectator xray: glow through walls, grenade trails |
+| [spotting](spotting.md) | Spotting and the radar; the transmit cvars |
+| [spread](spread.md) | A shot's inaccuracy and spread |
+| [spritecard](spritecard.md) | The spritecard: layer channel mixes, bloom-only renderers, motion-vector scale, the 1D lookup, the trail combo |
+| [store](store.md) | The Store (the main menu's STORE page) |
+| [switchhands](switchhands.md) | switchhands: changing the viewmodel's hand |
+| [tagging](tagging.md) | Tagging: the slowdown on being hit |
+| [taser-client](taser-client.md) | Zeus x27 on the client (C_WeaponTaser) |
+| [team-intro](team-intro.md) | Team intro (CCSGO_TeamIntroMenu, the intro period, the map preview camera path, DoF) |
+| [teamid](teamid.md) | The overhead team id and the decorated player name |
+| [teammate-colors](teammate-colors.md) | Competitive teammate colours and the match stakes |
+| [tilt-twist](tilt-twist.md) | CTiltTwistConstraint (the agents' _TWIST bones) |
+| [touch](touch.md) | Touches (triggers, weapons) |
+| [tracer-sound](tracer-sound.md) | A bullet passing by you: FX_TracerSound |
+| [trains](trains.md) | CFuncTrackTrain and CPathTrack |
+| [transmit](transmit.md) | CheckTransmit: which entities a client is sent |
+| [use](use.md) | +use: FindUseEntity, IsUseableEntity, the collision property, ObjectCaps, bodies |
+| [usercmd](usercmd.md) | Usercmd timing: input history, tickbase, command queue, pacing, interpolation |
+| [video-textures](video-textures.md) | Texture detail and the lightmaps' size (video settings) |
+| [vote-controller](vote-controller.md) | Vote controller (callvote / vote, CVoteController, CBaseIssue) |
+| [warmup](warmup.md) | Warmup period (CCSGameRules) |
+| [weapon-select](weapon-select.md) | Weapon selection (slot keys, invnext / invprev, binds) |
+| [weapon-selection](weapon-selection.md) | The weapon list's flash on a new weapon (hudweaponselection) |
+| [winpanel](winpanel.md) | Round end panel, MVP, fun facts, round end sounds, end of match |
+| [world-vis](world-vis.md) | World visibility: what a CS2 map stores per world object, and the LOD switch |
 
 ## General helpers in server.dll (2026-11-05)
 
@@ -350,82 +358,6 @@ from the disassembly.
 | 0x1800759a0 | sv_phys_animated_hierarchy's registration (0x181ff5738, default on) |
 | vphysics2_20260924 0x180075b60 | CVPhysics2Interface::SimulateWorlds (vfn 0x80): each world's Simulate (vfn 0) per substep, then vfn 8 (0x180059fe0: the awake set into the server's push list) |
 | vphysics2_20260924 0x180048860 / 0x180013210 | CPhysAggregateInstance asleep (every body) / CPhysicsBody asleep: RnBody +0x249 bit 2 |
-| csgo legacy server.dll file offset 0xa36915 (text) | `function EntFire(target, action, value, delay, activator)`: the Squirrel prelude in the DLL; search `function <Name>(` for any other script helper (csgo-vscript.md 1) |
-| csgo legacy server.dll 0x103b5ab0 / 0x103b6170 / 0x103b5dd0 | CBaseTrigger::Disable / EndTouch / PassesTriggerFilters; its vtable 0x108da2f0, found from the type descriptor 0x10a71a60 (".?AVCBaseTrigger@@") and the datamap builder at 0x103b5300 (a class's output offsets: search the output's name string, its one code xref is the builder) (csgo-triggers.md) |
-| csgo legacy vphysics.dll 0x100b8030 | AngleVectors(angles ecx, forward edx, right, up): radians in SSE, x87 fsincos stored as f32, the vectors in SSE (crazykart-physics.md 11) |
-| csgo legacy vphysics.dll 0x1006d240 | IVP_U_Quat::set_quaternion(IVP_U_Matrix3) (trace and largest-diagonal branches, normalised past 1e-10) |
-| csgo legacy vphysics.dll 0x10075300 / 0x100760e0 | IVP_U_Matrix product (a.rows b, a.t + a.rows b.t; sums ((0 + 1) + 2)) / inverse (transpose, -(R^T t)) |
-| csgo legacy vphysics.dll 0x1001e7a0 / 0x10074750 / 0x1001bc70 | CreatePhysicsObject / IVP_Real_Object::init_object_core / CPhysicsObject::ComputeDragBasis (crazykart-physics.md 11) |
-| csgo legacy server.dll 0x1031ab20 / 0x1031aa20 | PhysCreateWorld_Shared (the BSP's world solids as static objects, the key parser's blocks, SetWorldMaterialIndexTable) / the virtual-terrain displacements vdisp_%04d (crazykart-physics.md 14) |
-| csgo legacy vphysics.dll 0x10002380 / 0x10036220 / 0x100b8a70 | ParseFile (signed-char whitespace, `{}()':` breaks, `//` and `/* */`, 0x3ff cap) / ParseKeyvalue (both lowercased, no value after `}`) / ASCII stricmp (ivp-contacts.md 7a) |
-| csgo legacy vphysics.dll 0x10018e70 / 0x10018f50 / 0x10019130 / 0x10034130 / 0x10033800 / 0x10035100 | GetSurfaceIndex ($MATERIAL_INDEX_SHADOW -> 0xf000) / GetPhysicsProperties (0xf000 -> +0x180, else >= 0x80 -> 0, out of range -> entry 0) / copy an index's data / the key parser's ParseSurfaceTable / NextBlock / ParseCustom (SkipBlock) (ivp-contacts.md 7a; ported: tools/kart-ivp-surfaces.mjs) |
-| csgo legacy vphysics.dll 0x100984c0 | IVP_Mindist_Minimize_Solver::p_minimize_FF: two triangles through each other, the nearest of point / point, point / face, point / edge, edge / edge by brute force (x 1.000001 margin), then that pair's case (ivp-mindist.md 14; sim/src/ivp/minimize_ff.rs) |
-| csgo legacy engine.dll 0x101e6650 / 0x101e7760 / 0x101e7660 / 0x101f52a0 / 0x101f5150 / 0x101f1cd0 | CollisionBSPData_LoadDispInfo (the displacement trees from the lumps) / CM_CreateDispPhysCollide (a virtual mesh per tree) / the PHYSDISP lump's hull offsets / DispCollTrees_Alloc / CDispCollTree::Create / its degenerate-triangle check (ivp-virtualmesh.md 2) |
-| csgo legacy engine.dll 0x101d7030 / 0x101d76f0 / 0x101d67f0 / 0x101d6930 / 0x101d9cc0 | CCoreDispInfo: ctor / InitDispInfo / the surface's FindSurfPointStartIndex / AdjustSurfPointData / Create (called natively by KartOracle's Disp.cs; their math TODO) (ivp-virtualmesh.md 2) |
-| csgo legacy engine.dll 0x101e7580 / 0x101e75d0 / 0x101e7620 / 0x101f5200 / 0x101f3360 | CVirtualTerrain::GetVirtualMesh / GetWorldspaceBounds / GetTrianglesInSphere, CDispCollTree::GetVirtualMeshList, AABBTree_GetTrisInSphere (radius in XMM2; sim/src/ivp/vmesh.rs tris_in_sphere) (ivp-virtualmesh.md 2, 5) |
-| csgo legacy vphysics.dll 0x10007ea0 / 0x1002b980 / 0x1002b370 / 0x1002b3e0 / 0x1002bdc0 / 0x1002acf0 | CreateVirtualMesh (collision slot 47) / CPhysCollideVirtualMesh's ctor / the frame's cache lock / build / cache insert / CMeshInstance::Init (ivp-virtualmesh.md 3) |
-| csgo legacy vphysics.dll 0x10002fc0 / 0x10003240 / 0x10002cc0 / 0x100024a0 / 0x1002ac70 | a virtual mesh triangle's two-sided ledge / the packed hulls' unpack / one hull's ledge / a packed hull's data start / the hulls' unpacked size (ivp-virtualmesh.md 3) |
-| csgo legacy vphysics.dll 0x1002bc50 / 0x1002af50 / 0x1002b110 / 0x1007a3e0 / 0x1002baf0 / 0x1002bc00 / 0x1002b260 / 0x1002b2d0 | the mesh surface manager's get_all_ledges_within_radius / its triangle query / its hull list / a point's squared distance to a ledge's first triangle / radius and deviation / mass centre / the collide's GetMassCenter / GetSphereRadius (ivp-virtualmesh.md 3, 5) |
-| csgo legacy server.dll 0x1031ca00 / 0x1031ce60 / 0x102f7de0 / 0x1031cd80 / 0x1043c2d0 / 0x102b56f0 | CPhysBox::Spawn (0x4000 -> group 1) / CreateVPhysics / PhysSolidOverride (a no-defaults handler) / the thin-model damping test / CCSGameRules::ShouldCollide / CGameRules::ShouldCollide (ivp-physbox.md, ivp-pileup.md 8) |
-| csgo legacy server.dll 0x1069bf80 / 0x1069b0d0 / 0x1069b500 / 0x1069af90 / 0x1069bb10 / 0x101cb0c0 | AngleMatrix (x87 fsincos, yaw pitch roll) / MatrixInvert / ConcatTransforms (SSE rows, +0.0 lanes) / MatrixAngles / VectorAngles (f64 x 1/pi) / the fpatan leaf; CPhysThruster::OnActivate 0x102ee940, ScriptSetForward 0x10206080 (ivp-physbox.md 7; sim/src/math/csgo_mathlib.rs, checked natively) |
-| csgo legacy server.dll 0x1069f9d0 / 0x1069fbe0 / 0x10347270 / 0x10347630 / 0x10267350 | VMatrix::SetupMatrixOrgAngles (AngleMatrix + origin column) / MatrixMultiply (4x4, plain order) / CPointTemplate::AddTemplate (inline InverseTR, matEntityToTemplate) / CreateInstance / CEnvEntityMaker::SpawnEntity (ivp-physbox.md 8; sim/src/math/csgo_mathlib.rs, checked natively) |
-| csgo legacy vphysics.dll 0x100338c0 | ParseSolid's keys (index, surfaceprop, mass, inertia, damping, rotdamping, volume, drag, massCenterOverride) (ivp-physbox.md 2; sim/src/ivp/solid_keys.rs) |
-| csgo legacy vphysics.dll 0x10073b10 / 0x100767c0 / 0x10075060 | delete_and_check_vicinity's second half (a static: the recheck at 0x21, 0x10082ce0, 0x100767c0) / a static core's contacts redone, their dynamic partners woken / ensure_in_simulation (Wake) (ivp-collide-off.md 7) |
-| csgo legacy server.dll 0x1028c550 / 0x1028c400 | CBreakable::Die (NOT_SOLID now, SUB_Remove at curtime + 0.1: 6 ticks) / its drop of what rests on top (ivp-collide-off.md 7a) |
-| csgo legacy vphysics.dll 0x100149f0 / 0x1001b560 / 0x100739f0 / 0x10073810 / 0x100781d0 / 0x10071980 / 0x100123c0 | CleanupDeleteList (Simulate's first step) / CPhysicsObject's dtor (shadow, then the vicinity wake when +0x14 & 0x20 and not silent) / delete_and_check_vicinity / IVP_Real_Object's dtor (hull listeners, contacts, out of its core) / the core's deletion (revive queue, controllers, out of its unit: no split) / the unit's core removal / the friction created event ("touched dynamic" 0x20) (ivp-collide-off.md 7) |
-| csgo legacy vphysics.dll 0x10012980 / 0x1001ba20 / 0x1001b850 / 0x10014760 | the IVP collision filter (the solver's answer; 0 for a 0x800 / 0x400 pair) / IsMoveable / RecheckCollisionFilter / DestroyObject (fast-remove, +0x1c 0x400, the delete queue) (ivp-pileup.md 7, ivp-collide-off.md 7) |
-| csgo legacy server.dll 0x10222080 / 0x10221f70 / 0x10221ff0 / 0x102341d0 / 0x1020a4a0 | CFuncWallToggle Toggle / TurnOff / TurnOn / CCollisionProperty::SetSolidFlags / CollisionRulesChanged (ivp-pileup.md 7) |
-| csgo legacy vphysics.dll 0x10019180 / 0x10019d30 / 0x10019ea0 / 0x10019d00 | CPhysicsSurfaceProps::ParseSurfaceData (0xac-byte entries, the IVP material at +0, +8 always 0: no contact slides) / its insert / its grow / the material manager's slot 1 (a triangle's index through the world table) (ivp-contacts.md 7) |
-| csgo legacy vphysics.dll 0x100722d0 / 0x10077820 / 0x10077750 | the unit's sleep check (all cores' movement state 3) / a core frozen / its speeds zeroed and q_next = q_last (crazykart-physics.md 12) |
-| csgo legacy vphysics.dll 0x10087370 / 0x10071ef0 / 0x10086b70 | stage 1's revive of the Wake queue / a unit revived to the active list's head / a core revived (speeds kept only when t_psi == 0) |
-| csgo legacy vphysics.dll 0x10072850 | the active units' walk: the first n - 3 in order, the last three from the last back |
-| csgo legacy vphysics.dll 0x10073370 / 0x1001bfe0 / 0x10072af0 | IPhysicsObject::Sleep (reference 1 at now - 20 s, then the sleep check) / EnableMotion / the core's pin |
-| csgo legacy vphysics.dll 0x1001d910 / 0x1001c700 / 0x1001d4e0 | SetVelocity / ApplyForceCenter / SetPosition (-> 0x10074b20 beam_object_to_new_position -> the core's 0x10097750) |
-| csgo legacy vphysics.dll 0x10012b60 / 0x100836e0 | the anomaly manager's speed (0.99 x max) / rot speed (0.9 x the limit) hooks, stage 3 |
-| csgo legacy vphysics.dll 0x100d8112 | the CRT's SSE2 expf (k = round(x 16384 / ln 2), three 2^(j/16384) tables, a degree-1 term): math/csgo_libm.rs expf |
-| csgo legacy vphysics.dll 0x100982d0 / 0x10099850 | IVP_Mindist::recalc_mindist (time stamp, P_Finish_Counter 20, the minimize table 0x10110a28) / minimize_default_poly_poly: the closest-feature walk PP 0x100b4e20, PK 0x100b6070, Leave_PK 0x100b62d0, KK 0x100b3070, Leave_KK 0x100b36f0, PF 0x100b1ca0, Leave_PF 0x100b26d0 (ivp-mindist.md 5) |
-| csgo legacy vphysics.dll 0x1006cd90 / 0x10074000 | IVP_Cache_Object's update (the object's pose at the environment's time; q_last when f32(t - t_psi) == 0) / get_m_world_f_object_AT (ivp-mindist.md 3) |
-| csgo legacy vphysics.dll 0x10095310 / 0x10093ce0 | update_exact_mindist_events (the hull conversion, the max collision speed, the event's time and delays) / calc_time_of_next_event (table 0x10110bb0: KK 0x100a2d90, PF 0x100a2160 over IVP_3D_Solver 0x100b72a0 / 0x100b7510 / 0x100b7130) (ivp-mindist.md 7-8) |
-| csgo legacy vphysics.dll 0x100957c0 / 0x10097db0 / 0x10093bb0 | the mindist's hull event (the halfspace estimate) / stage 4's synapse loop / IVP_Hull_Manager's reset (ivp-mindist.md 6) |
-| csgo legacy vphysics.dll 0x100a68e0 / 0x100a6bb0 | IVP_U_Min_List add (ascending, a value goes before its equals) / remove: the hull managers' and the time manager's queues (ivp-mindist.md 6) |
-| csgo legacy vphysics.dll 0x1007ac30 / 0x10079920 | IVP_Compact_Ledge_Solver::calc_qlen_KK (the squared edge-edge distance by the KK checks) / the KK input's line distance (ivp-mindist.md 5) |
-| csgo legacy vphysics.dll 0x10099e60 | IVP_Compact_Ledge_Solver::minimize_on_other_side: from the pierce triangle over non-positive qr edges to unvisited neighbours (ivp-mindist.md 5) |
-| csgo legacy vphysics.dll 0x10094bc0 / 0x10094b40 | exact_mindist_went_invalid / insert_invalid_mindist (the manager's +0x14 list) (ivp-mindist.md 10) |
-| csgo legacy vphysics.dll 0x10082ce0 | a revived core's exact mindists to a dynamic core outside any friction system: recalc, below remove_dist a contact (0x10088450) and the units merged; answer 1 restarts 0x10071ef0's walk (ivp-pileup.md 6) |
-| csgo legacy vphysics.dll 0x10072850 / 0x10071ef0 | stage 2's walk over the active list (+0x18, next +8, three behind) / a unit's revival (unlinked from +0x1a8, linked at +0x18's head) (ivp-pileup.md 6) |
-| csgo legacy vphysics.dll 0x10094300 (0x10094419, 0x100945ec) | create_exact_mindists gives each object of the pair a cache when it has none (0x1006ccb0), a frozen one's from its frozen core (ivp-pileup.md 6) |
-| csgo legacy vphysics.dll 0x10073a50 / 0x100980e0 / 0x10094a70 | an object's invalid mindists rechecked in stage 2 / recalc_mindist with the finish counter 0 / insert_exact_mindist (no recalc, no events) (ivp-pileup.md 5) |
-| csgo legacy vphysics.dll 0x100789b0 | the compact ledge tree walk of get_all_ledges_within_radius: node sphere then per-axis box size bytes x radius x 0.004 (ivp-mindist.md 10) |
-| csgo legacy vphysics.dll 0x100a1150 / 0x100a1240 | IVP_Range_Manager get_coll_range_intra_objects / get_coll_range_in_world (constants from its ctor 0x100a10c0) (ivp-mindist.md 4) |
-| csgo legacy vphysics.dll 0x1009c010 / 0x1009b4e0 / 0x1009c0c0 | IVP_Solver_Core_Reaction: the cores' response at a point along 1-3 world directions (levers M^T (d x dir), the matrix ((r1 c1 + r0 c0) + r2 c2) + 1/m), and pushes along two of them into the speeds (ivp-contacts.md 4) |
-| csgo legacy vphysics.dll 0x100d7fc5 / 0x100d7a68 | the CRT's SSE2 cosf (sinf's body, its own constants 0x100fc4b0, the row a quarter turn on: edx + 0x1c7610) / asinf (|x| in [0.0625, sqrt(3)/2]: asin(c) from the row 0x100fb690 + a correction; [2^-16, 0.0625): x + x^3/6 + 0.075 x^5 + 0.0446 x^7; below: x): math/csgo_libm.rs, bit for bit over the oracle's sweep (ivp-impact.md 2-3) |
-| csgo legacy vphysics.dll 0x100779f0 / 0x1008bb40 | an impact's core synchronised to the event's time (rot, q_next saved at core+0x1ac; rot from asinf of the last step's rotation) / the impact system's end (the next PSI from now, stage 4's events, the mindists re-planned) (ivp-impact.md 3, 5) |
-| csgo legacy vphysics.dll 0x100b18a0 / 0x100b16e0 / 0x100b14f0 / 0x100b1a00 / 0x100b1b30 / 0x100b1af0 | IVP_Mindist_Recursive (vtable 0x100f2ef8, delegator 0x100f2ee8): its ctor / slot 7 and slot 8 (split a ledge tree node's hull: the side by the terminal ledge, the virtual features, the bigger node) / its own mindists (create_exact_mindists with a fixed and a "from" ledge) / its hull event (recalc with P_Finish_Counter 0, 0x100980e0) / folded back into an exact mindist (ivp-mindist.md 13) |
-| csgo legacy vphysics.dll 0x10096180 / 0x10094a70 / 0x10094b40 | insert_hull_mindist at the managers' next-PSI value without the angular hull times / insert_exact_mindist / insert_invalid_mindist (ivp-mindist.md 13) |
-| csgo legacy vphysics.dll 0x1007ec20 | IVP_Contact_Point ctor: each synapse head-inserted into its object's friction-synapse list (IVP object +0x28): a list runs newest contact first (ivp-collide-off.md 1) |
-| csgo legacy vphysics.dll 0x10094de0 (0x10094fd4..) | recheck_ov_element's pair filter: either object moving, not both cores flags & 0x12 (static / pinned), +0x44 0x200 / 0x400, the env's collision filter (ivp-collide-off.md 4) |
-| csgo legacy vphysics.dll 0x100187f0 / 0x10018720 | the friction snapshot's GetNormalForce (contact +0x54 x 39.370079) / GetSurfaceNormal (+0x7c..+0x84 into Source axes, signed by side, over |n| + 1.1920929e-07) (ivp-pileup.md 2) |
-| csgo legacy server.dll 0x102087d0 | an entity's root move parent (ShouldCollide's same-hierarchy test, ivp-pileup.md 3) |
-| csgo legacy server.dll 0x102f6b10 | CCollisionEvent::ShouldCollide: two fixed entities (movetype NONE / PUSH, parented, custom with a shadow) never collide; then collision groups, contents (ivp-shadow.md 8) |
-| csgo legacy vphysics.dll 0x10019ba1..0x10019c38 | the surfaceproperties parser's fallback entry for material index 0xf000 (the shadow material): friction 0.8, elasticity 0.001 (ivp-shadow.md 8) |
-| csgo legacy vphysics.dll 0x10020fa0 / 0x10023fb0 | ComputeController (damp the speed by -damping capped at maxDampSpeed, add delta x scale capped at maxSpeed; the impulse out) / a quaternion's delta a x conj(b) in its sum order, normalised past 1e-10 (ivp-shadow.md 4) |
-| csgo legacy vphysics.dll 0x10076950 | a core's objects changed (a new material, a mass): calc_calc, the objects' movement bytes, a core not simulated revived now (0x10071ef0) else its references re-timed, the friction contacts re-mixed (ivp-shadow.md 3) |
-| csgo legacy vphysics.dll 0x10032e60 | CollideGetAABB's ledge-tree walk (left child at +0x1c first, then +[node]; a leaf's six support points into the min / max) (ivp-shadow.md 5) |
-| csgo legacy server.dll 0x101f7f40 | CBaseEntity::UpdatePhysicsShadowToCurrentPosition (slot 163): UpdateShadow(abs origin +0x1dc, abs angles +0x1e8, false, dt) unless VPHYSICS (ivp-shadow.md 1) |
-| csgo legacy vphysics.dll 0x100713b0 / 0x10071d40 / 0x10071dc0 | a simulation unit's controller list rebuilt from its cores' lists (each from its last controller: equal priorities reversed) / a controller attached to a core and its unit / detached (ivp-impact.md 4, 6) |
-| csgo legacy vphysics.dll 0x100d7e25 | the CRT's SSE2 atanf (table 0x100fbee8 by c's high word; ported bit for bit: sim/src/math/csgo_atan.rs, ivp-contacts.md 6) |
-| csgo legacy vphysics.dll 0x1009c880 / 0x1009c980 / 0x1009d270 | IVP_Great_Matrix_Many_Zero Gauss with pivoting / back substitution; IVP_Linear_Constraint_Solver (the complementarity solve) (ivp-contacts.md 5) |
-| csgo legacy vphysics.dll 0x1006dc70 | the environment's temporary memory (env+0xa0 / +0x9c): a block per PSI (the long-term infos) |
-| csgo legacy client.dll 0x107ab700 / 0x107ab7c0 / 0x107ac160 / 0x107ac270 | C_SteamJet: Start / Update (a particle a spawn event) / SimulateParticles / the lighting ramp (csgo-effects.md 1) |
-| csgo legacy client.dll 0x10368f00 / 0x103690e0 / 0x10368ca0 | C_SpriteTrail: UpdateTrail (the ring's new point) / DrawModel (the beam's width, alpha, texture coordinate per point) / its bounds (csgo-effects.md 2) |
-| csgo legacy client.dll 0x10799220 / 0x107998b0 / 0x107996a0 / 0x10796110 | CClient_Precipitation: InitializeParticlePrecip (systems per type) / the inner and outer dispatch (control points) / Precache (csgo-effects.md 3) |
-| csgo legacy server.dll 0x10629060 | CSteamJet::Spawn (env_steamjet faces left, InitialState emits) (csgo-effects.md 1) |
-| csgo legacy client.dll 0x107abea0 / 0x107abc20 / 0x1022f980 | C_SteamJet::RenderParticles (the ramp's lerp, the size by lifetime) / the unrolled quad / the rolled quad (csgo-effects.md 1) |
-| csgo legacy engine.dll 0x100b6160 / 0x100b7210 / 0x10247b80 / 0x10246ea0 | IVEngineClient::GetLightForPoint (CEngineClient vtable 0x1047d850 slot 1) / slot 72 / ComputeLighting (no normal: the cube's six faces x 1/6, local lights folded in) / LightcacheGetDynamic (csgo-effects.md 1) |
-| csgo legacy client.dll 0x109a94c0 / 0x109a9c50 / 0x109a9620 | CBeamSegDraw: Start / NextSeg (the segment normal, averaged at a point) / SpecifySeg (the two vertices) (csgo-effects.md 2) |
-| csgo legacy client.dll 0x10798a30 / 0x10798ba0 / 0x10796430 / 0x10799600 | CClient_Precipitation: Simulate (the 0.125 s trace timer) / UpdateParticlePrecip (four rays: inside, nearby) / OnDataChanged (density = alpha x 0.01) / DestroyInnerParticlePrecip (csgo-effects.md 3) |
-| csgo legacy client.dll 0x10994260 / 0x10995b30 / 0x109960d0 / 0x10994ee0 | RayTracingEnvironment: Trace4Rays / its traversal and triangle test (two-sided, 1e-10 epsilons, the triangle's own normal) / AddTriangle / SetupAccelerationStructure (unread) (csgo-effects.md 3) |
-| csgo legacy client.dll 0x109616c0 / 0x1095fed0 / 0x10975cb0 | particle library: C_INIT_RtEnvCull (vtable 0x10d0765c) / C_INIT_LifespanFromVelocity (0x10d08c90) InitNewParticlesScalar / C_OP_SetControlPointToImpactPoint::Operate (0x10d0d1e8, unread) (csgo-effects.md 3) |
 | tier0_20261103 0x18015eda0 / 0x18015e1b0 / 0x18015d580 | CUniformRandomStreamImpl RandomFloat / GenerateRandomNumber_Locked / GenerateDefaultRandomSeed (the clock) (lib/cs-random.js, exact) |
 | 0x1805aeb70 / 0x1805c9530 | CPhysicsGameSystem::PushDynamicTransformsWorker / one aggregate's pose onto its node |
 | 0x181472f90 | MatricesAreEqual(a*, b*, tol): the 3x3 rotation only, |a - b| > tol (comiss / ja) -> false (sim/src/math/matrix.rs rotation_is_identity, exact) |
@@ -697,114 +629,36 @@ time scale +0x400, the collision property +0x5e8. Virtuals: Spawn 0x48, Blocked 
 | 0x1801bf980 | fill a float attribute stream with one value for particles 0..n (no clamp) |
 | 0x18036ac00 | a vector through a 3x4 matrix (rotation + translation) |
 
-## How
+## Methods
 
-- **Ghidra (ReVa MCP)**: `get-decompilation` for the shape; `find-cross-references` from a string (an input's
-  "Class_API::Input" name, a think's "ClassThinkName", a schema field name) to its function; the decompiler drops
-  register arguments and gets maxss / minss with NaN wrong, so read the disassembly for every sum.
-- **tools/re/game/** (Python, read the DLL file directly; each takes the DLL path first):
-  - `rtti.py <dll> <Class>`: the class's vtable through MSVC RTTI.
-  - `bases.py <dll> <Class>`: the class's base classes through MSVC RTTI (the hierarchy descriptor), nearest first.
-    2026-11-14, server.dll: CPostProcessingVolume <- CBaseTrigger <- CBaseToggle <- CBaseModelEntity <- CBaseEntity
-    (so a post_processing_volume touches as a trigger: classes/triggers.js TOUCH_CLASSES).
-  - `vslot.py <dll> <vtables> <slots>`: which function each class runs for a virtual.
-  - `vdiff.py <dll> <base vt> <derived vt>`: the slots a class overrides (its Spawn is slot 0x48).
-  - `disasm.py <dll> <va> [bytes] [--all]`: the instructions (pefile + capstone). `disasm_consts.py` (same
-    arguments, `--fp` for float / call / jump lines only) also prints each rip-relative operand's address and f32.
-  - `strings.py <dll> <regex>`: strings and their VAs (a class's think names, "Class_API::Input" names).
-  - `xref.py <dll> <string | 0xVA> ...`: every rip-relative lea / mov to it and its function (Ghidra's xrefs
-    without Ghidra). `callers.py <dll> <0xVA> ...`: every `call` / `jmp rel32` to a function.
-  - `vtfind.py <dll> <vtable> <0xfunc> ...`: which slots of a vtable point at those functions.
-  - `vtowner.py <dll> <0xfunc> ...`: the reverse: every class vtable and slot holding a function (through the RTTI
-    locator before each vtable), e.g. that 180249530 is CCSPlayerPawn's slot 0xaf8. Slow for a function in hundreds of
-    vtables (a base class's default).
-  - `vslotall.py <dll> <0xslot> <Class> ...`: each class's function at one slot, to see who overrides a vfn
-    (vfn 0xbf8 is 1809b5210 for every weapon class; Deploy 0xa18 has four).
-  - `vcalls.py <dll> <0xslot> ...`: every `call [reg + slot]`, i.e. every virtual call through that slot.
-  - `argcalls.py <dll> <0xcallee> <r8|rdx|rcx|r9>`: every direct call / jmp to a function with the last write to that
-    argument register before it (which tracer type each FX_TracerSound caller passes: tracer-sound.md).
-  - `svccall.py <dll> <0xfield> <0xslot>`: a load of `[reg + field]` followed by `call [reg + slot]`: who calls a
-    services object's virtual through its owner's field (the pawn's water services +0xb30).
-  - `f32refs.py <dll> <value>`: the f32's copies in the image and every rip-relative read of one (the client's twin of
-    a server function by a shared constant: 9.765625e-06, the impact volume, player-sounds.md).
-  - `enumtab.py <dll> <name>`: the pointers to a string with the 30 entries either side (an enum's name / value
-    table: WeaponSound_t, player-sounds.md "Nearly empty").
-  - `riprefs.py <dll> <0xVA> [...] [--imm N]`: every rip-relative operand in .text pointing at a VA (a string, a ConVar
-    object, a global), found by bytes in seconds (an int32 at i with i + 4 + disp == target), with its .pdata function and
-    the instruction; misses an operand with an immediate after it unless --imm N. E.g. the reservation reader
-    (matchmaking.md) from the "[%x]" string.
-  - `dispuses.py <dll> <0xstart> <0xend> <0xdisp> [...]`: every instruction in a VA range with one of the
-    displacements in a memory operand, lea included (a field of one class's object inside that class's code: the
-    physics game system's impact queue). An offset used as an immediate (`add rcx, 0x4c8`) needs a byte search.
-  - `fieldwrites.py <dll> <0xoffset> [--reads]`: every store (or with --reads every use) of `[reg + offset]` (disp32,
-    offsets >= 0x80), decoded by a linear sweep from the function's start; e.g. the five writers of
-    m_flDamageAccumulator. Any class with a field at that offset shows up: read the function.
-  - `reva.mjs <tool> <json>`: Ghidra ReVa over HTTP when the session's ReVa MCP tools are down (its header: how to
-    start the headless server). `cvarreg.mjs <program> <cvar> ...`: a cvar's registration decompiled by ReVa (its
-    object, default, flags), e.g. for engine2's cvars.
-  - `protomsg.py <dll> <Message> ...`: one protobuf message's DescriptorProto decoded on its own, for a .proto blob
-    protodesc.py can't parse whole (engine2's netmessages: CSVCMsg_PacketEntities' cmd_recv_status).
-  - `cvardump.py <dll> <cvar> ...`: a ConVar's registration: its object (the value at [object + 8] + 0x58), flags,
-    help text and the setup's default stores (a bool / int's default is the setup's +0x37; a float's in xmm2). A
-    ConVarRef (18169e750 with a type) means the cvar lives in another DLL (engine2).
-  - `cvardefs.py <dll> <names file> <out.json>`: many registrations at once, decoded to { type, default, min, max,
-    flags, help, handle } (the int / bool and float forms: settings.md "Convar defaults").
-  - `xhair_oracle.py <client.dll> <out.json> [count]`: client.dll's crosshair-code parse + rescale run under Unicorn
-    (imports stubbed, globals pointed at test values): the pattern for checking a pure client function without the game.
-  - `xhair_draw_oracle.py <client.dll> <out.json> [count]`: the crosshair's style functions under Unicorn on random
-    crosshairs, their shape lists dumped (a fake object with the list pointer, the struct and the dynamic values).
-  - `xhair_proj_oracle.py <client.dll> <out.json> [count]`: the crosshair's spread projection (180d9e560) through the
-    real world-to-screen (180c19db0 / 180c19cd0 / 180da17d0) and AngleVectors (181740910) on random views, a view
-    matrix planted at the slot's global; web/src/cs2web/client/settings/crosshair-proj-test.mjs checks crosshair-proj.js against it.
-  - `xhair_lineup_oracle.py <client.dll> <out.json> [count]`: the grenade line-up crosshair (180da7770) on random views,
-    with stubs for the engine, the view render's aspect, the UtlVector allocator and g_pMemAlloc's free (a bump heap).
-  - `tier0_link.py`: the real tier0.dll in a client oracle's Unicorn (relocated to 0x260000000, the named imports
-    pointed at its exports, its CRT FMA flag cleared): `tier0_link.link(uc, client_pe, tier0_path, ['V_tanf', ...])`.
-    Use it instead of Python stand-ins for tier0's maths (they round differently).
-  - `tier0_trig_oracle.py <tier0.dll> <out.json> [count]`: tier0's V_sincosf / V_tanf / V_atanf / V_expf / V_powf /
-    V_roundf on random inputs (tier0-trig-test.mjs checks tier0-trig.js against it): the SSE2 path (Unicorn has no FMA).
-  - `tier0_native.py <tier0.dll> <in.json> <out.json>`: the same inputs through tier0 loaded natively (ctypes, Windows
-    x64): on an FMA3 CPU the CRT's FMA path, the oracle for tier0-fma.js. Native loading works for tier0 (no engine
-    init needed for its maths): use it for any CPU-dispatched tier0 function.
-  - `lasers-bake --shader-src <name> <out> --vars`: also the shader's variable descriptions, field by field
-    (<name>_vars.txt: a texture's sampler, defaults, register; a sampler is a __RenderStateLiteral__).
-  - `lasers-bake --shader-src <name> <out>`: a shader's programs from shaders_vulkan_dir.vpk decompiled (VRF's SPIR-V
-    reflection) and its .vfx reconstructed; `--shader-api` prints VRF's shader API for a VRF update.
-  - `fnat.py <dll> <0xVA> [--consts] [--around N]`: the function holding an address, from .pdata (exact bounds,
-    its chained parts gathered), disassembled whole or around the address. Use it instead of guessing a start.
-  - `protodesc.py <dll> <file.proto> [Message ...]`: a protobuf descriptor embedded in the DLL, decoded (field
-    numbers, types, names: cs_usercmd.proto). `vtdump.py <dll> <0xvtable> [n]`: a vtable's slots with their sizes.
-  - `pbsetters.py <dll> <0xhasbits> <0xbit> <0xfield>` / `nearstores.py <dll> <0xfield> <0xbit>`: inlined protobuf
-    setters (an `or` of the has-bit next to the field's store; nearstores sweeps .text linearly, minutes on client.dll).
-  - `fnstrings.py <dll> <0xstart> <0xend>`: the strings a function references (directly or via a pointer, as a
-    ConVar's name), to name a vfn ("Player.Respawn").
-  - `sibscan.py <dll> <0xdisp> [scale]`: every mov / lea / cmp with a `[base + index x scale + disp32]` operand, by
-    bytes (seconds): who indexes an array inside a struct. E.g. that nothing reads the item definition's sound
-    replacements at +0xf8 + slot x 8 (player-sounds.md "The vdata sound slots").
-  - `schema.py <dll> <m_field>` / `--near <entry>`: a field's offset from the schema binding tables, and its class's
-    neighbours (how CFuncRotating's layout came out in one call).
-  - Constants: read 4 / 16 bytes at `rip + disp` (the instruction's end + disp) with pefile.
-- **A live server's own state, tools/capture/** (Node): a local CS2 dedicated server from the Steam install
-  (`cs2.exe -dedicated -insecure -usercon -maxplayers 64 -ip 127.0.0.1 +sv_lan 1 +rcon_password <pw> +map <map>`, run in
-  the background, stopped after) driven over RCON: `rcon-cmd.mjs <port> <pw> <cmd>...` prints each reply (CS2 answers a
-  frame later: rcon.mjs waits for the packets to stop), `entities.mjs` snapshots every entity's index through
-  `ent_find` (docs/game/entity-index.md "Captured"). Gotchas: no `-condebug` (with no console window it floods
-  console.log in the game folder), `sv_hibernate_when_empty 0` and `bot_join_after_player 0` for bots, and bots need a
-  nav mesh (the ZE maps have none: use a stock map for anything about players).
-- **The CS2 client's console, tools/capture/netcon.mjs** (2026-11-19, the paired shots: docs/MAP_SHOTS.md): a client
-  started with `-netconport <port>` speaks VConsole2's binary protocol, not text: packets of a 4-byte type, u16
-  version 0x00d4, u32 big-endian length (header included), u16 handle; a command is `CMND` + its text NUL-terminated,
-  output comes as `PRNT` (text after 40 bytes). Its backlog is replayed on connect; one client at a time works best
-  (close the socket cleanly). `getpos` prints the eye, `setpos` sets the origin (eye - 64 standing). Retail CS2 has no
-  screenshot command: tools/capture/grab-window.ps1 (PrintWindow) + decode-grab.py (the grab is sRGB-encoded twice).
-- **Checking a port bit for bit**: rubikon/tests/SceneOracle maps server.dll by hand (no loader, no initialisers:
-  fill BSS constants such as the identity quaternion at 0x181f4a000 yourself), binds tier0 and kernel32 and calls a
-  pure function natively, through a small thunk for __vectorcall ones; it writes the cases, a sim/src/bin/*_check
-  compares the Rust port's bits. Modes: (none) AngleQuaternion, `--concat`, `--angles`, `--nodes`, `--movers`.
-- **Calling a whole subsystem natively** (sim/src/bin/move_oracle, move-oracle.md): the same mapping in Rust, in one
-  process with the sim: fake objects with logged copies of the real vtables, the engine's functions stubbed or hooked,
-  TraceShape hooked onto the sim's trace world, .pdata registered for real call chains on a fault, int3 watches on a
-  counter's increments.
-- **A string's users** (`tools/re/game/strva.py <dll> <string>` -> its address, then `tools/re/game/riprefs.py <dll> <address>`):
-  how the script API's `Entity.Teleport` was found (physics-prop.md 4): the registration function names every
-  method, the callback itself names it again in its error messages.
+| Task | How |
+|---|---|
+| A function's shape | Ghidra (ReVa) `get-decompilation`; from a string (`Class_API::Input`, a think name, a schema field) `find-cross-references` |
+| Sum orders, NaN-sensitive min / max | the disassembly, never the decompiler (it drops register arguments and gets maxss / minss with NaN wrong) |
+| A rip-relative constant | read 4 / 16 bytes at the instruction's end + disp (`disasm_consts.py`) |
+| A string's users | `strva.py <dll> <string>` -> its VA, then `riprefs.py <dll> <VA>`; a script API's registration names every method, its callback names it again in errors |
+| Class, vtable, slot, field, cvar, protobuf | the scanners in [tools/re/game/](../../tools/re/game/README.md) |
+| A pure function's exact bits | map the DLL by hand (no loader, no initialisers: fill BSS constants such as the identity quaternion at 0x181f4a000 yourself), bind tier0 / kernel32, call it natively (a thunk for `__vectorcall`); or run it under Unicorn (the `*_oracle.py` scripts, `tier0_link.py` for tier0's maths) |
+| A whole subsystem natively | the same mapping with fake objects carrying logged copies of the real vtables, engine calls stubbed or hooked, .pdata registered for real call chains on a fault, int3 watches on counters ([move-oracle](move-oracle.md)) |
+
+Facts found while doing it:
+
+- `bases.py` 2026-11-14, server: CPostProcessingVolume <- CBaseTrigger <- CBaseToggle <- CBaseModelEntity <- CBaseEntity (a post_processing_volume touches as a trigger).
+- `vtowner.py`: 180249530 is CCSPlayerPawn's slot 0xaf8. `vslotall.py`: vfn 0xbf8 is 1809b5210 for every weapon class; Deploy 0xa18 has four.
+- A ConVarRef (18169e750 with a type) means the cvar lives in another DLL (engine2). A bool / int cvar's default is the setup's +0x37, a float's in xmm2.
+- `sibscan.py`: nothing reads the item definition's sound replacements at +0xf8 + slot x 8.
+- tier0 loads natively without engine init for its maths; on an FMA3 CPU the CRT takes its FMA path (flag 0x1803ab28c), Unicorn the SSE2 path.
+
+### A live CS2 server
+
+`cs2.exe -dedicated -insecure -usercon -maxplayers 64 -ip 127.0.0.1 +sv_lan 1 +rcon_password <pw> +map <map>`, driven
+over RCON (replies come a frame later). No `-condebug` (without a console window it floods console.log in the game
+folder); `sv_hibernate_when_empty 0` and `bot_join_after_player 0` for bots; bots need a nav mesh.
+`ent_find` lists entity indices ([entity-index](entity-index.md)).
+
+### The CS2 client's console (`-netconport <port>`)
+
+VConsole2's binary protocol: packets of a 4-byte type, u16 version 0x00d4, u32 big-endian length (header included),
+u16 handle. A command is `CMND` + text, NUL-terminated; output arrives as `PRNT` (text after 40 bytes). The backlog
+replays on connect; one client at a time. `getpos` prints the eye, `setpos` sets the origin (eye - 64 standing).
+Retail CS2 has no screenshot command (a window grab via PrintWindow comes back sRGB-encoded twice).

@@ -1,6 +1,6 @@
 # CS:GO legacy IVP: collision detection up to the impact (vphysics.dll, 32-bit)
 
-How csgo legacy's vphysics.dll (md5 d97cf2194594d7545427cdabc7376db4, the one docs/game/crazykart-physics.md 8-11
+How csgo legacy's vphysics.dll (md5 d97cf2194594d7545427cdabc7376db4, the one docs/crazykart/crazykart-physics.md 8-11
 reads) finds and tracks the distance between ze_crazykart's kart and the world, up to the call into the impact
 code. Everything here was read from the disassembly (Ghidra /csgo_vphysics_legacy.dll, capstone); the leaked IVP
 source (Havok/ipion) was used for names only and differs from this build in places (said where). All float math is
@@ -498,7 +498,7 @@ Reached by world-hub's first PSI (a kart edge parallel to a brush edge) and chec
 
 ## 13. IVP_Mindist_Recursive: a ledge tree node's hull against a ledge (ported 2026-11-17: recursive.rs)
 
-Reached when a moving ledge tree meets a kart: a mover's brush (docs/game/ivp-shadow.md; kart-lift.txt). The
+Reached when a moving ledge tree meets a kart: a mover's brush (docs/crazykart/ivp-shadow.md; kart-lift.txt). The
 world's pairs never made one (its walk reaches terminal ledges near the kart). A 0xa0-byte mindist, vtable
 **0x100f2ef8** (slots 0-3 the base's, 4 the dtor 0x100b1950, **5 0x10004410: no rescue push**, 6 0x10003fd0, **7
 0x100b16e0**, **8 0x100b14f0**, 9 / 10 0x100b7b10 / 0x100b7b57) with an IVP_Collision_Delegator at **+0x80** (vtable
