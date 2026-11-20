@@ -50,7 +50,9 @@ sys.path.insert(0, os.path.dirname(__file__))
 import harvest_names as hn  # noqa: E402
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-CS2 = os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir()
 BIN = os.path.join(CS2, "game", "bin", "win64")
 # rendersystemvulkan and rendersystemdx11: the material sampler's render (texture preload cap).
 # vrad3: the lighting baker resourcecompiler runs (docs/VRAD3.md), being reversed for our own bake.

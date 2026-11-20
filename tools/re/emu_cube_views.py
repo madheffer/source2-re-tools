@@ -21,7 +21,10 @@ from unicorn import Uc, UC_ARCH_X86, UC_MODE_64, UC_HOOK_CODE
 from unicorn.x86_const import (UC_X86_REG_RSP, UC_X86_REG_RIP, UC_X86_REG_RCX, UC_X86_REG_RDX, UC_X86_REG_R8,
                                UC_X86_REG_XMM0, UC_X86_REG_XMM1, UC_X86_REG_GS_BASE)
 
-CS2 = os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive")
+import sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir()
 BIN = os.path.join(CS2, "game", "bin", "win64")
 CLIENT = os.path.join(CS2, "game", "csgo", "bin", "win64", "client.dll")
 

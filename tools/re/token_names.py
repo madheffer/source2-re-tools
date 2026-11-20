@@ -29,7 +29,9 @@ for h in sorted(want):
 if len(sys.argv) < 3:
     sys.exit()
 extra=set(re.findall(r' ([a-z_0-9.]+)=', open(sys.argv[2],encoding='utf-8',errors='replace').read()))
-bin_=os.path.join(os.environ.get('CS2_DIR',r'D:\Steam\steamapps\common\Counter-Strike Global Offensive'),'game','bin','win64')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
+bin_=os.path.join(cs2_dir(),'game','bin','win64')
 for f in ('engine2.dll','worldrenderer.dll','materialsystem2.dll','rendersystemvulkan.dll'):
     data=open(os.path.join(bin_,f),'rb').read()
     extra|=set(s.decode() for s in re.findall(rb'[A-Za-z_][A-Za-z0-9_]{2,60}(?=\x00)',data))

@@ -1,0 +1,11 @@
+# Valve's binaries and local installs: never committed (tools/re/paths.py)
+tools/re/binaries/
+.tools/
+# tool state and output
+tools/re/patch_state/
+tools/re/patch_reports/
+tools/re/out/
+tools/re/game/*-oracle.json
+tools/re/game/*-native.json
+__pycache__/
+*.pyc

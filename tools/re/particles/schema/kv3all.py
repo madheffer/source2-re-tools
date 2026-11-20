@@ -3,7 +3,9 @@ import os
 import ctypes, json, sys
 from load import setup, k32
 ss, pt, iss, ISB = setup(); assert ISB(b"SchemaSystem_001", iss)
-t0 = k32.LoadLibraryW(os.path.join(os.path.join(os.environ.get("CS2_GAME_DIR", r"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game"), "bin", "win64"), "tier0.dll"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))  # tools/re: paths.py
+from paths import cs2_dir  # noqa: E402
+t0 = k32.LoadLibraryW(os.path.join(os.path.join(os.path.join(cs2_dir(), "game"), "bin", "win64"), "tier0.dll"))
 P = ctypes.c_void_p
 SaveText = ctypes.CFUNCTYPE(ctypes.c_bool, P, P, P, ctypes.c_uint)(k32.GetProcAddress(t0, b"?SaveKV3Text_NoHeader@@YA_NPEBVKeyValues3@@PEAVCUtlString@@1I@Z"))
 SaveJson = ctypes.CFUNCTYPE(ctypes.c_bool, P, P, P)(k32.GetProcAddress(t0, b"?SaveKV3AsJSON@@YA_NPEBVKeyValues3@@PEAVCUtlString@@1@Z"))

@@ -11,7 +11,9 @@ import frida
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "source2-compiler", "tools", "re"))
 from rva_map import installed
 
-CS2 = r"D:\Steam\steamapps\common\Counter-Strike Global Offensive"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # tools/re: paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir()
 BIN = os.path.join(CS2, "game", "bin", "win64")
 
 AGENT = r"""

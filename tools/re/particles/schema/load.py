@@ -2,7 +2,9 @@ import os
 import ctypes, os, sys
 from ctypes import wintypes as wt
 HERE = os.path.dirname(os.path.abspath(__file__))
-GBIN = os.path.join(os.environ.get("CS2_GAME_DIR", r"C:\Program Files (x86)\Steam\steamapps\common\Counter-Strike Global Offensive\game"), "bin", "win64")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../.."))  # tools/re: paths.py
+from paths import cs2_dir  # noqa: E402
+GBIN = os.path.join(os.path.join(cs2_dir(), "game"), "bin", "win64")
 k32 = ctypes.WinDLL("kernel32", use_last_error=True)
 k32.SetDllDirectoryW(GBIN)
 k32.LoadLibraryW.restype = ctypes.c_void_p

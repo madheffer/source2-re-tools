@@ -1,7 +1,9 @@
-"""dis.py <dll name> <start hex> <end hex>: disassemble an installed game/bin/win64 DLL, naming imports and RIP data."""
-import sys, pefile, capstone
+"""disx.py <dll name> <start hex> <end hex>: disassemble an installed game/bin/win64 DLL, naming imports and RIP data."""
+import os, sys, pefile, capstone
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
 from capstone.x86 import X86_OP_MEM
-pe = pefile.PE(r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\\" + sys.argv[1], fast_load=True); pe.parse_data_directories([1])
+pe = pefile.PE(os.path.join(cs2_dir(), "game", "bin", "win64", sys.argv[1]), fast_load=True); pe.parse_data_directories([1])
 imp = {i.address: i.name.decode() for d in pe.DIRECTORY_ENTRY_IMPORT for i in d.imports if i.name}
 a, b = int(sys.argv[2], 16), int(sys.argv[3], 16)
 base = pe.OPTIONAL_HEADER.ImageBase

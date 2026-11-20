@@ -7,7 +7,7 @@ Ghidra headless through pyghidra, opens the cs2 project under paths.GHIDRA_ROOT
 project), and blocks until killed. From the repository root, in the
 background, logging into tools/re/out:
 
-    D:/tools/reva-venv/Scripts/python -u tools/re/reva_serve.py > tools/re/out/reva_serve.log 2>&1
+    <S2C_GHIDRA_ROOT>/reva-venv/Scripts/python -u tools/re/reva_serve.py > tools/re/out/reva_serve.log 2>&1
 """
 import os
 import sys
@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import paths  # noqa: E402
 
 os.environ.setdefault("GHIDRA_INSTALL_DIR", paths.GHIDRA_INSTALL)
-os.environ.setdefault("JAVA_HOME", r"C:\Program Files\Java\jdk-22")
+# JAVA_HOME: set it when Ghidra cannot find a JDK 21+ on its own (pyghidra reads it).
 
 import pyghidra
 

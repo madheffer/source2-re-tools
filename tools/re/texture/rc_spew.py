@@ -15,7 +15,9 @@ import shutil
 import subprocess
 import sys
 
-CS2 = os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # tools/re: paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir()
 BIN = os.path.join(CS2, "game", "bin", "win64")
 SIDE = os.path.join(CS2, "game", "bin", "win64_s2cspew")
 BUILD = "14bea9c54b59e7638cf15f846dda8fdba145e3a242eacc5a9f7eba0518afeb7c"

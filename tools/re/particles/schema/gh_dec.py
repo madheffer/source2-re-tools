@@ -1,6 +1,6 @@
 """gh_dec.py <program> <addr>... : decompile functions (creating them if needed) into decomp/<program>_<addr>.c"""
 import os, sys, pyghidra
-os.environ.setdefault("GHIDRA_INSTALL_DIR", os.path.join(os.environ.get("S2C_GHIDRA_ROOT", "D:/tools"), "ghidra_12.1.3_PUBLIC"))
+os.environ.setdefault("GHIDRA_INSTALL_DIR", os.path.join(os.environ.get("S2C_GHIDRA_ROOT", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", ".tools")), "ghidra_12.1.3_PUBLIC"))
 pyghidra.start()
 here = os.path.dirname(os.path.abspath(__file__))
 prog_name = sys.argv[1]; addrs = sys.argv[2:]

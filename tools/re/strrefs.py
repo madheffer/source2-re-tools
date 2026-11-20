@@ -16,7 +16,10 @@ import sys
 import capstone
 import pefile
 
-GAME = r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64"
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from paths import cs2_dir  # noqa: E402
+
+GAME = os.path.join(cs2_dir(), "game", "bin", "win64")
 
 
 def names(dll):

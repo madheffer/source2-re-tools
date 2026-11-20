@@ -19,7 +19,9 @@ import threading
 
 import frida
 
-CS2 = os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir()
 BIN = os.path.join(CS2, "game", "bin", "win64")
 AFTER_TRANSFORM_RVA = 0x10e122a
 AFTER_FLAG_RVA = 0x10e1253

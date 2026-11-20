@@ -21,7 +21,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
 NAMES = os.path.join(HERE, "names")
-CS2 = os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive")
+sys.path.insert(0, HERE)
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir(required=False) or ""  # no install: every build reads as not installed
 INSTALLED = {"hammer": os.path.join(CS2, "game", "bin", "win64", "tools", "hammer.dll")}
 INSTALLED.update({d: os.path.join(CS2, "game", "csgo", "bin", "win64", d + ".dll") for d in ("client", "server", "modtools")})
 sys.path.insert(0, HERE)

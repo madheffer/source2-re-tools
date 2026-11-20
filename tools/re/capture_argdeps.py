@@ -22,7 +22,9 @@ import threading
 
 import frida
 
-CS2 = os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive")
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = cs2_dir()
 BIN = os.path.join(CS2, "game", "bin", "win64")
 # resourcecompiler.dll 2026-10-15 (port_addr.py from the 09-23 build's 18016c650 and 180174f90).
 WRITER_RVA = 0x16c880

@@ -1,5 +1,7 @@
-import ctypes, struct, numpy as np
-dll = ctypes.CDLL(r"D:\Steam\steamapps\common\Counter-Strike Global Offensive\game\bin\win64\ati_compress_wrapper.dll")
+import ctypes, os, struct, sys, numpy as np
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))  # tools/re: paths.py
+from paths import cs2_dir  # noqa: E402
+dll = ctypes.CDLL(os.path.join(cs2_dir(), "game", "bin", "win64", "ati_compress_wrapper.dll"))
 class Tex(ctypes.Structure):
     _fields_ = [("dwSize", ctypes.c_uint32), ("dwWidth", ctypes.c_uint32), ("dwHeight", ctypes.c_uint32), ("dwPitch", ctypes.c_uint32),
                 ("format", ctypes.c_uint32), ("dwDataSize", ctypes.c_uint32), ("pData", ctypes.c_void_p)]

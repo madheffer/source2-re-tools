@@ -5,7 +5,7 @@ The static combos' bytecode blocks are zstd frames made with a dictionary (frame
 buffer V_ZSTD_createDDict_byReference is handed: zstd dictionary magic 0xec30a437, then the id.
 
 usage: python tools/re/vfx_zstd_dicts.py [--check <dir with vfx_zstd_<id>.bin>] [--out <dir>]
-       CS2_DIR picks the install (default D:\\Steam\\steamapps\\common\\Counter-Strike Global Offensive).
+       CS2_DIR picks the install (default: found from Steam, tools/re/paths.py).
 """
 import argparse
 import os
@@ -13,7 +13,9 @@ import struct
 import sys
 from pathlib import Path
 
-CS2 = Path(os.environ.get("CS2_DIR", r"D:\Steam\steamapps\common\Counter-Strike Global Offensive"))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # paths.py
+from paths import cs2_dir  # noqa: E402
+CS2 = Path(cs2_dir())
 DLLS = ["game/bin/win64/materialsystem2.dll", "game/bin/win64/resourcecompiler.dll", "game/bin/win64/vfxcompile.dll"]
 IDS = [0x2BC2FA87, 0x255DF362]
 SIZE = 0x10000

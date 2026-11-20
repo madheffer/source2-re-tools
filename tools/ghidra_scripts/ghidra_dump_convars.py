@@ -5,12 +5,16 @@
 # and concommands as
 #     RegisterConCommand(&g_cmd, "name", callback, "help", flags, ...)
 # We decompile every small function that references a convar-shaped string and pull the
-# call's arguments out of the C text. Output: TSV at OUT (set below from the program name).
+# call's arguments out of the C text. Output: TSV at OUT: tools/re/out/convars_<program>.tsv, or S2C_CONVAR_OUT's folder.
+import os
 import re
 from ghidra.app.decompiler import DecompInterface
 from ghidra.program.model.data import StringDataInstance
 
-OUT = r"D:\_cursor projects\cs2-voice-research\dumps\convars_%s.tsv" % currentProgram.getName()
+_dir = os.environ.get("S2C_CONVAR_OUT") or os.path.join(getSourceFile().getParentFile().getParentFile().getAbsolutePath(), "re", "out")
+if not os.path.isdir(_dir):
+    os.makedirs(_dir)
+OUT = os.path.join(_dir, "convars_%s.tsv" % currentProgram.getName())
 
 listing = currentProgram.getListing()
 fm = currentProgram.getFunctionManager()

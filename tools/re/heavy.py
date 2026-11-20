@@ -14,7 +14,7 @@ whose process still exists runs when the lock file is free, holding an exclusive
 is described in <dir>/current.json. <dir> is %LOCALAPPDATA%/s2c-heavy, shared by every checkout.
 Priority by agreement, not by code: while CS2 is closed, jobs that need it closed (resourcecompiler,
 vrad3, captures) go first; long jobs that do not (Ghidra imports and analysis, offline test sweeps)
-wait for CS2 to be open again or run on the dev box (dev@192.168.20.32).
+wait for CS2 to be open again or run on another machine.
 
 Waits for cs2.exe to close before starting, unless --allow-cs2. Since 2026-11-02 (user: VAC is the reason
 for closing the game, not load) jobs that are no VAC risk pass it and run at below-normal priority: our own
