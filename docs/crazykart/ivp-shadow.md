@@ -1,219 +1,256 @@
-# IVP shadows: how CS:GO's movers push a kart (csgo legacy vphysics.dll + server.dll, 2026-11-17)
+# IVP shadows: how CS:GO's movers push a kart
 
-ze_crazykart_v4's doors, lifts, thwomps and walls (60 func_door, 33 func_movelinear, 5 func_rotating, 14 func_button,
-1 func_brush; 14 func_wall_toggle, 20 func_breakable) are IVP objects the kart collides with. A mover is a **shadow**:
-a moving IVP body (not static) whose speed a controller sets every PSI so it reaches the entity's pose. Everything
-below is read from the disassembly (tools/re/game/disasm.py, now x86 too; Ghidra `/csgo_vphysics_legacy.dll`,
-`/csgo_server_legacy.dll`). Addresses are vphysics unless marked server. All arithmetic SSE scalar single unless named.
-Source units -> IVP: x k, -(z k), y k with k = 0.0254 (0x10106930, 0x3cd013a9); back by 39.370079 (0x10106934).
+CS:GO legacy vphysics.dll (Ghidra `/csgo_vphysics_legacy.dll`) and server.dll (`/csgo_server_legacy.dll`). Addresses are
+vphysics unless marked server. SSE scalar single unless named.
 
-## 1. Which entity gets what (server)
+ze_crazykart_v4's movers: 60 func_door, 33 func_movelinear, 5 func_rotating, 14 func_button, 1 func_brush (shadows); 14
+func_wall_toggle, 20 func_breakable (static). A shadow is a moving IVP body (not static) whose speed a controller sets
+every PSI so it reaches the entity's pose. The map's brush models carry `mass 50000`, a surfaceprop and a volume
+(finale_elevator1, model 101: "sand").
 
-- **CreateVPhysics** is CBaseEntity slot 154 (+0x268). CBaseDoor 0x1024e090, CFuncMoveLinear 0x10297c90, CFuncRotating
-  0x10223660 (when solid), CFuncBrush 0x102df010, CBaseButton 0x10226ff0: **VPhysicsInitShadow(false, false, 0)**.
-  CFuncWall / CFuncWallToggle 0x10221e30 and CBreakable 0x10224980: **VPhysicsInitStatic** 0x10207ff0.
-- **VPhysicsInitStatic** 0x10207ff0: an entity with a move parent (+0xe8 a valid handle) is made a shadow instead
-  (VPhysicsInitShadow(0, ?, 0); a parent of SOLID_BSP... sets SOLID 6 first: 0x10234040(6)); else by solid type
-  (+0xf4's slot 11): 2 a box (0x10319d20 with isStatic 1), 3 (0x10319e90), else the model's collide, static (the
-  world's path: physenv slot 8 CreatePolyObjectStatic, ported in create.rs). TODO(trace): the else branch's lines
-  past +0x60 of the decompile, the contents / callback flags it sets.
-- **VPhysicsInitShadow** 0x102083a0 (allowMove [ebp+8], allowRotate [ebp+0xc] (unused below), pSolid [ebp+0x10]):
-  needs an edict (+0x1c) and not +0xd4 & 1; slot 0x270 (VPhysicsDestroyObject), +0x15c = -1.0; by solid type: 2 a box
-  from the collision bounds shrunk by 0.21875 (0x10989910) each side (0x10319d20), 3 (0x10319e90), else
-  **PhysModelCreate 0x1031a3d0** (the brush model's collide, the BSP's lump 29 model, not static); then
-  0x10208190 (VPhysicsSetObject), with the solid_t from **PhysModelParseSolid 0x1031a270** (zeroed; each "solid"
-  block parsed by vphysics' ParseSolid (parser slot 3) with the handler **g_SolidSetup** (0x10a4cc38, vtable
-  0x108ac760: ParseKeyValue 0x101d38d0 does nothing, **SetDefaults 0x10319cd0 copies g_PhysDefaultObjectParams
-  0x108ac5a8**: massCenterOverride 0, mass 1, inertia 1, damping 0.1, rotdamping 0.1, rotInertiaLimit 0.05, "DEFAULT",
-  game data 0, volume 0, drag 1, enableCollisions 1, before the keys; without a handler ParseSolid leaves them 0);
-  then game data the entity, name its classname), the surfaceprop's index and CreatePolyObject (physenv slot 7).
-  ze_crazykart_v4's brush models carry `mass 50000`, a surfaceprop and a volume (finale_elevator1, model 101: "sand").
-  Then **SetShadow(1e4, 1e4, allowMove, 0)** (CPhysicsObject slot 68, the push order at
-  0x1020853c: allowRotation is the constant 0) and **UpdateShadow(abs origin +0x1dc, abs angles +0x1e8, false, 0.0)**
-  (slot 69). TODO(trace): PhysModelCreate's params for a brush (mass, damping: the solid_t defaults) and its
-  callback / contents flags.
-- **UpdatePhysicsShadowToCurrentPosition(dt)** 0x101f7f40 is CBaseEntity slot 163 (+0x28c): unless movetype (+0xe6)
-  is 6 (VPHYSICS) and with a physics object (+0x158): the abs position recomputed if dirty (+0xd4 bit 11,
-  0x101fd3d0), then UpdateShadow(abs origin, abs angles, false, dt).
-- **When a mover's shadow is updated**: PhysicsPusher (0x103053c0 -> 0x103050a0) runs a push whenever the move time
-  is > 0: a linear one (0x10304f80 -> PerformLinearPush 0x10303da0) when the angular velocity is zero, a rotating one
-  (0x10305010 -> PerformRotatePush 0x10303ec0) when the linear is, both otherwise. Each push ends in **FinishPush
-  0x10303370**: its pushers (the 16-byte {entity, previous abs origin} list at 0x10b5b1ac) are appended to the frame's
-  pusher list (0x10b5b1fc, 0x10306ab0), and every entity it pushed gets slot 0x1b4 then
-  UpdatePhysicsShadowToCurrentPosition(gpGlobals->frametime (+0x14)). The frame's simulate loop 0x10306950 (every
-  entity's 0x10306880), then **0x10303170**: each pusher in the frame list gets **PhysicsTouchTriggers** (slot 0x1b4,
-  0x1020a580) with its previous origin, the second list (0x10b5b210: a pusher's children, 0x10355310) the same with
-  null, then every one of both **UpdatePhysicsShadowToCurrentPosition(gpGlobals->frametime)**, and both lists are
-  emptied. So a moving mover's shadow is told its new pose once a frame, after every entity has simulated, with
-  timeOffset = the frame time (1/64). (0x101f7260's two calls with 0 are a physics-controlled entity's blocker check,
-  not the pusher.) PhysicsRelinkChildren 0x101f7d40 passes its own dt to each child that isn't VPHYSICS.
-  TODO(trace): where 0x10306950 sits against PhysFrame in the server frame (the controllers then run in the next
-  Simulate).
+Source -> IVP units: `(x k, -(z k), y k)`, k = 0.0254 (0x10106930, 0x3cd013a9); back by 39.370079 (0x10106934).
 
-## 2. CPhysicsObject's shadow calls (vtable 0x100e2878)
+## Functions
 
-- **SetShadow** slot 68, 0x1001dac0 (maxSpeed, maxAngular, allowTranslation, allowRotation): a controller already
-  there (+0x10) only gets MaxSpeed; else object +0x14 &= 0xe0, a 0xb0-byte CShadowController (ctor 0x10024990) at
-  +0x10, its MaxSpeed, then slot 26 (RecheckCollisionFilter).
-- **UpdateShadow** slot 69, 0x1001db50 (pos, angles, tempDisableGravity, timeOffset): with a controller: when the
-  flag differs from object +0x14 & 0x1f the field takes it and, if the controller allows translation (its slot 5),
-  EnableGravity((+0x14 & 0x1f) == 0) (slot 13); then the controller's Update (0x10024ff0, timeOffset in xmm3).
-- slot 70 0x1001dbe0 GetShadowPosition, 71 0x1001dc80 GetShadowController, 72 0x1001dbb0 RemoveShadowController
-  (the environment's +0x138 slot 0x68), 73 0x1001dde0 ComputeShadowControl (-> 0x100246e0; not used by movers).
-- The environment's CreateShadowController is slot 25 (0x10014c20: the same 0xb0 ctor, returns +4).
+| Address | Module | What |
+|---|---|---|
+| 0x1024e090 | server | CBaseDoor::CreateVPhysics -> VPhysicsInitShadow(false, false, 0) |
+| 0x10297c90 | server | CFuncMoveLinear::CreateVPhysics (shadow) |
+| 0x10223660 | server | CFuncRotating::CreateVPhysics (shadow, when solid) |
+| 0x102df010 | server | CFuncBrush::CreateVPhysics (shadow) |
+| 0x10226ff0 | server | CBaseButton::CreateVPhysics (shadow) |
+| 0x10221e30 | server | CFuncWall / CFuncWallToggle::CreateVPhysics -> VPhysicsInitStatic |
+| 0x10224980 | server | CBreakable::CreateVPhysics -> VPhysicsInitStatic |
+| 0x10207ff0 | server | VPhysicsInitStatic |
+| 0x10234040 | server | set SOLID type (6) |
+| 0x10319d20 | server | box object (isStatic arg) |
+| 0x10319e90 | server | solid type 3 object |
+| 0x102083a0 | server | VPhysicsInitShadow(allowMove [ebp+8], allowRotate [ebp+0xc] (unused), pSolid [ebp+0x10]) |
+| 0x1031a3d0 | server | PhysModelCreate (brush model's collide, not static) |
+| 0x10208190 | server | VPhysicsSetObject |
+| 0x1031a270 | server | PhysModelParseSolid (zeroed solid_t; each "solid" block by vphysics' ParseSolid, parser slot 3) |
+| 0x101d38d0 | server | g_SolidSetup ParseKeyValue (does nothing) |
+| 0x10319cd0 | server | g_SolidSetup SetDefaults: copies g_PhysDefaultObjectParams |
+| 0x101f7f40 | server | UpdatePhysicsShadowToCurrentPosition(dt), CBaseEntity slot 163 (+0x28c) |
+| 0x101fd3d0 | server | abs position recompute |
+| 0x103053c0 -> 0x103050a0 | server | PhysicsPusher |
+| 0x10304f80 -> 0x10303da0 | server | linear push -> PerformLinearPush |
+| 0x10305010 -> 0x10303ec0 | server | rotating push -> PerformRotatePush |
+| 0x10303370 | server | FinishPush |
+| 0x10306ab0 | server | append to the frame's pusher list |
+| 0x10306950 / 0x10306880 | server | frame simulate loop / per entity |
+| 0x10303170 | server | frame pushers: touch triggers and shadow updates |
+| 0x1020a580 | server | PhysicsTouchTriggers (slot 0x1b4) |
+| 0x10355310 | server | a pusher's children list |
+| 0x101f7260 | server | physics-controlled entity's blocker check (two UpdateShadow-to-position calls with 0) |
+| 0x101f7d40 | server | PhysicsRelinkChildren (own dt to each non-VPHYSICS child) |
+| 0x102f6b10 | server | CCollisionEvent::ShouldCollide |
+| 0x102f78a0 / 0x102f7090 / 0x102f5e00 / 0x102f7250 | server | ShouldSolvePenetration / ShouldFreezeObject / AdditionalCollisionChecks / ShouldFreezeContacts |
+| 0x102f6a40 | server | callback flags' 0x40 test |
+| 0x1014a4e0 | server | owner test |
+| 0x1016c7a0 | server | move parent |
+| 0x1001dac0 | vphysics | CPhysicsObject::SetShadow (slot 68) |
+| 0x1001db50 | vphysics | UpdateShadow (slot 69) |
+| 0x1001dbe0 / 0x1001dc80 / 0x1001dbb0 | vphysics | GetShadowPosition (70) / GetShadowController (71) / RemoveShadowController (72: env +0x138 slot 0x68) |
+| 0x1001dde0 -> 0x100246e0 | vphysics | ComputeShadowControl (73; not used by movers) |
+| 0x10014c20 | vphysics | env CreateShadowController (slot 25: the 0xb0 ctor, returns +4) |
+| 0x10024990 | vphysics | CShadowController ctor (object, allowTranslation, allowRotation) |
+| 0x10024a60 | vphysics | attach |
+| 0x100b8030 | vphysics | AngleVectors |
+| 0x1006d240 | vphysics | set_quaternion |
+| 0x10024e10 | vphysics | UseShadowMaterial (controller slot 10) |
+| 0x1001dca0 | vphysics | SetMaterialIndex (object slot 39) |
+| 0x10076950 | vphysics | calc_calc (material) |
+| 0x10071ef0 / 0x10071f70 | vphysics | revive unit at env time / reset references' times |
+| 0x10081280, 0x1008d230, 0x1008af60, 0x10082a60 | vphysics | a friction synapse re-mixed for the new material (ivp-contacts.md) |
+| 0x10077d40 | vphysics | calc_calc (inertia) |
+| 0x10071d40 | vphysics | controller into the core's list (append, sort) |
+| 0x10025250 | vphysics | MaxSpeed (interface slot 2; ctrl = this - 4) |
+| 0x10024ff0 / 0x100251d0 | vphysics | Update / interface slot 1 |
+| 0x10024e70 | vphysics | StepUp (slot 3: beam up by height k) |
+| 0x10024ef0 | vphysics | SetTeleportDistance (slot 4: +0x74 = d k) |
+| 0x10024d90 | vphysics | GetLastImpulse (slot 9) |
+| 0x10024e50 | vphysics | ObjectMaterialChanged (slot 11) |
+| 0x100251f0 | vphysics | GetTargetPosition (slot 12; returns the seconds) |
+| 0x10025280 | vphysics | GetMaxSpeed (slot 14) |
+| 0x10024f20 | vphysics | do_simulation_controller (IVP_Controller slot 4) |
+| 0x10024130 | vphysics | ComputeShadowControllerIVP (ecx IVP object, edx params +0x20, xmm2 seconds, xmm3 dt; returns seconds left, unused) |
+| 0x100212d0 | vphysics | object touches something |
+| 0x10073ba0 | vphysics | teleport step |
+| 0x10074b20 | vphysics | beam_object_to_new_position(q, p, 1) |
+| 0x10095180 | vphysics | (env +0x10, object) after the beam |
+| 0x10020fa0 | vphysics | linear speed control (speed, delta, maxSpeed xmm2, maxDampSpeed xmm3, scale, damping, out) |
+| 0x10023fb0 | vphysics | quaternion difference |
+| 0x100d768b | vphysics | the CRT's acosf |
+| 0x1001c100 | vphysics | CPhysicsObject::SetMass (slot 28) |
+| 0x1001bc70 | vphysics | ComputeDragBasis |
+| 0x10033120 | vphysics | CollideGetAABB |
+| 0x10032e60 | vphysics | ledge tree AABB (mins ecx, maxs edx) |
+| 0x1002c720 | vphysics | ledge support object |
+| 0x10011eb0 | vphysics | friction listener |
+| 0x10019ba1 | vphysics | surface parser: fallback entry made |
+| 0x10019130 / 0x10019d30 | vphysics | entry defaults copy / insert |
 
-## 3. CShadowController (0xb0 bytes; IVP_Controller vtable 0x100e2b80 at +0, IPhysicsShadowController 0x100e2b44 at +4)
+## Fields
 
-Fields: +8 the CPhysicsObject, +0xc seconds to arrival, +0x10 (short) the object's +0x18, **+0x12 flags** (bit 0
-enabled: set by the first Update; bit 1 allowTranslation, bit 2 allowRotation, bit 3 physically controlled), the
-shadow params at **+0x20**: +0x20 target position (IVP), +0x30 target quaternion, +0x40 last position, +0x50 last
-impulse, +0x60 maxAngular, +0x64 maxDampAngular, +0x68 maxSpeed, +0x6c maxDampSpeed, +0x70 dampFactor (1.0), +0x74
-teleportDistance (IVP); +0x80 the core's mass saved, +0x84 the object's callback flags saved, +0x90 the core's +0x20..+0x2c
-saved, +0xa0 the core's +0x10..+0x1c saved.
+| Offset | Field |
+|---|---|
+| CBaseEntity +0x1c | edict |
+| CBaseEntity +0xd4 | flags: & 1 refuses a shadow; bit 11 abs position dirty |
+| CBaseEntity +0xe6 | movetype (6 VPHYSICS, 7 PUSH, 0 NONE, 11 CUSTOM) |
+| CBaseEntity +0xe8 | move parent handle |
+| CBaseEntity +0xf4 | collision property (slot 11 solid type, slot 12 solid flags) |
+| CBaseEntity +0x158 / +0x15c | physics object / set to -1.0 |
+| CBaseEntity +0x1dc / +0x1e8 | abs origin / abs angles |
+| CBaseEntity slots | 154 (+0x268) CreateVPhysics, 0x270 VPhysicsDestroyObject, 0x1b4, 0x26c own collide refusal, 0x2a0 mask |
+| gpGlobals +0x14 | frametime |
+| CPhysicsObject +8 | IVP object (its +0x94 the core) |
+| CPhysicsObject +0x10 | shadow controller |
+| CPhysicsObject +0x14 | & 0x1f temp gravity disable; SetShadow &= 0xe0 |
+| CPhysicsObject +0x18 | u16 material index |
+| CPhysicsObject +0x1c | callback flags (& 2 CALLBACK_GLOBAL_FRICTION; held with \| 0x800) |
+| CPhysicsObject +0x3c / +0x40 | drag input / drag coefficient |
+| IVP object +0x30..+0x38 | offset from the core |
+| IVP object +0x44 | movement byte (0x10 static), & 0x100 collisions on, & 0x800 no offset |
+| IVP object +0x88 / +0x8c | material / (+0x8c slot 4 on teleport) |
+| core +0x10..+0x1c | inertia, +0x1c mass |
+| core +0x20..+0x2c | rot damping |
+| core +0x60 / +0x70 / +0x80 | rows (16 bytes apart) |
+| core +0x90 | pos_now |
+| core +0xc0 / +0xd0 | rot speed / speed (set directly, not pending) |
+| core +0x110 | q_next |
+| core byte 1 | 8 = not simulated, 1 = simulated |
+| env +0xb4 | gravity |
 
-- **ctor 0x10024990** (object, allowTranslation, allowRotation): +0x40..+0x48, +0x50..+0x58, +0x20..+0x28, +0x30..
-  +0x3c, +0x64, +0x6c zero; +0x70 = 1.0, +0x74 = 0; flags = ((rot & 1) << 1 | (trans & 1)) << 1 | (flags & 0xf0);
-  then the attach. TODO(trace): +0xc is not written by the ctor (g_pMemAlloc doesn't zero): its first value is
-  whatever the allocation held until an Update that changes the target writes it; read it from the oracle.
-- **attach 0x10024a60**: core = object +8 (IVP object) +0x94. Saves core +0x20..+0x2c to +0x90, core +0x10..+0x1c to
-  +0xa0, core +0x1c (mass) to +0x80, object +0x18 (u16) to +0x10. GetPosition (object slot 48) -> the target
-  position (x k, -(z k), y k) and from the angles AngleVectors (0x100b8030) and the same basis as SetPosition
-  (crazykart-physics.md 12) through set_quaternion 0x1006d240 -> the target quaternion. Its own slot 10
-  **UseShadowMaterial(1)** (0x10024e10): material index 0xf000 ($MATERIAL_INDEX_SHADOW) unless the object has it,
-  through **SetMaterialIndex** (object slot 39, 0x1001dca0): object +0x18 = the index, the IVP object's material +0x88 =
-  the material manager's slot 11 (0x10116078 +0x2c) of it, then with callbacks held (+0x1c | 0x800) the core's
-  **0x10076950** (calc_calc; each object's +0x44 = the core's movement byte, 0x10 when static; **a core not simulated
-  (byte 1 == 8) has its unit revived now: 0x10071ef0 at the environment's time** (sleep.rs revive_unit), a simulated
-  one its references' times reset (0x10071f70); then each object's friction synapses (+0x28) re-mixed for the new
-  material: 0x10081280, 0x1008d230, 0x1008af60, the material's slots 3 / 2 into the contact's +0x44, 0x10082a60).
-  So a new mover is simulated (byte 1 = 1, awake) right after SetShadow; its collision side pairs right there (the
-  revival's recheck_ov_element with the object at 0x21). The shadow material: friction 0.8, elasticity 0.001 (8).
-  **The core's rot damping +0x20..+0x28 = 100.0** (0x42c80000; +0x2c gets a stack lane:
-  padding). Without allowRotation (flags & 4 == 0): **inertia +0x10..+0x18 = 1e15** (0x58635fa9) and calc_calc
-  0x10077d40. Without allowTranslation (flags & 2 == 0): **SetMass(50000)** (object slot 28, 0x47435000) and
-  **EnableGravity(false)** (slot 13). +0x84 = object callback flags; SetCallbackFlags((f & 0xffdd) | 0x10) (slot
-  22); **EnableDrag(false)** (slot 14); calc_calc; the controller into the core's list (0x10071d40: append, sort);
-  +0x40..+0x48 zero.
-- **MaxSpeed** (interface slot 2, 0x10025250; ctrl = this - 4): +0x68 = +0x6c = maxSpeed, +0x60 = +0x64 = maxAngular.
-  SetShadow passes 1e4, 1e4.
-- **Update 0x10024ff0** (via interface slot 1, 0x100251d0; pos, angles, timeOffset): the new target p = (x k,
-  -(z k), y k), q from the angles as in the attach; flags |= 1; **unchanged** when ((p.y - t.y)^2 + (p.x - t.x)^2) +
-  (p.z - t.z)^2 < 1e-8 (0x100f3ba0, 0x322bcc77) and (((|q.x - t.x| + |q.y - t.y|) ... in the order
-  `(|dx| + |dy|) + |dz|) + |dw|` < 1e-8: return (nothing written). Else target = (p, q), **seconds = max(timeOffset,
-  0.0)** (0x100f3b60), object slot 24 (**Wake**).
-- the other interface slots: 3 StepUp 0x10024e70 (beam up by height k), 4 SetTeleportDistance 0x10024ef0 (+0x74 =
-  d k), 5 / 6 AllowsTranslation / Rotation (bits 1 / 2), 7 / 8 Set / IsPhysicallyControlled (bit 3), 9 GetLastImpulse
-  0x10024d90, 10 UseShadowMaterial 0x10024e10, 11 ObjectMaterialChanged 0x10024e50, 12 GetTargetPosition 0x100251f0
-  (returns the seconds), 13 GetTeleportDistance, 14 GetMaxSpeed 0x10025280.
+CShadowController (0xb0 bytes; IVP_Controller vtable 0x100e2b80 at +0, IPhysicsShadowController 0x100e2b44 at +4):
 
-## 4. The PSI step: do_simulation_controller 0x10024f20 (IVP_Controller slot 4)
+| Offset | Field |
+|---|---|
+| +8 | CPhysicsObject |
+| +0xc | seconds to arrival (not written by the ctor: g_pMemAlloc doesn't zero) |
+| +0x10 | short: object's +0x18 |
+| +0x12 | flags: bit 0 enabled (first Update), 1 allowTranslation, 2 allowRotation, 3 physically controlled |
+| +0x20 | shadow params: target position (IVP) |
+| +0x30 | target quaternion |
+| +0x40 | last position (params +0x20) |
+| +0x50 | last impulse (params +0x30) |
+| +0x60 / +0x64 | maxAngular / maxDampAngular (params +0x40 / +0x44) |
+| +0x68 / +0x6c | maxSpeed / maxDampSpeed (params +0x48 / +0x4c) |
+| +0x70 | dampFactor 1.0 (params +0x50) |
+| +0x74 | teleportDistance, IVP (params +0x54) |
+| +0x80 / +0x84 | saved core mass / object callback flags |
+| +0x90 / +0xa0 | saved core +0x20..+0x2c / +0x10..+0x1c |
 
-The controller runs among the core's controllers (unit list order, crazykart-physics.md 9): its vtable 0x100e2b80
-is 0 0x10004450, 1 0x10007e10, 2 0x10007ca0, 3 0x10004430, 4 do_simulation 0x10024f20, **5 priority 0x10013010 = 500**
-(the drag controller's function; gravity's 0x10007cb0 is 1000), 6 name 0x10024d60 ("vphysics:shadow" 0x100e2d44),
-7 0x10024950 (the dtor), 8 0x10025de0. With the enabled bit
-off: +0x40..+0x48 zero, nothing else. Else **ComputeShadowControllerIVP 0x10024130** (ecx the IVP object, edx the
-params +0x20, xmm2 the seconds +0xc, xmm3 the event's dt); then with allowTranslation only (flags & 2; not a mover):
-when impulse.y +0x54 < f = gravity (env +0xb4) x dt and 0x100212d0 (the object touches something), speed.y (core
-+0xd4) += f - +0x54 and +0x54 += it; then **seconds -= dt, below 0 -> 0**.
+## Constants
 
-**0x10024130** (returns the seconds left, unused by the caller):
-1. fraction = 1.0 (0x100f3d70); seconds > 0: fraction = min(dt / seconds, 1.0). left = max(seconds - dt, 0).
-   fraction <= 0 (comiss 0, f; jae): return.
-2. The object's position: core pos_now (+0x90); unless object +0x44 & 0x800 plus the rows (core +0x60 / +0x70 /
-   +0x80, 16 bytes apart) times the object's offset (+0x30..+0x38): component i = pos_i + ((m_i0 o0 + m_i1 o1) + m_i2 o2).
-3. delta = target - pos (each component).
-4. teleportDistance (params +0x54) > 0: the distance^2 is, when last position (+0x20..+0x28) is all 0.0 (ucomiss,
-   `lahf; test ah, 0x44; jp`: equal and ordered), (dy^2 + dx^2) + dz^2 of delta; else ((pos.y - l.y)^2 +
-   (pos.x - l.x)^2) + (pos.z - l.z)^2. Above tele^2: **teleport**: with collisions on (object +0x44 & 0x100) the
-   object's +0x8c slot 4 (1), +0x44 &= ~0x100, +0x8c = 0, 0x10073ba0, then beam_object_to_new_position 0x10074b20
-   (q, p, 1) and, still off, 0x10095180 (env's +0x10, the object) and +0x44 |= 0x100; without collisions only the
-   beam; delta = 0. TODO(trace): reached only past the teleport distance (0 on a mover: SetShadow sets none).
-5. **Linear**: scale = (1.0 / dt) x fraction; **0x10020fa0**(the core's speed +0xd0, delta, maxSpeed +0x48 in xmm2,
-   maxDampSpeed +0x4c in xmm3, scale, damping = dampFactor +0x50, out = last impulse +0x30):
-   - s2 = (v0 v0 + v1 v1) + v2 v2; s2 < 1e-6 (0x100f3bac): **v = 0**; else maxDampSpeed > 0: d = v x -damping (each),
-     l = sqrtss(s2) x |damping|; l > maxDampSpeed: d x= maxDampSpeed / l; v = v + d (each v_i + d_i).
-   - maxSpeed > 0: a = delta x scale (each), l = sqrtss((d1^2 + d0^2) + d2^2) x scale; l > maxSpeed: a x= maxSpeed / l;
-     v_i = v_i + a_i; out = a (16 bytes, its fourth lane a stack word). maxSpeed <= 0: out = 0.
-   With dampFactor 1 and the 1e4 limits a mover's speed is replaced by delta / dt x fraction each PSI.
-6. last position = pos + speed x dt (each: speed_i x dt + pos_i).
-7. **Angular**: dq = **0x10023fb0**(target q +0x10, the core's q_next +0x110): target x conj(current) with c = -b.xyz:
-   x = ((aw cx + ax bw) + az cy) - ay cz, y = ((aw cy + ay bw) + ax cz) - az cx, z = ((aw cz + az bw) + ay cx) - ax cy,
-   w = ((aw bw - ax cx) - ay cy) - az cz; n = ((x^2 + y^2) + z^2) + w^2 > 1e-10 (0x100f3b94): each x (1.0 / sqrtss(n)).
-   angle = acosf(dq.w) (the DLL's 0x100d768b: math/csgo_libm.rs) **+ itself** (addss); as a double > pi (0x100f3e70):
-   angle = f32(f64(angle) - 2 pi (0x100f3ea0)). l = sqrtss((y^2 + x^2) + z^2) of dq; inv = 1.0 / (l + 1.1920929e-7)
-   (0x100f3ba8); the axis' parts x inv then x angle (x: inv x dq.x x angle; y, z: dq x inv x angle).
-   rot = core +0xc0; r2 = (r0^2 + r1^2) + r2^2: r2 < 1e-6: **rot = 0**; else maxDampAngular (+0x44) > 0: d = rot x
-   -dampFactor, l = sqrtss(r2) x |dampFactor|, capped at maxDampAngular as above, rot_i = rot_i + d_i. maxAngular
-   (+0x40) > 0: a = axis-angle x scale, l = sqrtss((ax^2 + ay^2) + az^2) x scale, capped at maxAngular, rot_i = a_i + rot_i.
-   (core +0xc0 is the rot speed, +0xd0 the speed: both set directly, not through the pending changes.)
+| Value | What |
+|---|---|
+| 0.21875 (0x10989910) | box shadow's bounds shrink per side |
+| g_SolidSetup 0x10a4cc38, vtable 0x108ac760 | the solid parse handler |
+| g_PhysDefaultObjectParams 0x108ac5a8 | massCenterOverride 0, mass 1, inertia 1, damping 0.1, rotdamping 0.1, rotInertiaLimit 0.05, "DEFAULT", game data 0, volume 0, drag 1, enableCollisions 1 (no handler: ParseSolid leaves 0) |
+| 1e4, 1e4 | SetShadow's maxSpeed, maxAngular (push order at 0x1020853c: allowRotation the constant 0) |
+| 0x10b5b1ac | push's 16-byte {entity, previous abs origin} list |
+| 0x10b5b1fc / 0x10b5b210 | frame pusher list / children list |
+| 1/64 | frame time (timeOffset) |
+| vtable 0x100e2878 | CPhysicsObject |
+| 0xf000 | $MATERIAL_INDEX_SHADOW |
+| 0x10116078 +0x2c / +0x10 | material manager slot 11 / density |
+| 0.8 (0x3f4ccccd) / 0.001 (0x3a83126f) | shadow material friction (data +0x10) / elasticity (+0x14), index 8 |
+| 100.0 (0x42c80000) | core rot damping +0x20..+0x28 (+0x2c a stack lane) |
+| 1e15 (0x58635fa9) | inertia without allowRotation |
+| 50000 (0x47435000, 0x100f3ff0) | SetMass without allowTranslation; SetMass's cap |
+| 1e-8 (0x100f3ba0, 0x322bcc77) | Update's unchanged test |
+| 0.0 (0x100f3b60) | seconds floor |
+| 1.0 (0x100f3d70) | fraction |
+| 1e-6 (0x100f3bac) | speed squared floor |
+| 1e-10 (0x100f3b94) | quaternion norm floor |
+| pi (0x100f3e70) / 2 pi (0x100f3ea0) | angle wrap (double) |
+| 1.1920929e-7 (0x100f3ba8) | axis inverse add |
+| 5.0 (0x100f3f20) | drag min |
+| 0x1010ad2c, 0x1010ad44, 0x1010ad5c, 0x1010ad20, 0x1010ad38, 0x1010ad50 | AABB's six directions |
+| 500 (0x10013010) | shadow priority (the drag controller's function); gravity 0x10007cb0 = 1000 |
+| "vphysics:shadow" (0x100e2d44) | controller name |
+| 0x108a8188 / 0x108a81ac | server IPhysicsCollisionSolver (CCollisionEvent +4) / IPhysicsCollisionEvent (+0) vtables |
+| 0x10ba2a90 slot 3 | pair table |
+| 0x10ba26a8 slot 0x70 | game rules ShouldCollide(group 0, 1) |
 
-## 5. CPhysicsObject::SetMass (slot 28, 0x1001c100) and CollideGetAABB of a brush
+Controller vtable 0x100e2b80: 0 0x10004450, 1 0x10007e10, 2 0x10007ca0, 3 0x10004430, 4 0x10024f20, 5 0x10013010, 6
+0x10024d60 (name), 7 0x10024950 (dtor), 8 0x10025de0.
 
-- **SetMass**: not moveable (slot 10): EnableMotion(1) around it (slot 15, back off at the end); m = mass < 0 ? 0 :
-  minss(mass, 50000 (0x100f3ff0)); r = m / core mass; core mass = m; inertia_i = inertia_i x r; calc_calc 0x10077d40;
-  then the drag numbers: +0x3c == 0.0 -> +0x40 = 1.0, else v = maxss(+0x3c, 5.0 (0x100f3f20)), +0x40 = (slot 29's mass /
-  ((k k) k) v) / the material's density (0x10116078 +0x10); ComputeDragBasis 0x1001bc70. A mover's SetMass(50000) on a
-  50000 kg brush leaves the mass and inertia as they were (r = 1).
-- **CollideGetAABB 0x10033120** of a ledge tree (a brush's collide: the root's +0 is not 0) takes **0x10032e60**
-  (mins ecx, maxs edx from +-FLT_MAX; recursive: an inner node's left child at +0x1c first, then its right at
-  +[node]; a leaf's ledge (+4) as the support object 0x1002c720, its support point along each of the six directions
-  0x1010ad2c, 0x1010ad44, 0x1010ad5c, 0x1010ad20, 0x1010ad38, 0x1010ad50 (vtable slot 0), each point's three axes into
-  mins (strictly greater replaced) and maxs (strictly less): the extremes of the leaves' points. CreatePolyObject's
-  drag basis needs it for any dynamic brush (phy.rs now collects every leaf's points, create.rs aabb()).
+## Server: which entity gets what
 
-## 6. Checked (2026-11-17)
+- **VPhysicsInitStatic 0x10207ff0**: an entity with a move parent (+0xe8 valid) becomes a shadow (VPhysicsInitShadow(0, ?, 0); a SOLID_BSP... parent sets SOLID 6 first: 0x10234040(6)); else by solid type (+0xf4 slot 11): 2 a box (0x10319d20, isStatic 1), 3 (0x10319e90), else the model's collide, static (physenv slot 8 CreatePolyObjectStatic).
+- **VPhysicsInitShadow 0x102083a0**: needs an edict and not +0xd4 & 1; slot 0x270; +0x15c = -1.0; by solid type: 2 a box from the collision bounds shrunk 0.21875 each side (0x10319d20), 3 (0x10319e90), else PhysModelCreate 0x1031a3d0 (BSP lump 29 model, not static); then 0x10208190 with the solid_t from 0x1031a270 (SetDefaults before the keys); game data the entity, name its classname; the surfaceprop's index; CreatePolyObject (physenv slot 7). Then SetShadow(1e4, 1e4, allowMove, 0) (slot 68) and UpdateShadow(+0x1dc, +0x1e8, false, 0.0) (slot 69).
+- **0x101f7f40**: unless movetype 6 and with +0x158: abs position recomputed if dirty (0x101fd3d0), then UpdateShadow(abs origin, abs angles, false, dt).
+- **When a shadow is updated**: PhysicsPusher runs a push whenever the move time > 0: linear when the angular velocity is zero, rotating when the linear is, both otherwise. FinishPush 0x10303370: its pushers (0x10b5b1ac) appended to 0x10b5b1fc (0x10306ab0); every entity it pushed gets slot 0x1b4 then 0x101f7f40(gpGlobals->frametime). After the frame's simulate loop 0x10306950, 0x10303170: each frame pusher gets PhysicsTouchTriggers (0x1020a580) with its previous origin, the children list (0x10b5b210, 0x10355310) the same with null, then every one of both 0x101f7f40(frametime); both lists emptied. So a moving mover's shadow gets its new pose once a frame after every entity simulated, timeOffset 1/64.
 
-rubikon/tests/KartOracle/Shadow.cs makes a mover the server's way in the oracle (a scenario's `shadow` line, `move`
-events, UpdateShadow(pose, false, 1/64) each tick before the Simulate); scenarios/lift.txt (make-lift.mjs: ze_crazykart_
-v4's finale_elevator1, brush model 101, standing, down at 80 u/s, still, a 2 deg/tick yaw turn and back up while
-turning, 300 ticks, the pinned kart beside it). `cargo run --release -p ze-sim --bin shadow_check -- <scenario> <oracle
-out> <the kart's .phy>` builds it by create.rs and shadow.rs and compares every tick: GetPosition, GetVelocity,
-IsAsleep, the core's flags, speeds, pending changes, pose, rate, quaternions and movement references: **300 ticks
-bit-identical**; and **a kart on the lift** (kart-lift.txt, make-kart-lift.mjs: on the map's world, dropped onto
-the lift's top, carried down at 80 u/s, driven on it, then the lift turns 60 degrees and climbs 75 u with the kart
-aboard; 420 ticks) bit-identical every tick through ivp_check (a `shadow` line: the mover a dynamic body after the
-kart, World::add_shadow, its collision object paired at its revival, the shadow material, no friction callback;
-IVP_Mindist_Recursive for its ledge tree: ivp-mindist.md 13; the solver's rule: 8). The shadow runs as World's own controller kind (Kind::Shadow, priority 500, beside the motion
-controllers in psi_with's stage 2; World::add_shadow / update_shadow), the pinned kart beside it in its own unit.
+## CPhysicsObject shadow calls
 
-## 8. What collides with a mover: CCollisionEvent::ShouldCollide (server 0x102f6b10) and the friction listener
+- **SetShadow 0x1001dac0** (maxSpeed, maxAngular, allowTranslation, allowRotation): a controller already at +0x10 only gets MaxSpeed; else +0x14 &= 0xe0, new 0xb0 CShadowController (0x10024990) at +0x10, its MaxSpeed, slot 26 (RecheckCollisionFilter).
+- **UpdateShadow 0x1001db50** (pos, angles, tempDisableGravity, timeOffset): with a controller, when the flag differs from +0x14 & 0x1f it takes it and, if the controller allows translation (slot 5), EnableGravity((+0x14 & 0x1f) == 0) (slot 13); then Update 0x10024ff0 (timeOffset in xmm3).
 
-The server's collision solver (CCollisionEvent's IPhysicsCollisionSolver part at +4: vtable 0x108a8188, 0
-**ShouldCollide 0x102f6b10**, 1 ShouldSolvePenetration 0x102f78a0, 2 ShouldFreezeObject 0x102f7090, 3
-AdditionalCollisionChecks 0x102f5e00, 4 ShouldFreezeContacts 0x102f7250; IPhysicsCollisionEvent at +0, vtable
-0x108a81ac). ShouldCollide(obj0, obj1, game0, game1), a counter +0x158 around it: either game data null -> 1. The same
-entity: by the objects' game flags (slot 19) through the entity's model's collision filter. Else, past the game
-flags' 0x2 on both and the callback flags' 0x40 (0x102f6a40): slot 0x26c either way (the entities' own refusal) ->
-0; both with edicts and one the other's owner (0x1014a4e0) -> 0; parented ones with the same move parent or ones the
-game's pair table (0x10ba2a90 slot 3) lists -> 0. Then each entity is **fixed** when its movetype (+0xe6) is **7
-(PUSH) or 0 (NONE)**, 11 (CUSTOM) with a shadow controller (object slot 71), or it has a move parent (0x1016c7a0)
-and isn't VPHYSICS under a VPHYSICS parent. **A fixed one collides only with a moveable object (slot 10), two fixed
-ones never, two shadows never**; both solid types non-zero (+0xf4 slot 11). Then the solid flags (slot 12: 4
-FSOLID_VOLUME_CONTENTS ... 8), the game rules' ShouldCollide(collision group 0, 1) (0x10ba26a8 slot 0x70), the
-contents (object slot 40) against the other entity's mask (slot 0x2a0) both ways, and the pair table for the objects
--> 0; else 1. TODO(trace): the volume-contents branch (slot 3, the solid flags' 4), the collision groups' table.
+## CShadowController
 
-So the world (movetype NONE) never collides with a mover (PUSH): without that the lift sits on the shaft's walls.
-The oracle's solver (Program.cs Solver) now answers by its game data (1 the world, 2 a kart, 3 a mover: Shadow.cs);
-the port's pairing (collide_create.rs recheck_ov) asks `Collide::should_collide` by `Collide::game`.
+- **ctor 0x10024990**: +0x40..+0x48, +0x50..+0x58, +0x20..+0x28, +0x30..+0x3c, +0x64, +0x6c zero; +0x70 = 1.0, +0x74 = 0; `flags = ((rot & 1) << 1 | (trans & 1)) << 1 | (flags & 0xf0)`; then the attach.
+- **attach 0x10024a60**:
+  1. core = object +8 +0x94. Save core +0x20..+0x2c -> +0x90, +0x10..+0x1c -> +0xa0, +0x1c -> +0x80, object +0x18 -> +0x10.
+  2. GetPosition (object slot 48) -> target `(x k, -(z k), y k)`; angles -> AngleVectors 0x100b8030 and SetPosition's basis (crazykart-physics.md 12) -> set_quaternion 0x1006d240 -> target quaternion.
+  3. UseShadowMaterial(1) 0x10024e10: index 0xf000 unless already, via SetMaterialIndex 0x1001dca0: +0x18 = index, IVP material +0x88 = manager slot 11 of it; with callbacks held (+0x1c | 0x800) the core's 0x10076950 (each object's +0x44 = the core's movement byte, 0x10 static; a core not simulated (byte 1 == 8) has its unit revived now: 0x10071ef0 at env time; a simulated one 0x10071f70); then each object's friction synapses (+0x28) re-mixed: 0x10081280, 0x1008d230, 0x1008af60, material slots 3 / 2 into the contact's +0x44, 0x10082a60. So a new mover is simulated (byte 1 = 1) right after SetShadow; its collision side pairs there (the revival's recheck_ov_element with the object at 0x21).
+  4. Core rot damping +0x20..+0x28 = 100.0.
+  5. No allowRotation (flags & 4 == 0): inertia +0x10..+0x18 = 1e15, calc_calc 0x10077d40.
+  6. No allowTranslation (flags & 2 == 0): SetMass(50000) (slot 28), EnableGravity(false) (slot 13).
+  7. +0x84 = callback flags; SetCallbackFlags(`(f & 0xffdd) | 0x10`) (slot 22); EnableDrag(false) (slot 14); calc_calc; controller into the core's list (0x10071d40); +0x40..+0x48 zero.
+- **MaxSpeed 0x10025250**: +0x68 = +0x6c = maxSpeed, +0x60 = +0x64 = maxAngular.
+- **Update 0x10024ff0** (pos, angles, timeOffset): new target p = `(x k, -(z k), y k)`, q as in the attach; flags |= 1; unchanged when `((p.y - t.y)^2 + (p.x - t.x)^2) + (p.z - t.z)^2 < 1e-8` and `((|dx| + |dy|) + |dz|) + |dw| < 1e-8` (quaternion): return, nothing written. Else target = (p, q), seconds = `max(timeOffset, 0.0)`, object slot 24 (Wake).
+- Interface slots: 1 Update, 2 MaxSpeed, 3 StepUp, 4 SetTeleportDistance, 5 / 6 AllowsTranslation / Rotation (bits 1 / 2), 7 / 8 Set / IsPhysicallyControlled (bit 3), 9 GetLastImpulse, 10 UseShadowMaterial, 11 ObjectMaterialChanged, 12 GetTargetPosition, 13 GetTeleportDistance, 14 GetMaxSpeed.
 
-**The friction listener** (vphysics 0x10011eb0, friction_sys.rs) clears a contact's integrated energy (+0x48) only
-between two objects with CALLBACK_GLOBAL_FRICTION (+0x1c & 2), which the shadow's attach clears
-(SetCallbackFlags((f & 0xffdd) | 0x10)): a kart's contacts on a mover keep theirs (`Collide::no_friction_callback`).
+## The PSI step: 0x10024f20
 
-**The shadow material** (SetMaterialIndex 0xf000): the surfaceproperties parser's fallback entry, made the first
-time it runs (0x10019ba1: +0x17c marks it; a zeroed entry, vtable 0x100e2154, named by slot 0x3c (0xf000), 0x10019130's
-defaults, then **friction 0.8 (0x3f4ccccd, data +0x10) and elasticity 0.001 (0x3a83126f, +0x14)**, inserted by
-0x10019d30, its index kept at +0x180): the mover's own material (Obj::material), mixed per side with the kart's.
+- Priority 500 among the core's controllers (unit list order, crazykart-physics.md 9).
+- Enabled bit off: +0x40..+0x48 zero, nothing else.
+- Else 0x10024130; then with allowTranslation only (flags & 2; not a mover): when impulse.y +0x54 < `f = gravity (env +0xb4) x dt` and 0x100212d0, speed.y (core +0xd4) += `f - +0x54` and +0x54 += it.
+- Then seconds -= dt, below 0 -> 0.
 
-## 7. What the kart port needs from it
+**0x10024130**:
+1. fraction = 1.0; seconds > 0: `fraction = min(dt / seconds, 1.0)`; left = `max(seconds - dt, 0)`. fraction <= 0 (comiss 0, f; jae): return.
+2. Position: core +0x90; unless object +0x44 & 0x800, plus the rows times the offset: `pos_i + ((m_i0 o0 + m_i1 o1) + m_i2 o2)`.
+3. delta = target - pos.
+4. teleportDistance (+0x54) > 0: dist^2 is, when last position (+0x20..+0x28) is all 0.0 (ucomiss, `lahf; test ah, 0x44; jp`: equal and ordered), `(dy^2 + dx^2) + dz^2` of delta; else `((pos.y - l.y)^2 + (pos.x - l.x)^2) + (pos.z - l.z)^2`. Above tele^2: teleport: collisions on (+0x44 & 0x100): +0x8c slot 4 (1), +0x44 &= ~0x100, +0x8c = 0, 0x10073ba0, beam 0x10074b20(q, p, 1), 0x10095180 (env +0x10, object), +0x44 |= 0x100; without collisions only the beam; delta = 0. (A mover sets no teleport distance.)
+5. Linear: `scale = (1.0 / dt) x fraction`; 0x10020fa0(core +0xd0, delta, +0x48, +0x4c, scale, damping +0x50, out +0x30):
+   - `s2 = (v0 v0 + v1 v1) + v2 v2`; s2 < 1e-6: v = 0; else maxDampSpeed > 0: `d = v x -damping`, `l = sqrtss(s2) x |damping|`; l > maxDampSpeed: `d x= maxDampSpeed / l`; `v_i + d_i`.
+   - maxSpeed > 0: `a = delta x scale`, `l = sqrtss((d1^2 + d0^2) + d2^2) x scale`; l > maxSpeed: `a x= maxSpeed / l`; `v_i = v_i + a_i`; out = a (16 bytes, fourth lane a stack word). maxSpeed <= 0: out = 0.
+   - With dampFactor 1 and the 1e4 limits a mover's speed is replaced by delta / dt x fraction each PSI.
+6. Last position = `speed_i x dt + pos_i`.
+7. Angular: dq = 0x10023fb0(target q +0x10, core q_next +0x110) = target x conj(current), c = -b.xyz:
+   - `x = ((aw cx + ax bw) + az cy) - ay cz`, `y = ((aw cy + ay bw) + ax cz) - az cx`, `z = ((aw cz + az bw) + ay cx) - ax cy`, `w = ((aw bw - ax cx) - ay cy) - az cz`; `n = ((x^2 + y^2) + z^2) + w^2 > 1e-10`: each x `(1.0 / sqrtss(n))`.
+   - `angle = acosf(dq.w)` (0x100d768b) + itself (addss); as a double > pi: `angle = f32(f64(angle) - 2 pi)`. `l = sqrtss((y^2 + x^2) + z^2)`; `inv = 1.0 / (l + 1.1920929e-7)`; axis x: `inv x dq.x x angle`; y, z: `dq x inv x angle`.
+   - rot = core +0xc0; `r2 = (r0^2 + r1^2) + r2^2` < 1e-6: rot = 0; else maxDampAngular (+0x44) > 0: `d = rot x -dampFactor`, `l = sqrtss(r2) x |dampFactor|`, capped, `rot_i = rot_i + d_i`. maxAngular (+0x40) > 0: `a = axis-angle x scale`, `l = sqrtss((ax^2 + ay^2) + az^2) x scale`, capped, `rot_i = a_i + rot_i`.
 
-A mover is one more IVP body: built by create.rs from its brush model's compact surface (the BSP's lump 29: model
-N's solids, `extract_world.py <bsp> <folder> <N>`), revived by UseShadowMaterial, rot damping 100, inertia 1e15,
-mass 50000, no gravity, no drag, with a shadow controller (priority 500) in its list that runs section 4.
-Each server frame, after the entities simulate, every mover that moved has Update(abs origin, abs angles, 1/64).
-Its contacts with a kart are two moving cores in one friction system: the karts-touching port (agent/kart-touch).
-Still unread: the brush's contents and collision filter (PhysModelCreate's SetContents / slot 26), the shadow's collisions with the world and other
-shadows (vphysics' CCollisionEvent ShouldCollide / the collision filter slot 26), CFuncWallToggle's TurnOff and a
-breakable's Break on its object, the +0xc first value.
+## SetMass 0x1001c100 and a brush's AABB
+
+- SetMass: not moveable (slot 10): EnableMotion(1) around it (slot 15). `m = mass < 0 ? 0 : minss(mass, 50000)`; `r = m / core mass`; core mass = m; `inertia_i x r`; 0x10077d40. Drag: +0x3c == 0.0 -> +0x40 = 1.0, else `v = maxss(+0x3c, 5.0)`, `+0x40 = (slot 29's mass / ((k k) k) v) / density`; 0x1001bc70. SetMass(50000) on a 50000 kg brush: r = 1.
+- CollideGetAABB 0x10033120 of a ledge tree (root +0 not 0): 0x10032e60 from +-FLT_MAX, recursive: inner node's left child at +0x1c first, then the right at +[node]; a leaf's ledge (+4) as 0x1002c720, its support point (vtable slot 0) along the six directions, each axis into mins (strictly greater replaced) and maxs (strictly less). CreatePolyObject's drag basis needs it for any dynamic brush.
+
+## What collides with a mover
+
+ShouldCollide 0x102f6b10 (obj0, obj1, game0, game1), counter +0x158 around it:
+1. Either game data null -> 1.
+2. Same entity: the objects' game flags (slot 19) through the model's collision filter.
+3. Past game flags 0x2 on both and callback flags 0x40 (0x102f6a40): slot 0x26c either way -> 0; both with edicts and one the other's owner (0x1014a4e0) -> 0; same move parent, or listed by the pair table -> 0.
+4. Fixed: movetype 7 (PUSH) or 0 (NONE), 11 (CUSTOM) with a shadow controller (object slot 71), or a move parent (0x1016c7a0) and not VPHYSICS under a VPHYSICS parent. A fixed one collides only with a moveable object (slot 10); two fixed never; two shadows never.
+5. Both solid types non-zero; solid flags (slot 12: 4 FSOLID_VOLUME_CONTENTS ... 8); game rules ShouldCollide(groups); contents (object slot 40) against the other's mask (slot 0x2a0) both ways; the pair table for the objects -> 0; else 1.
+
+So the world (NONE) never collides with a mover (PUSH).
+
+- **Friction listener 0x10011eb0** clears a contact's integrated energy (+0x48) only between two objects with CALLBACK_GLOBAL_FRICTION (+0x1c & 2), which the attach clears: a kart's contacts on a mover keep theirs.
+- **Shadow material**: the surfaceproperties parser's fallback entry, made on its first run (0x10019ba1, +0x17c marks it): zeroed, vtable 0x100e2154, named by slot 0x3c (0xf000), 0x10019130's defaults, then friction 0.8, elasticity 0.001, inserted by 0x10019d30, index at +0x180. Mixed per side with the kart's.
+
+## Unread
+
+- VPhysicsInitStatic's else branch past +0x60 of the decompile: the contents / callback flags it sets.
+- PhysModelCreate's params for a brush (mass, damping: the solid_t defaults), its callback / contents flags (SetContents / slot 26).
+- Where 0x10306950 sits against PhysFrame in the server frame (the controllers then run in the next Simulate).
+- +0xc's first value (whatever the allocation held).
+- Teleport path (reached only past the teleport distance).
+- ShouldCollide's volume-contents branch (slot 3, solid flags' 4); the collision groups' table.
+- The shadow's collisions with the world and other shadows in vphysics (collision filter slot 26); CFuncWallToggle's TurnOff and a breakable's Break on its object.

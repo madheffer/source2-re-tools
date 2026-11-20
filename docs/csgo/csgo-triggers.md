@@ -1,38 +1,54 @@
-# CS:GO's CBaseTrigger: Disable and EndTouch (the CS:GO layer's body touches)
+# CS:GO CBaseTrigger: Disable and EndTouch
 
-Binary: `csgo legacy/csgo/bin/server.dll` (md5 8048019154549052cb6dc057b76f6a85, Ghidra `/csgo_server_legacy.dll`,
-base 0x10000000). Read 2026-11-19 for ze_crazykart's oil puddles (BUGFIXES 2026-11-19): a kart kept every puddle's
-slowdown, because our touch pass never ended a touch on a trigger that was disabled.
+server.dll (CS:GO legacy, md5 8048019154549052cb6dc057b76f6a85, Ghidra `/csgo_server_legacy.dll`, base 0x10000000).
 
-## What the map does
+## Functions
 
-`i_item_oil_trigger` (trigger_multiple, filter_kart): `OnStartTouch !activator RunScriptCode AddSpeed(-0.24)`,
-`OnEndTouch !activator RunScriptCode AddSpeed(0.24)`. When the puddle goes: `OnUser1 !self Disable` at 0,
-`!self Kill` at 0.05. The speed comes back only if Disable ends the touch and EndTouch fires the output.
-
-## CBaseTrigger
-
-- The datamap's builder is at 0x103b5300-0x103b54a0 (it fills the table at 0x10a3568c; the class name string
-  "CBaseTrigger" is set at 0x10bc1cc4). Inputs: Enable -> 0x1018b070, Disable -> 0x1018b080 (`jmp [vtable + 0x330]`),
-  Toggle -> 0x103ac570 (`jmp [vtable + 0x334]`), TouchTest 0x103c659e, StartTouch 0x103c65a6, EndTouch 0x103c65ae.
-- Outputs (COutputEvent, 0x18 each): m_OnStartTouch +0x414, m_OnStartTouchAll +0x42c, m_OnEndTouch +0x444,
-  m_OnEndTouchAll +0x45c, m_OnTouching +0x474, m_OnNotTouching +0x48c.
-- Other fields: spawnflags +0x31c, m_hFilter +0x410, m_bDisabled +0x408, m_hTouchingEntities (CUtlVector<EHANDLE>)
-  +0x4a4 (its count +0x4b0), the solid flags (ushort) +0x114, the VPhysics object +0x158.
-- RTTI: type descriptor 0x10a71a60 (".?AVCBaseTrigger@@" at 0x10a71a68), a base class descriptor 0x109a7ee0.
-  CBaseTrigger's vtable is at **0x108da2f0** (the locator pointer 0x109bbe20 sits at 0x108da2ec).
-
-| Slot (offset) | Address | What |
+| Address | Module | What |
 |---|---|---|
-| 0x324 | 0x103b59b0 | Enable (not read) |
-| 0x328 | **0x103b5ab0** | Disable |
-| 0x32c / 0x330 | 0x102266b0 / 0x102266c0 | the input's virtuals: `call [vtable + 0x324 / 0x328]`, `ret 4` |
-| 0x348 | 0x103b5dd0 | PassesTriggerFilters (the spawnflag tests on +0x31c, then the filter +0x410) |
-| 0x350 | 0x103b6030 | OnEndTouchAll: m_OnEndTouchAll.FireOutput(pOther, this) (in 36 vtables) |
-| (CBaseEntity's) | 0x103b6090 | StartTouch (not read) |
-| (CBaseEntity's) | **0x103b6170** | EndTouch |
+| 0x103b5300-0x103b54a0 | server | CBaseTrigger's datamap builder (fills the table at 0x10a3568c; class name "CBaseTrigger" set at 0x10bc1cc4) |
+| 0x1018b070 | server | input Enable |
+| 0x1018b080 | server | input Disable: `jmp [vtable + 0x330]` |
+| 0x103ac570 | server | input Toggle: `jmp [vtable + 0x334]` |
+| 0x103c659e / 0x103c65a6 / 0x103c65ae | server | inputs TouchTest / StartTouch / EndTouch |
+| 0x103b59b0 | server | Enable (vtable 0x324, unread) |
+| 0x103b5ab0 | server | Disable (vtable 0x328) |
+| 0x102266b0 / 0x102266c0 | server | the inputs' virtuals (vtable 0x32c / 0x330): `call [vtable + 0x324 / 0x328]`, `ret 4` |
+| 0x103b5dd0 | server | PassesTriggerFilters (vtable 0x348): spawnflag tests on +0x31c, then the filter +0x410 |
+| 0x103b6030 | server | OnEndTouchAll (vtable 0x350): m_OnEndTouchAll.FireOutput(pOther, this); in 36 vtables |
+| 0x103b6090 | server | StartTouch (CBaseEntity's slot, unread) |
+| 0x103b6170 | server | EndTouch (CBaseEntity's slot) |
+| 0x102341d0 | server | SetSolidFlags |
+| 0x101baa40 | server | CUtlVector<EHANDLE> Find |
+| 0x1022a3a0 | server | COutputEvent::FireOutput |
 
-### Disable 0x103b5ab0
+## Fields
+
+| Offset | Field |
+|---|---|
+| CBaseEntity +0x114 | solid flags (ushort) |
+| CBaseEntity +0x158 | the VPhysics object |
+| CBaseTrigger +0x31c | spawnflags |
+| CBaseTrigger +0x408 | m_bDisabled |
+| CBaseTrigger +0x410 | m_hFilter |
+| CBaseTrigger +0x414 | m_OnStartTouch (COutputEvent, 0x18 each) |
+| CBaseTrigger +0x42c | m_OnStartTouchAll |
+| CBaseTrigger +0x444 | m_OnEndTouch |
+| CBaseTrigger +0x45c | m_OnEndTouchAll |
+| CBaseTrigger +0x474 | m_OnTouching |
+| CBaseTrigger +0x48c | m_OnNotTouching |
+| CBaseTrigger +0x4a4 | m_hTouchingEntities (CUtlVector<EHANDLE>; count +0x4b0) |
+
+## Constants
+
+| Value | What |
+|---|---|
+| 0x108da2f0 | CBaseTrigger's vtable (locator pointer 0x109bbe20 at 0x108da2ec) |
+| 0x10a71a60 | RTTI type descriptor (".?AVCBaseTrigger@@" at 0x10a71a68) |
+| 0x109a7ee0 | a base class descriptor |
+| 8 | FSOLID_TRIGGER; Disable masks flags with 0xfff7 |
+
+## Disable 0x103b5ab0
 
 ```
 if (m_bDisabled != 1) { NetworkStateChanged(&m_bDisabled) [vtable + 0x354]; m_bDisabled = 1; }
@@ -43,11 +59,9 @@ if (solid flags & 8 /* FSOLID_TRIGGER */) {
 }
 ```
 
-So a disabled trigger stops being a trigger solid; nothing touching it is told at once. The touch links it holds
-end in the engine's untouch pass (CBaseEntity::PhysicsCheckForEntityUntouch, not read in this binary: a link whose
-touch stamp was not refreshed this frame is removed and EndTouch called on both sides).
+A disabled trigger stops being a trigger solid; nothing touching it is told at once. Its touch links end in the engine's untouch pass (CBaseEntity::PhysicsCheckForEntityUntouch, unread here: a link whose touch stamp was not refreshed this frame is removed and EndTouch called on both sides).
 
-### EndTouch 0x103b6170
+## EndTouch 0x103b6170
 
 ```
 if (m_hTouchingEntities.Find(pOther's handle) != -1) {        // 0x101baa40 on this + 0x4a4
@@ -58,25 +72,15 @@ if (m_hTouchingEntities.Find(pOther's handle) != -1) {        // 0x101baa40 on t
 }
 ```
 
-**OnEndTouch fires for whatever was inside when the trigger is disabled.** (The Source SDK's triggers.cpp has the
-same body, with the `!m_bDisabled` test commented out under "FIXME: Without this, triggers fire their EndTouch
-outputs when they are disabled!"; the binary agrees.)
+OnEndTouch fires for whatever was inside when the trigger is disabled (the SDK's triggers.cpp has the `!m_bDisabled` test commented out under "FIXME: Without this, triggers fire their EndTouch outputs when they are disabled!"; the binary agrees).
 
-## Here
+## ze_crazykart's oil puddle
 
-`web/src/cs2web/csgo/entities/body-triggers.js` bodyTouches: a trigger a body was in that is alive and no longer
-enabled ends the touch on the next pass (the tick after the Disable): OnEndTouch, then OnEndTouchAll when nothing
-else touches it. `entities-test.mjs` holds it.
+`i_item_oil_trigger` (trigger_multiple, filter_kart): `OnStartTouch !activator RunScriptCode AddSpeed(-0.24)`, `OnEndTouch !activator RunScriptCode AddSpeed(0.24)`. The puddle goes with `OnUser1 !self Disable` at 0, `!self Kill` at 0.05: the speed returns only because Disable ends the touch and EndTouch fires.
 
-## Not read (TODO)
+## Unread
 
-- A **killed** trigger. The SDK's CBaseEntity::PhysicsRemoveTouchedList (UpdateOnRemove) calls
-  PhysicsNotifyOtherOfUntouch(this, other), which calls `other->EndTouch(this)`: the entity removed is not told, so
-  a killed trigger fires no OnEndTouch (and the map's "Disable, then Kill 0.05 s later" reads as written for that).
-  body-triggers.js does it so (nothing fires); read both functions in this server.dll.
-- The frame the EndTouch lands on after a Disable (PhysicsCheckForEntityUntouch runs in the toucher's own physics
-  step; for a VPhysics prop that is its VPhysicsUpdate): here the next tick's touch pass.
-- Enable 0x103b59b0 and StartTouch 0x103b6090 (whether an Enable with something already inside starts a touch the
-  same frame: here the next pass does).
-- A player (not a kart) in a CS:GO map's trigger goes through the CS2 engine's own trigger code
-  (world/entities/classes/triggers.js), not these rules.
+- A killed trigger: the SDK's CBaseEntity::PhysicsRemoveTouchedList (UpdateOnRemove) calls PhysicsNotifyOtherOfUntouch(this, other), which calls `other->EndTouch(this)`: the removed entity is not told, so a killed trigger fires no OnEndTouch. Read both in this server.dll.
+- The frame EndTouch lands on after a Disable (PhysicsCheckForEntityUntouch runs in the toucher's own physics step; for a VPhysics prop its VPhysicsUpdate).
+- Enable 0x103b59b0 and StartTouch 0x103b6090: whether an Enable with something already inside starts a touch the same frame.
+- A player (not a kart) in a CS:GO map's trigger goes through the CS2 engine's own trigger code, not these rules.

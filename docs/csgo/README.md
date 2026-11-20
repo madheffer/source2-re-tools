@@ -9,8 +9,8 @@ Notes on CS:GO's legacy 32-bit binaries (server.dll md5 8048019154549052cb6dc057
 | File | Subject |
 |---|---|
 | [csgo-effects](csgo-effects.md) | CS:GO's steam jets, sprite trails and precipitation |
-| [csgo-triggers](csgo-triggers.md) | CS:GO's CBaseTrigger: Disable and EndTouch (the CS:GO layer's body touches) |
-| [csgo-vscript](csgo-vscript.md) | CS:GO VScript: the script-side helpers the map ports rely on |
+| [csgo-triggers](csgo-triggers.md) | CS:GO CBaseTrigger: Disable and EndTouch |
+| [csgo-vscript](csgo-vscript.md) | CS:GO VScript: the prelude's EntFire |
 | [source1-bake](source1-bake.md) | The Source 1 BSP bake (`lasers-bake --source1`) |
 
 ## General helpers

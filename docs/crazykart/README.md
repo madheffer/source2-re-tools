@@ -8,16 +8,16 @@ ze_crazykart is a CS:GO map run on the CS2 engine (a side project): its karts an
 
 | File | Subject |
 |---|---|
-| [crazykart-physics](crazykart-physics.md) | CS:GO (legacy, 32-bit) physics of ze_crazykart_v4's kart, traced from the binaries |
-| [ivp-collide-off](ivp-collide-off.md) | IVP: an object's collisions off and on, teleports, pinning (csgo legacy vphysics.dll, 2026-11-17) |
-| [ivp-contacts](ivp-contacts.md) | IVP's contacts: the friction system, its contact points, the impacts (CS:GO legacy vphysics.dll, 2026-11-17) |
-| [ivp-impact](ivp-impact.md) | CS:GO legacy IVP: the impact system and the kart on the ground, end to end (vphysics.dll, 32-bit, 2026-11-17) |
-| [ivp-mindist](ivp-mindist.md) | CS:GO legacy IVP: collision detection up to the impact (vphysics.dll, 32-bit) |
-| [ivp-physbox](ivp-physbox.md) | ze_crazykart's item physboxes on IVP (CS:GO legacy server.dll / vphysics.dll, read 2026-11-18) |
-| [ivp-pileup](ivp-pileup.md) | IVP pile-ups: a core past the impacts per PSI, ShouldFreezeObject, ShouldCollide's hierarchy (2026-11-17) |
-| [ivp-shadow](ivp-shadow.md) | IVP shadows: how CS:GO's movers push a kart (csgo legacy vphysics.dll + server.dll, 2026-11-17) |
-| [ivp-touch](ivp-touch.md) | CS:GO legacy IVP: two karts touching (vphysics.dll, 32-bit, 2026-11-17) |
-| [ivp-virtualmesh](ivp-virtualmesh.md) | The displacements in CS:GO's physics: engine.dll's terrain collides, vphysics' virtual mesh |
+| [crazykart-physics](crazykart-physics.md) | ze_crazykart_v4's kart in CS:GO physics |
+| [ivp-collide-off](ivp-collide-off.md) | IVP: collisions off and on, teleports, pinning, DestroyObject |
+| [ivp-contacts](ivp-contacts.md) | IVP contacts: the friction system, contact points, impacts, materials |
+| [ivp-impact](ivp-impact.md) | IVP: the impact system and a kart on the ground |
+| [ivp-mindist](ivp-mindist.md) | IVP: collision detection up to the impact |
+| [ivp-physbox](ivp-physbox.md) | ze_crazykart's item physboxes, thruster frames, template placement |
+| [ivp-pileup](ivp-pileup.md) | IVP pile-ups: impacts per PSI, ShouldFreezeObject, ShouldCollide |
+| [ivp-shadow](ivp-shadow.md) | IVP shadows: how CS:GO's movers push a kart |
+| [ivp-touch](ivp-touch.md) | IVP: two karts touching |
+| [ivp-virtualmesh](ivp-virtualmesh.md) | Displacements in CS:GO physics: engine.dll's terrain collides, vphysics' virtual mesh |
 
 ## General helpers
 
