@@ -58,7 +58,7 @@ csgo_english.txt.
 
 | Offset | Field |
 |---|---|
-| controller +0x828 (client +0x858) | m_iCompTeammateColor (int, -1 none) |
+| controller +0x828 (client +0x858) | CCSPlayerController::m_iCompTeammateColor (int, -1 none) |
 | controller +0x82c | m_bEverPlayedOnTeam |
 | controller +0x82d (byte) | been through the assignment |
 | controller +0x830 | preferred colour, read once from cl_color |
@@ -143,7 +143,7 @@ Slot 89 (1801ad7a0): with the colour mode, every colour -1 (180a79750), 180a71cb
   with 1808a4490; a player of your side with a colour has the OnMap / OffMap / Death images washed, letter
   180eb4d30(team counter, 0, colour); a spectator sees the team counter slot number (max clients < 11).
   hudradar.vxml PlayerIconPackage, .PI_Text: Stratum2 medium 10 px black.
-- Ping (1808dda40) CP1: without the colour mode the pinger's team CT (181, 212, 238) / T (234, 209, 138); with it
+- Ping (1808dda40), the icon particle player_ping.vpcf, CP1: without the colour mode the pinger's team CT (181, 212, 238) / T (234, 209, 138); with it
   180889bd0(180889c80(...), 3 with none) as bytes (no colour: black); CP2 (1, 1, 1). cl_teammate_colors_show not read.
 - Kill feed: no teammate colours.
 

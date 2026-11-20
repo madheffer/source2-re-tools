@@ -84,8 +84,10 @@ server.dll ([intermission.md](intermission.md)). What the GC decides (the rare t
   paks: `cu_bizon_Curse` is `cu_bizon_curse`); a vanilla knife's is its own image_inventory.
 - Rarities: `rarities` (value, loc_key_weapon, color -> `colors.desc_*.hex_color`). Their `weight` keys (common 10000000,
   uncommon 2000000, rare 400000, mythical 80000) are the drop system's, not a case's.
-- Valve's published case odds: Mil-Spec 79.92, Restricted 15.98, Classified 3.20, Covert 0.64, Exceedingly Rare 0.26.
-  Exteriors FN / MW / FT / WW / BS over 0-.07-.15-.38-.45-1; pattern seed 0..1000; no StatTrak on gloves.
+- Not in CS2's files (the GC's roll): Valve's published case odds (Mil-Spec 79.92, Restricted 15.98, Classified 3.20,
+  Covert 0.64, Exceedingly Rare 0.26 %); the exteriors FN / MW / FT / WW / BS over 0-.07-.15-.38-.45-1 (the float
+  then remapped into [wear_remap_min, wear_remap_max]); no StatTrak on gloves. The exteriors' weights, the pattern
+  seed range (0..1000) and the StatTrak chance are not known from any CS2 file (stand-ins elsewhere).
 
 ## The popup (popup_capability_decodable.vts)
 

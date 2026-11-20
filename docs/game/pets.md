@@ -101,7 +101,6 @@ what those constants pin, a feed bag's time, the breed / colour draw, the XP rul
 | 180943590 | client | material group |
 | 180a11370 | client | the model's material bound |
 | 180d45c90 | client | after the dying particles |
-| 180769bb0 | client | (not read here) |
 | 181012e60 | server | parses pet_definitions ("name must be a positive integer") |
 | 18034fdd0 | server | SetOwner(chicken, pawn) |
 | 180a969e0 | server | pawn's controller |
@@ -204,7 +203,7 @@ CChicken (schema):
 
 | Offset | Field |
 |---|---|
-| 0xcb0 | m_AttributeManager (+0xd00 the item's level path) |
+| 0xcb0 | m_AttributeManager (chicken +0xd00, inside it: the item read for the level, -> 1808c4e20) |
 | 0xca0 | graph controller (vfn 8 origin, 0x60 walk, 0x58 run, 0x48) |
 | 0x10e8 | m_updateTimer |
 | 0x1100 | m_stuckAnchor (written past 50 u, never read) |
@@ -222,7 +221,7 @@ CChicken (schema):
 | 0x11c0 | m_reuseTimer |
 | 0x11d8 | m_jumpTimer (+0x11e4 its end) |
 | 0x11f0 | m_flLastJumpTime |
-| 0x11f8 | the nav path (CNavPath); +0x31f8 point count, points 0x20 apart at +0x11e4 |
+| 0x11f8 | the nav path (CNavPath); +0x31f8 point count, points 0x20 apart at +0x11e4 (as first read; +0x11e4 is also m_jumpTimer's end: unconfirmed) |
 | 0x3200 | m_repathTimer |
 | 0x3218 | path follower |
 | 0x3290 | taken: the nav area under the pet (+0x40 & 8: NO_JUMP) |
@@ -232,7 +231,7 @@ CChicken (schema):
 | 0x32c8 | m_BlockDirectionTimer (+0x32d4; dir +0x32c0) |
 | 0x32e0 | the trick after a turn |
 | 0x32e1 | trick at the next round start |
-| 0x32e2 | movable (following) |
+| 0x32e2 | movable (following; taken as m_bIsFollowing?: no such schema field, unconfirmed) |
 | 0x32e3 | m_bSpawnDyingParticles |
 
 | Offset | Field |
@@ -291,8 +290,8 @@ CChicken (schema):
 | 7.7025 / 86.953 u/s | walk / run root motion (x model scale) |
 | 1000 u (1e6, 0x49742400) | +use / ping distance |
 | 46 (0x42380000) / 36 | ping snap sphere / max distance |
-| 0x18 / 13 / 0x19 / 1 / 0x1b / 0x1a | ping types: special / urgent / C4 / weapon / defuser / chicken |
-| 30 / 6 / 1.0 s | ping life: special / normal / a pet used in the freeze time |
+| 0x18 / 13 / 0x19 / 1 / 0x1b / 0x1a | ping types: param_4 set / urgent / C4 / weapon / defuser / chicken (0 otherwise) |
+| 30 / 6 / 1.0 s | ping life: param_4 set / else / a pet used in the freeze time |
 | 0x81 | pet ObjectCaps (impulse use, no radius bit) |
 | 0.5 / timescale (0x18178057c) | stuck duration (set in Spawn) |
 | 0.01, 0.7071 | ground normal tests |
@@ -308,7 +307,7 @@ CChicken (schema):
 | 90 / 110 .. 180 / 220 | follow distances: idle / walk / run |
 | 300, 1700, 0.96, 0.253, 360 deg/s, 0.9 | steering |
 | 150 u, 0.7071 | flee |
-| 20 / 0.71 / 10 | nest test: area > 20 x 20, + (0, 0, 10) |
+| 20 / 10 | round step 3: the leader's nav area wider and deeper than 20 -> its centre + (0, 0, 10) |
 | 57.295776 | turn_angle rad to deg |
 | 512, 0.6, 1.4285715, 0.7, 10 u, (0, 0, 18) | overhead: scale clamp(atan(512 / d), 0.6, 1.4285715), x 0.7, ray within 10 u, Content offset |
 | DAT_18252b6e0 | client mode table: 0 unspecified, 1 main_menu_foreground, 2 main_menu_background, 3 end_of_match, 4 in_game |
@@ -411,7 +410,8 @@ Needs 18093df90, gamerules, the nav mesh and its area count > 0 (none: nothing a
 - SetActivity: `action` = the activity's ID (DAT_182171410); the same action again sets `action_reset` (180a4f460), a new
   one clears it; `action_variation` = the given variation or RandomInt(0, 0x1000000).
 - Each update: finished (+0x1e8) = this update's events hold ACTION_COMPLETED (timed-remaining state events), then
-  action_reset clears (+0x1c0). Every chicken transition is m_rootMotionBlend "Blend".
+  action_reset clears (+0x1c0). Every chicken transition is m_rootMotionBlend "Blend"; a layer keeps its base's root
+  motion (m_bOnlySampleBaseRootMotion); m_bSampleRootMotion off gives none.
 - Root motion: copied as it is (1811d824c); 180342230 turns its translation by the yaw (181473df0), angles (0, normalised
   yaw, 0), Move(origin + delta); nothing when neither moves.
 - Clip root motion: chick_walk 9.76 u over 1.267 s = 7.70 u/s, chick_run 104.34 u over 1.2 s = 86.95 u/s, chick_start_walk

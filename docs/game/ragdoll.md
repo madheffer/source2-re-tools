@@ -142,7 +142,7 @@ Nudge cvars (flags 0x2002, value at the object's +8 pointer, +0x58):
    - Unless gravity and friction scales are both 1, every part: vfn 0x410 = ragdoll_gravity_scale; linear velocity
      (vfn 0x210 + pawn velocity +0x1ef0 +0x18) set (vfn 0x200, 180012580); frame (vfn 0x1b0) + 180c7c1a0's offset
      set back (vfn 0x1a8); every shape's material (vfn 0x30 / 0x28) friction x ragdoll_friction_scale.
-4. 180c7c1a0 (own pawn only: 18096a8f0(0) and observer checks), +0x1d78 not zero: `d = server origin - abs origin`
+4. The local player's ragdoll is made as anyone's (the same pawn data update); the one difference: 180c7c1a0 (own pawn only: 18096a8f0(0) and observer checks), +0x1d78 not zero: `d = server origin - abs origin`
    (180219a80); |d| >= 1 -> d added to each part's frame, else zero.
 
 ## The aggregate (180042ba0)

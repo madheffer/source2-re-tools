@@ -114,7 +114,7 @@ RTTI vtables: `CPostProcessingState` 0x18012ed48, `CPostProcessingSystem` 0x1801
 | 0x18254eae8 | post-processing system interface (`vfn 0 ()` -> vfn 0x68 (slot)) |
 | 0x18223c0e0 + 8k / 0x18223c118 + 4k | overlay names / groups |
 | 0x182200068 | hltv_replay_fade weight |
-| 0x1825f62e8 | local contrast convar (client) |
+| 0x1825f62e8 | client convar that must be on for 1811e88a0's local contrast targets (name not read) |
 | 0x1825f5e80 | cvar: D_TENT_FILTER when > 0 |
 | 0x18279cf20 vfn 0x68 | the copy into QuarterResUnthresholded (unread) |
 | rendersystemdx11 0x1803f37d0 | Source 2 -> D3D11 blend table 1 2 3 4 5 6 7 8 9 10 11 14 16 17 18 19 (entry 12 = D3D11_BLEND_SRC1_COLOR) |
@@ -149,7 +149,9 @@ currmipblurtint 0xc374e2c2; unread combo 0x77994dc.
 3. Groups from the last (highest) to the first: the group's layers (+0x28 order) with w > 0 and data loaded go to each
    category they have, summing s per category. Then each: `w = (r / max(s, 1)) * w` (divisor 1 when s <= 1),
    `r = max(0, r - s)` (`0 <= x ? x : 0`).
-4. Slot 0x88 (lookups, weights, count, the lookups' r); result +0 = that r, +8 = +0xc0 when count > 0; the blends.
+4. Slot 0x88 (lookups, weights, count, the lookups' r); result +0 = that r, +8 = +0xc0 when count > 0; then the blends in
+   this order: 18005a290 (tone map), 18005b100 (bloom), 18005b300 (vignette), 18005bbf0 (local contrast), 18005bd10 (fog
+   scattering), 18005bea0 (local exposure).
 
 ## The blends (s = the category's weight sum)
 
@@ -226,7 +228,8 @@ lookup budget from both; the volume keeps its tone map and bloom.
   `(p + 0.5) / dst size` (into the used part, clamped 1.5 texels from its edge), expanded `c / (1 - max(r, g, b))`,
   alpha 1 (undoing the scene colour's storage `c / (1 + max)`; mode 1's taps undo it the same way).
 - **The blur** "Local Contrast Gaussian Blur": the Gaussian bloom pass object with +0x90 = 1 and the composed bloom
-  params; input QuarterResUnthresholded, output QuarterResUnthresholdedBlurred. 181211d00: chain texture from
+  params copied into +0x08 .. +0x8f; input QuarterResUnthresholded (0x20cbec6c) when +0x90 is set, output
+  QuarterResUnthresholdedBlurred. 181211d00: chain texture from
   1800c3b90 (smallest of three size tiers holding the pass size, type 3 -> 1800c2900, RGBA16F (0xf), flags 0x409, full
   mip chain); start level by halving the chain until below the pass size (0 here); then 1811f75a0 and 1811fd000.
 

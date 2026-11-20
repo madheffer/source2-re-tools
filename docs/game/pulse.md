@@ -14,9 +14,9 @@ Each cell / function has a registration record in .data (name, title, descriptio
 |---|---|---|
 | 1801dbe50 (record 181da11a0) | server | CCSPointPulseAPI::GetIsWingman: gamerules present && CCSGameRules::IsWingman |
 | 1809108d0 | server | CCSGameRules::IsWingman: game_type (vfn 0x98) 0 and game_mode (vfn 0xa0) 2 |
-| 1801dbdc0 | server | GetScoreToEndMatch: `rules+0x128 * mp_overtime_maxrounds + mp_maxrounds` (rules+0x128 the overtime count; unused by the pool) |
-| 1801dbd30, ... | server | GetTScore / GetCTScore / GetRoundsPlayedThisPhase (unused by the pool) |
-| records 181da11f0 ... | server | OnRoundStart / OnRoundFreezeEnd / OnRoundEnd: gamerules events to every graph's handlers |
+| 1801dbdc0 | server | CCSPointPulseAPI::GetScoreToEndMatch: `rules+0x128 * mp_overtime_maxrounds + mp_maxrounds` (rules+0x128 the overtime count; unused by the pool) |
+| 1801dbd30, ... | server | CCSPointPulseAPI::GetTScore / CCSPointPulseAPI::GetCTScore / CCSPointPulseAPI::GetRoundsPlayedThisPhase (unused by the pool) |
+| records 181da11f0 ... | server | CCSPointPulseAPI::OnRoundStart / CCSPointPulseAPI::OnRoundFreezeEnd / CCSPointPulseAPI::OnRoundEnd (events): gamerules events to every graph's handlers |
 | 1808950a0 (record 181e02620) | server | CPulseCell_Step_EntFire::FireAtName: m_Input on the TargetName with pParam; activator = caller = the domain's entity (vfn 0); empty name logs "Invalid target entity name."; dispatched through the domain's vfn 0x8 |
 | 180894d20 | server | CPulseCell_Step_EntFire::Run: handle form: AcceptInput (1813ac4d0) at once, after the entity system's input listeners (+0xc20) |
 | 1815ace70 | server | CPulseCell_Value_RandomInt::Eval: tier0 RandomInt(nMin, nMax), the global uniform stream |

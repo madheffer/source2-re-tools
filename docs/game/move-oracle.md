@@ -38,7 +38,7 @@ server_20261105, tier0_20261103. What it takes to call CCSPlayer_MovementService
 | 180addc00 / 180add580 | server | movement trace wrappers |
 | 180ab55b0 | server | a filter constructor (...) |
 | 180c26a40 | server | CGameSceneNode::SetAbsOrigin (node +0xc8) |
-| 1803ea4a0 | server | SetAbsVelocity (+0x38c and the local +0x398 when a lane differs) |
+| 1803ea4a0 | server | SetAbsVelocity (m_vecAbsVelocity +0x38c and the local +0x398 when a lane differs) |
 | 1803eb7d0 | server | SetMoveType (+0x2f3, +0x2f2, m_nActualMoveType +0x2f5) |
 | 1803e5390 | server | UpdateActualMoveType (parentless: = movetype) |
 | 180d0e6a0 | server | collision interacts-with setter (pawn+0x5e8, mask); SetupMove's at 180ae25e4: +0x20 = pawn+0x608 |
@@ -78,7 +78,7 @@ server_20261105, tier0_20261103. What it takes to call CCSPlayer_MovementService
 | +0x2f2 / +0x2f3 / +0x2f5 | move type fields / movetype (2 walk, 9 ladder, 7 noclip) / m_nActualMoveType |
 | +0x344 | team |
 | +0x388 | m_fFlags (1, 2, 4 FL_WATERJUMP) |
-| +0x38c / +0x398 | abs / local velocity |
+| +0x38c / +0x398 | m_vecAbsVelocity / the local velocity |
 | +0x3c8 | m_vecBaseVelocity |
 | +0x3d8 | m_pCollision = +0x5e8 (m_Collision +8 its owner) |
 | +0x3ec | m_hGroundEntity (-1 none) |
@@ -86,7 +86,8 @@ server_20261105, tier0_20261103. What it takes to call CCSPlayer_MovementService
 | +0x404 | m_flWaterLevel (as a level: int(x 4 + 1), 0..5) |
 | +0x412 | water type (1 water, 2 slime) |
 | +0x608 | interacts-with |
-| +0x818 | m_vecViewOffset (+0x820, +0x838) |
+| +0x818 | m_vecViewOffset (its constructor run before each move) |
+| +0x820 (m_vecViewOffset.z), +0x838 | state a move carries over (with svc +0x41c, +0x3f4, the node's +0x210) |
 | +0xb10 | weapon services (+0x60 active weapon handle) |
 | +0xb30 | CCSPlayer_WaterServices (vtable 0x181928258): +0x54, +0x58, +0x5c, +0x64 |
 | +0xb48 | CCSPlayer_CameraServices (vtable 0x1819208c8) |
@@ -117,7 +118,7 @@ server_20261105, tier0_20261103. What it takes to call CCSPlayer_MovementService
 | +0x40c, +0x410, +0x418, +0x41c, +0x420, +0x424, +0x430, +0x434 | duck / step state |
 | +0x415 / +0x439 | the duck key / walked |
 | +0x43a, +0x650 | cleared before the dispatch |
-| +0x440 | CheckVelocity's warning map (CUtlMap by pawn index) |
+| +0x440 | CheckVelocity's warning map (CUtlMap by pawn index; a node warned "at 1e30" never warns) |
 | +0x648 | trace counter (`inc dword [r + 0x648]`) |
 | +0x680 | last command number |
 | +0x68c, +0x690, +0x694, +0x698 | |
@@ -253,6 +254,20 @@ CUserCmd (0x200): +8 its number.
 - No initialisers run: the globals the code reads must be filled; statics made as their first use would (the velocity quantizer with its guard set so the TLS path never runs; the view vectors; the trace reset's record; the surface table; the event manager).
 - CheckStuck: 180c8cbc0, 180c86c00 and Plat_FloatTime's import slot; its 1-in-64 gate; developer 0.
 - The freeze period: "can move" false, mv+0x120 1.0 -> 180adc860; FL_FROZEN / FL_ATCONTROLS.
+
+## Checked natively (0 differences against a port on the same inputs)
+
+| What | Cases |
+|---|---|
+| Friction / Accelerate / AirAccelerate / AddGravity on random states | 300,000 each |
+| CQuantizedFloatEncoder setup + quantize, random configurations | 200,000 configs, 10.3M values |
+| The whole move (the calls below) on recorded rounds (12 bots, 20 s) on four maps | 55,306 pieces |
+| The same, fuzzed: 12 players x 3000 commands on four maps (air, jumps and landings, duck, IN_SPEED walk, ladder, water and swimming, noclip, the water jump, impacts, step-ups, sv_maxvelocity, the command after a teleport) | 287,809 |
+| Every float cvar off its default (1500 commands) | 144,447 |
+| CS2Fixes' movement unlocker patched into server.dll, on and off | 13,826 + 71,829 each |
+| The modern jump (sv_legacy_jump 0, sv_bhop_time_window 0.0625) | 287,809 (1,597 jumps, 1,600 landings) |
+| The grenade throw: AngleVectors 181470980, 1809b4ad0 with its trace hooked / with sv_grenade_collision_sphere 1 | 200,000 + 400,000 |
+| The step sounds (UpdateStepSound, SetStepSoundTime, svc vfn 0x1d0 as server.dll's own; PlayStepSound / EmitSound recorded), the view punch (180c7e550 runs; 180ade0a0 whole), CheckStuck (the 1-in-64 gate passed every command) | four maps, every mode (16k pieces in CheckStuck) |
 
 ## Unread
 

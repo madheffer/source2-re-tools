@@ -36,7 +36,7 @@ server_20261105, client_20261105; panorama/scripts/context_menus/context_menu_vo
 | 18093df90 | server | (ChangeLevel's minute test gate) |
 | 18092a140 | server | match minutes |
 | 1809136e0 | server | gamerules change level (reads nextlevel) |
-| 18095fe40 | server | (gamerules, SteamID, 1, 0): kick-ban record |
+| 18095fe40 | server | (gamerules, SteamID, 1, 0): called by the kick when sv_vote_kick_ban_duration > 0 (unread) |
 | 1802bb5f0 | server | queued matchmaking: the kicked player's team |
 | 180b56340 | server | SteamID |
 | 1813aa290 | server | entity slot |
@@ -68,7 +68,7 @@ Controllers: DAT_181fa0a80 (every team), DAT_181fa0a88, DAT_181fa0a90 (the team 
 | issue +0x164..+0x16c | yes, no, potential (slot 0xd8) |
 | kick +0x180 / +0x184 | captured SteamID / its universe-type bits |
 | player controller +0x344 | team |
-| +0x388 bit 8 | bot |
+| +0x388 bit 8 | set: no vote, not counted, not a kick target (movement.md reads controller +0x388 bit 8 as a bot) |
 | +0x510 | set: can't vote |
 | +0x514 | connection state (0 / 3 connected) |
 | +0x5b0 bit 0 | can't be kicked (12) |
@@ -102,7 +102,7 @@ Data pointer = handle + 8; `*(handle + 0x58)` the value.
 | 0x181fa0740 | sv_vote_to_changelevel_before_match_point | 0 |
 | 0x181fa0750 | sv_vote_to_changelevel_rndmin | 0 |
 | 0x181fa0760 | sv_vote_issue_nextlevel_allowed | 1 |
-| 0x181fa0770 / 0x181fa0780 / 0x181fa0790 | sv_vote_issue_nextlevel_choicesmode / _allowextend / _prevent_change | 1 / 1 / 1 |
+| 0x181fa0770 / 0x181fa0780 / 0x181fa0790 | sv_vote_issue_nextlevel_choicesmode / sv_vote_issue_nextlevel_allowextend / sv_vote_issue_nextlevel_prevent_change | 1 / 1 / 1 |
 | 0x181fa07a0 | sv_vote_issue_scramble_teams_allowed | 0 |
 | 0x181fa07f0 | sv_vote_issue_swap_teams_allowed | 0 |
 | 0x182119338 | nextlevel | |
@@ -252,7 +252,7 @@ StartTimeOut; pause / ready / load-backup only on a queued tournament server.
 - disp 180273bc0 `#SFUI_vote_kick_player_other` (slot parsed, unused), other team 180276ee0
   `#SFUI_otherteam_vote_kick_player`, passed 1802788e0 `#SFUI_vote_passed_kick_player`, details 180273930 (target's
   name, 112 bytes: read in outline).
-- OnVoteStarted 180285430: no controller / target, team 1 or bot: +0x180 = 0; else the target votes "Option2" through
+- OnVoteStarted 180285430: no controller / target, a spectator (team 1) or +0x388 bit 8: +0x180 = 0; else the target votes "Option2" through
   TryCastVote, SteamID (180b56340) captured at +0x180.
 - OnVoteFailed 180285340: the base record, +0x180 = 0.
 - ExecuteCommand 18026e970: no valid SteamID (+0x184): "Kick vote passed against '%s' but no SteamID was captured for
@@ -262,7 +262,7 @@ StartTimeOut; pause / ready / load-backup only on a queued tournament server.
 
 ## ChangeLevel (CChangeLevelIssue 0x1818c6260)
 
-- IsEnabled 1802806f0: changelevel_allowed; off with before_match_point 0 on a match point (18093d960 / 18093d7e0);
+- IsEnabled 1802806f0: sv_vote_issue_changelevel_allowed; off with sv_vote_to_changelevel_before_match_point (default 0) on a match point (18093d960 / 18093d7e0);
   rndmin > 0: off once that many rounds (+0x120), or (not 18093df90) that many minutes (18092a140).
 - CanCallVote 180266650: base; disabled 5; no map 7; a map group not a workshop collection (IGameTypes slot 0x130) and
   a map the engine lacks (slot 0x108): 6; then only a map in the map group (slot 0x1f8, exact): else no (no reason).
@@ -272,9 +272,9 @@ StartTimeOut; pause / ready / load-backup only on a queued tournament server.
 
 ## NextLevel (CNextLevelIssue 0x1818c6370)
 
-- IsEnabled 180280840: nextlevel_allowed.
-- CanCallVote 180266a30: base; choicesmode and the server calling: yes with no details; disabled 5; no map 7; not found
-  6; prevent_change and `nextlevel` already a map that exists: 22; else the map must be in the group.
+- IsEnabled 180280840: sv_vote_issue_nextlevel_allowed.
+- CanCallVote 180266a30: base; sv_vote_issue_nextlevel_choicesmode and the server calling: yes with no details; disabled 5; no map 7; not found
+  6; sv_vote_issue_nextlevel_prevent_change and `nextlevel` already a map that exists: 22; else the map must be in the group.
 - No details and choicesmode: 5 options (slot 0xc8), not yes / no, `#SFUI_vote_nextlevel_choices`; else 2, yes / no,
   `#SFUI_vote_nextlevel`. Passed 180278900: `#SFUI_vote_passed_nextlevel_extend` when the details are the current map,
   else `#SFUI_vote_passed_nextlevel`.

@@ -10,7 +10,7 @@ particle_controls.vcss.
 |---|---|---|
 | 180912130 | server | the rules' player-killed handler (before the death notice 18091da70) |
 | 18091da70 | server | the death notice |
-| 180de8600 | server | the killer, when a living player pawn (vfn 0x558 + 0xca8) |
+| 180de8600 | server | the killer, when a living player pawn (0x558 + 0xca8) |
 | 180931650 | server | relationship: 1 enemy, -1 same team |
 | 180b0b6e0 | server | action tracking (controller's services, relationship, headshot): round kill counts |
 | 180931910 | server | kill type from the damage type (also inlined in 180912130) |
@@ -53,7 +53,7 @@ particle_controls.vcss.
 
 | Value | What |
 |---|---|
-| 0x40 DMG_BLAST -> 3, 8 DMG_BURN -> 4, 4 DMG_SLASH -> 5, bit 19 (headshot) -> 2, 0x100 DMG_SHOCK -> 6, else 1 | kill type, tested in this order |
+| 0x40 DMG_BLAST -> 3, 8 DMG_BURN -> 4, 4 DMG_SLASH -> 5, bit 19 (headshot) -> 2, 0x100 DMG_SHOCK -> 6, else 1 | kill type |
 | DAT_1825d6910 | class table, index min(n, 6): none at 0, HUD--NumKills--{1..5}, HUD--NumKills--extra at 6+ |
 | DAT_1825d6930 + type x 10 + i x 2 | card class HUD--Kill{i+1}--{default, headshot, blast, burn, slash, shock}[type - 1] |
 | 1822445d0[n] | streak particles: n < 7 ui_hud_kill_streaks_1..5, 6 _many; 7+ entry 0 (particles/dev/empty) |

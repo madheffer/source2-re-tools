@@ -72,7 +72,7 @@ the simulation units' merge and split, vphysics' pair-time listener, the rescue 
 | 0x100839f9 | vphysics | its static branch |
 | 0x10083760 | vphysics | two dynamic (obj0, obj1; speed xmm3) |
 | 0x10074e10 | vphysics | async_push_core (thiscall object, world point, world impulse) |
-| 0x10075060 | vphysics | (object prep before a push) |
+| 0x10075060 | vphysics | ensure_in_simulation (Wake's body: an unsimulated object's core queued for revival, else its reference times set; crazykart-physics.md 12) |
 | 0x10076b50 | vphysics | core's matrix at t (core, time) |
 | 0x1006ca90 | vphysics | quaternion at t |
 | 0x10001b50 | vphysics | object's cache |
@@ -119,9 +119,12 @@ the simulation units' merge and split, vphysics' pair-time listener, the rescue 
 | anomaly solver +0x10 / +0x1c | pair list (lower, higher address) |
 | object +0x44 | movement byte: < 8 cache renewed; & 7 "moving" |
 | object +0x40 | its cache (cleared on eviction) |
-| CPhysicsObject +0xa0 / +0x1c | (from IVP object) / flags (& 0x400 no rescue) |
+| IVP object +0xa0 | its CPhysicsObject |
+| CPhysicsObject +0x1c | flags (& 0x400: no rescue push) |
 | mindist +0x32 + 0x1c u | synapse u's status |
-| cache +0x20 / +0x30 / +0x40 / +0x50 / +0x60 | rows / origin / time code (0 new) |
+| cache +0x20 / +0x30 / +0x40 | rows |
+| cache +0x50 | origin |
+| cache +0x60 | 0 in a new cache |
 | ledge +0xc | triangle count |
 | listener (flags 0xd) +0xc | tree: +0x10 nodes of 0x18 bytes (+8 / +0xc the cores in address order, +0x10 the time), +0x1e count, +0x22 last index |
 
@@ -204,7 +207,7 @@ Timing (checked against the DLL with a kart made inside a solid brush): the push
 
 **Static branch (0x100839f9)**:
 1. The other's core (+1 >= 8: return); its pos_now in the static object's axes (cache 0x10001b50: `(m1 py + m0 px) + m2 pz` per column).
-2. The synapse's ledge (`edge & ~0xf - (tri index + 1) x 16`); each triangle: corners A, B, C (edges 0, 1, 2's start points), `b = B - A`, `c = C - A`, `q = (by cz - bz cy, bz cx - bx cz, bx cy - by cx)`, `off = -((A.y qy + qx A.x) + qz A.z)`, `i = 1 / sqrtss((qy qy + qx qx) + qz qz)`, `dist = ((l1 qy i + l0 qx i) + l2 qz i) + off i`; the largest (> -1e20; (1, 0, 0) without triangles) gives n.
+2. The synapse's ledge (`(edge & ~0xf) - (tri index + 1) x 16`); each triangle: corners A, B, C (edges 0, 1, 2's start points), `b = B - A`, `c = C - A`, `q = (by cz - bz cy, bz cx - bx cz, bx cy - by cx)`, `off = -((A.y qy + qx A.x) + qz A.z)`, `i = 1 / sqrtss((qy qy + qx qx) + qz qz)`, `dist = ((l1 qy i + l0 qx i) + l2 qz i) + off i`; the largest (> -1e20; (1, 0, 0) without triangles) gives n.
 3. n in world axes (`(r.y ny + nx r.x) + r.z nz`); `v = ((delta.y + sc.y) n1 + (delta.x + sc.x) n0) + (delta.z + sc.z) n2` (+0xf0, +0xb0); `speed x 0.1 > v`: 0x10075060 and speed_change += n x speed.
 
 ## Rules one kart never showed

@@ -36,7 +36,7 @@ server_20261105. weapons.vdata's knives.
 | 180a02c60 | server | GetWeaponAttackTime |
 | 1813b9aa0 / 1813b8fb0 | server | tick arithmetic in 1809f9910 |
 | 180b763d0 / 180b76450 | server | (delay, 1): primary / secondary clock + delay from itself |
-| 1809afbb0 | server | weapon constructor: `mov qword [rdi + 0x4c4], 1` |
+| 1809afbb0 | server | the vdata constructor: `mov qword [rdi + 0x4c4], 1` (+0x4c6 left 0) |
 | 1809fb560 | server | the base Deploy ([fire-gate.md](fire-gate.md) 5) |
 | 18017dc70 | server | curtime + delay |
 | 1809f3e40 | server | the knife's sound filter |
@@ -56,13 +56,13 @@ server_20261105. weapons.vdata's knives.
 | weapon +0xf50 | m_bFireOnEmpty |
 | weapon +0xfa8 | reloading |
 | weapon +0xfe8 | &info (set by the swing) |
-| weapon +0x1038 | inspect time; = curtime after PrimaryAttack |
+| weapon +0x1038 | read with 1809f5710 before PrimaryAttack (inspect, not read); = curtime after it |
 | weapon +0x10a0 / +0x10b8 | written in the no-buttons branch |
 | weapon +0x10c0 | (attack - (now + 1 tick)) (cvtdq2ps + addss) |
 | weapon +0x1280 | m_bFirstAttack |
 | weapon +0x14d8 | m_iShotsFired (no knife code writes it; Deploy zeroes it) |
 | weapon +0x14f0 | m_bWaitForNoAttack |
-| weapon +0x4c6 | m_bLinkedCooldowns (knives' vdata leaves the constructor's 0) |
+| vdata +0x4c6 | m_bLinkedCooldowns (schema offset 0x4c6, checked; the knives' vdata leaves the constructor's 0) |
 | info +0x38 | set when a clock is before now |
 | gamerules +0xd8 | freeze period |
 | pawn +0x14be | defusing |
@@ -78,10 +78,10 @@ server_20261105. weapons.vdata's knives.
 | Value | What |
 |---|---|
 | 0x1819154a0 | CKnife's vtable |
-| 1 (0x800), 0x2000, 0x400000000, 0x100000000, 0x800000000 | buttons: attack, attack2, reload, attack3 (unbound), inspect, (unread) |
+| 1, 0x800, 0x2000, 0x400000000, 0x100000000, 0x800000000 | buttons: attack, attack2, reload, attack3 (unbound), inspect, (unread branch) |
 | 0x400000801 | the "none held" mask for the no-buttons branch |
-| 1.0 (0x181780580) | primary delay; Deploy's m_flNextAttack delay |
-| 0.4 (0x18178fde0) | secondary delay; the heavy-damage threshold |
+| 1.0 (0x181780580) | the swing's delay for attack 1 (SecondaryAttack, the stab); Deploy's m_flNextAttack delay |
+| 0.4 (0x18178fde0) | the swing's delay otherwise (attack 0, PrimaryAttack); the heavy-damage threshold |
 | 0.015625 (0x181784dec) | tick interval |
 | 9 | weapon type (vfn 0xc60) that skips weapon_fire |
 | weapon_knife / weapon_knife_t | m_iMaxClip1 0, m_iMaxClip2 0, m_bIsFullAuto false, m_flDeployDuration 1, no m_bLinkedCooldowns |

@@ -98,6 +98,7 @@ The parallax march is in the material part; the depth offset (`gl_FragDepth`) is
 - Base (pixel static 0 / dynamic 3, vertex static 0): vertex output_2 = the UV twice; output_3 = the instance colour (sRGB -> linear) with its alpha. Pixel: `xy = g_tNormal.ag x 2 - 1`, `n = (x, -y, sqrt(saturate(1 - x^2 - y^2)))`, n.xy x g_flBumpStrength, normalised, Y negated again unless a flipped back face; line 677: diffuse = `(direct + lightmap x the view's occlusion) x (g_tColor.rgb x g_vColorTint) x the instance colour`.
 - Vertex programs: the one the dump names for D_BAKED_LIGHTING_FROM_LIGHTMAP (VertexShader s0_d3) decodes the frame from nPackedFrame (`normalize(vec4(_N.xyz, 0) x transform)`) and has no lightmap UV output, one fewer than the lightmapped pixel program reads; the one named for D_BAKED_LIGHTING_FROM_PROBE (s0_d2: vNormalOs, vTangentUOs_flTangentVSign, vLightmapUV) is its partner by interface. Why the dump's index differs for this shader: untraced.
 - Programs in use: p0_v0d2, p1_v1d2, p16_v0d2, p17_v1d2, p2_v2.
+- Unread: S_ALPHA_TEST, S_SELF_ILLUM, S_TINT_MASK, S_OVERLAY.
 
 ## csgo_unlitgeneric
 

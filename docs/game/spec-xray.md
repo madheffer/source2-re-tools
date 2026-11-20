@@ -20,7 +20,7 @@ string has three references (0x1807c3efc, 0x1807c9e0b, 0x18084bb82: the third ne
 | 180c7d290 | client | observer-mode / spotted rule (1804ffb20 on 0x1821fffd0, convar 0x182570df0 == 3): white, 0.8 or 0.6 |
 | 180c7d380 | client | the xray rule |
 | 180853840 / 1808538e0 | client | observer mode / target |
-| 180cb2100 | client | menu camera |
+| 180cb2100 | client | set: the xray rule answers no (unread) |
 | 180ce2420 | client | a caster |
 | 18094dc30 | client | observing (observer services +0x1308, vfn 0xf0 mode != 0) |
 | 1808d9120 | client | enemies |
@@ -72,10 +72,10 @@ string has three references (0x1807c3efc, 0x1807c9e0b, 0x18084bb82: the third ne
 | sv_grenade_trajectory_prac_trailtime | handle 0x1824c6ee0 |
 | sv_grenade_trajectory_time_spectator | 0.0, 0..8, flags 0x282000 (0x1824c6ed0); gamemode_competitive.cfg line 81 and gamemode_rush.cfg set 4 |
 | spec_show_xray | 1, flags 0x80080 (0x182570e48) |
-| spec_glow_silent_factor / spike_factor / full_time / decay_time / spike_time | 0.4 / 1.2 / 1.0 / 2.0 / 0.0 (registrations 0x1800e70d0..0x1800e7400, handles 0x182570df8 / e08 / e18 / e28 / e38) |
+| spec_glow_silent_factor (silent) / spec_glow_spike_factor (spike) / spec_glow_full_time (full) / spec_glow_decay_time (decay) / spec_glow_spike_time (st) | 0.4 / 1.2 / 1.0 / 2.0 / 0.0 (registrations 0x1800e70d0..0x1800e7400, handles 0x182570df8 / e08 / e18 / e28 / e38) |
 | mp_forcecamera | 0x1825510d0 |
 | mp_teammates_are_enemies | 0x1824bcf88 |
-| force_spectator_only_tools | 0x18257b368 |
+| force_spectator_only_tools | handle 0x18257b368 (the object is 0x18257b360, flashbang.md: a cvar's handle is the qword 8 bytes after its object) |
 | r_csgo_enable_glows | 1 (0x1825f6240) |
 | r_csgo_outline_glow_scaledenom | 1 (0x1825f6250; 1 / 2 / 4 the solid target's divisor) |
 | glow_outline_width | 6.0 (0x1825f5e10, "Width of glow outline effect in screen space"; attribute 0x39dda75a on Blur Y, unread by blur.vfx) |
@@ -128,11 +128,12 @@ block x 4 + lane`, else `block x 4 + lane`; lanes 0..3 from xmm6 (coll+0x94 take
 ### The xray rule 180c7d380
 
 1. spec_show_xray 0: no. The local pawn: an observer pawn (vfn 0xac0) in mode 2 looks through its target; a player pawn
-   (vfn 0xab8 not set): none; that pawn alive (vfn 0x4e8 false): no. 180cb2100 set: no.
+   (vfn 0xab8 not set): none; that pawn not alive (vfn 0x4e8): no. 180cb2100 set: no.
 2. The target watched in-eye: white only for a weapon state 2, else no.
 3. Not a caster: local pawn alive: no; not observing: no; an enemy under mp_forcecamera != 0: no.
 4. Colour by mp_teammates_are_enemies / CT / T, else no. A replay's selected player white.
-5. The noise, E = 180c56d50, st = spike_time:
+5. The noise, E = 180c56d50 (max of +0x1ea0, +0x1ea4); silent / spike / full / decay / st the spec_glow_* cvars
+   (Constants):
 
 ```
 now < E + full + decay:
@@ -147,8 +148,8 @@ both alphas x 0.6
 ```
 
 - 1808d9120: no local info: no; the same controller: no; mp_teammates_are_enemies: yes; else target team != local.
-- 180ce2420: force_spectator_only_tools, the controller's m_bIsHLTV (+0x790 picks DAT_1825603a0), or an observed caster
-  pawn.
+- 180ce2420: force_spectator_only_tools, the controller's m_bIsHLTV (+0x6f0, schema-checked; the controller's +0x790
+  picks DAT_1825603a0 instead), or an observed caster pawn (1808d9430 with DAT_1825651d0, 180769bb0).
 
 m_flEmitSoundTime (server): 180f698d0 sets curtime when the emitter is a player pawn (vfn 0x558) or owned by one, and
 the event has `public.display_broadcast` (soundevents' display_broadcast; false in every stack); cleared at spawn.

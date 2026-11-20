@@ -114,7 +114,7 @@ Random draws: the client's global stream (CUniformRandomStreamImpl<CAtomicMutex>
 
 ## Server side (CreateFire)
 
-m_firePositions[i] = fire position (world), m_fireParentPositions[i] = the parent fire's position (its own with none), m_BurnNormal[i] = ground normal, m_bFireIsBurning[i] = 1, m_nFireLifetime = vfn 0x898 (flame lifetime), m_fireCount + 1. The client adds the origin to the parent position anyway.
+m_firePositions[i] = fire position (world), m_fireParentPositions[i] = the parent fire's position (its own with none), m_BurnNormal[i] = ground normal, m_bFireIsBurning[i] = 1, m_nFireLifetime = vfn 0x898 (flame lifetime), m_fireCount + 1. Both positions are world positions; the client adds the origin to the parent position anyway.
 
 ## ClientThink (180d3bab0)
 

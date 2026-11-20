@@ -257,7 +257,31 @@ csgostyles.vcss `.decorated-player-name__clan-tag { font-family: Stratum2 Light 
 
 Per frame 180eaf7c0: 180eb4df0, 180eb4260 + #TargetID, 180ed3610, 180ed28e0, the bone loop, 180ed3150, 180ed0210.
 
-180eb4df0 (the who / alpha / scale rules are listed in cs2web's web/src/cs2web/client/hud/teamid.js header). Also:
+180eb4df0's who / alpha / scale rules (recorded with the 10-15 read in cs2web's web/src/cs2web/client/hud/teamid.js
+header; not re-read here):
+- Who: every other living player; a player (not a spectator) only those who aren't enemies (1808d9120), a spectator
+  everyone.
+- How far: sv_teamid_overhead_maxdist if > 0, else cl_teamid_overhead_maxdist (6000); spectating, the _spec pair
+  (cl_teamid_overhead_maxdist_spec 4000).
+- In front: `dot(view forward, dir to head + 3 u) > 0.5` (a spectator: anywhere).
+- Through walls only with cl_teamid_overhead_mode >= 1 (default 3) and not sv_teamid_overhead_always_prohibit
+  (occlusion test 180c8a7d0 + a trace and 180aca060: unread).
+- Alpha: `clamp(1 - d / (0.75 maxdist), 0.25, 1)`; x `max(0.3, (dot - 0.6) / 0.16)` under dot 0.76 (not spectating);
+  x the crosshair fade (cl_teamid_overhead_fade_near_crosshair 0.5): `t = clamp((d - 100) / 900, 0, 1)`,
+  `edge = smoothstep(t) x 0.04000002 + 0.95`, `u = clamp((dot - edge) / (1 - edge), 0, 1)`,
+  `a x (smoothstep(u) x ((1 - fade) - 1) + 1)`; never under 0.05.
+- Scale: `clamp(atan(512 / d), 0.6, 2.0)` (2 at d 0), d = camera to head + 3 u; 180ecb3d0 applies x 0.7.
+- Name: not sv_show_team_equipment_prohibit and (sv_show_team_equipment_force_on or mode not < 0 and not 1); weapon
+  row: mode 3 (or force_on) (180ed10b0 / 180ed7280).
+- Cvars: sv_teamid_overhead 1, sv_teamid_overhead_always_prohibit 0, sv_show_team_equipment_prohibit 0,
+  sv_show_team_equipment_force_on 0, sv_teamid_overhead_maxdist 0, sv_teamid_overhead_maxdist_spec 0 (server
+  registrations 18008db90, 18008dc40, 18008d6d0, 18008d620, 18008dcf0, 18008dda0); cl_teamid_overhead_mode 3,
+  cl_teamid_overhead_maxdist 6000, cl_teamid_overhead_maxdist_spec 4000, cl_teamid_overhead_fade_near_crosshair 0.5
+  (client 1800edc70, 1800e4e10, 1800e4ec0, 1800edbd0).
+- Unread hide gates: 180d568d0 == 4, 1804ffb20, 180cb2100, 180c7ae00, 180ced3b0()+0x128 >= 0.5; a global fade
+  DAT_182200068.
+
+Also:
 alpha factor `max(0.25, (d - 56) / 88)` under 160 u needing "not spectating, an enemy" (never true for a shown player);
 position at +0xc = `(vfn 0x568 point - abs origin) + (0, 0, 20)`; +9 bit 4 = not occluded and pawn +0x1e9a.
 

@@ -1,6 +1,6 @@
 # Projected decals: the client's decal record
 
-client_20261105, server_20261105. Read for the C4's "Scorch" ([c4-shockwave.md](c4-shockwave.md) "The explosion's effects").
+client_20261105 (the server addresses' build not recorded). Read for the C4's "Scorch" ([c4-shockwave.md](c4-shockwave.md) "The explosion's effects").
 
 ## Functions
 
@@ -8,7 +8,7 @@ client_20261105, server_20261105. Read for the C4's "Scorch" ([c4-shockwave.md](
 |---|---|---|
 | 180376e20 | client | builds the decal record from a material (r8) |
 | 180c333f0 | client | allocates the 0x50-byte record |
-| 18036dd90 | client | reads DecalDepth with default {4, 0, 0, 0} (.rdata 0x181b0b590), overwriting the first 16 bytes written |
+| 18036dd90 | client | reads DecalDepth with default {4, 0, 0, 0} (.rdata 0x181b0b590): overwrites the 16.0 first written at +0x18 (0x180376f7d, checked against the disassembly) |
 | 180160c50 | client | r_decals_default_fade_duration read |
 | 180cbbf60 | server | UTIL_DecalTrace -> 1803d10a0 -> 18111bfe0 |
 
@@ -17,7 +17,7 @@ client_20261105, server_20261105. Read for the C4's "Scorch" ([c4-shockwave.md](
 | Value | What |
 |---|---|
 | 0x181ff32e0 | server's decal system |
-| 0x31415926 | MurmurHash2 seed of CUtlStringToken (lowercased name) |
+| 0x31415926 | MurmurHash2 seed of CUtlStringToken (lowercased name; tools/re/game/strtoken.py) |
 
 ## The record (180376e20)
 
@@ -32,7 +32,7 @@ CUtlStringToken (SIMD compares against 4 copies of a token in .rdata):
 | 0x0c | 0 | token 0x8cdeab89 | name unknown |
 | 0x10 | 1.0 | | unread |
 | 0x14 | 0.25 | | unread |
-| 0x18 | 4 | DecalDepth (0xadee4833) | via 18036dd90 |
+| 0x18 | 16, then 4 | DecalDepth (0xadee4833) | 16.0 written first; 18036dd90's default 4 overwrites it |
 | 0x1c | 0 | DecalDepthOffset (0xae65be16) | |
 | 0x20 | 0 | DecalDepthVariance (0x5fffc1b2) | |
 | 0x24 | 10, then the cvar | DecalFadeDuration (0xd70d77db, .rdata 0x181b0b630) | r_decals_default_fade_duration before the attribute |

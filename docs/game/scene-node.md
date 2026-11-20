@@ -1,4 +1,4 @@
-# Scene node: an entity's transform (CGameSceneNode)
+# Scene node: an entity's transform (CGameSceneNode, each entity's m_pGameSceneNode)
 
 server_20261105 (CGameSceneNode vtable 0x1819459f8, RTTI); vphysics2_20260924 (the push list); tier0 (atan2f, fmodf,
 the random stream). Related: [io-queue.md](io-queue.md), [io-targets.md](io-targets.md), [movers.md](movers.md),
@@ -130,7 +130,8 @@ the random stream). Related: [io-queue.md](io-queue.md), [io-targets.md](io-targ
 | node +0x30 | owner entity |
 | node +0x38 | parent node |
 | node +0x40 / +0x48 | first child / next sibling (a child linked at the head) |
-| node +0x78 / +0x7c | m_hParent / (parent flag) |
+| node +0x70 | m_hParent (schema +0x70: a CGameSceneNodeHandle; schema.py's m_hOwner +0x8 and m_name +0xc entries sit beside it, taken as the handle's) |
+| node +0x78 / +0x7c | m_hParent's m_hOwner (the parent entity's handle: what SetParent / the unparent set and clear as "m_hParent") / its m_name (the attachment name; the unparent tests "m_hParent or +0x7c") |
 | node +0x80 | m_vecOrigin (local) |
 | node +0xb8 | m_angRotation (local QAngle: pitch, yaw, roll, degrees) |
 | node +0xc4 | m_flScale |
@@ -150,7 +151,7 @@ the random stream). Related: [io-queue.md](io-queue.md), [io-targets.md](io-targ
 | skeleton +0xa0 / +0xe0 | model / aggregate |
 | skeleton +0x138 | bone local transforms (0x20 a bone; identity 0x182337e70 / 0x182337e80 without one) |
 | skeleton +0x1c0 | model |
-| skeleton +0x200 | aggregate |
+| node (skeleton instance) +0x200 | the node's aggregate (1805c9530: exactly one body -> the bind-pose undo) |
 | skeleton +0x370 / +0x378 | body-to-bone map count / u16 array |
 | model +0x130 | skeleton |
 | aggregate data +0x18 / +0x20 | part count / u32 name hashes (m_boneNames') |

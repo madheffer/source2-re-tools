@@ -121,6 +121,7 @@ client_20261015; particles.dll 2026-11-12 (b10c5654, the install's); pak01 2026-
 3. SelectSlot (1811a9cb0): local pawn alive (vfn 0x4f0, 0xab8), `slot - 1 < 14` is the gear slot; weapon services usable; the active weapon's gear slot == the slot's -> position = +0x704 + 1, else 0; vfn 0x258(gear slot, position), none -> vfn 0x258(gear slot, 0); found -> vfn 0x320 (select), vfn 0x268, `Player.WeaponSelectionFoley` (180c09310) when it isn't the active one.
 
 - Knife out (GEAR_SLOT_KNIFE position 0): slot3 brings the Zeus (position 1); Zeus out: next position empty, falls back to the knife; from anything else, the knife.
+- The phys_swap string (0x181c7dec0) is referenced by 180c1e680 alone (checked with riprefs on client_20261015): slot2 / slot4 (0x180c1e600 / 0x180c1e6f0) cycle at 3 instead, they don't send it. 3 is the Source SDK's hud_fastswitch HUDTYPE_PLUS.
 - No CS2 cfg sets hud_fastswitch (game/csgo/cfg, game/core/cfg); server.dll has no phys_swap command (the string isn't in it); the branch is unreachable at the default 0.
 
 ## The fire (18082e180) and the rope

@@ -29,7 +29,7 @@ server_20261105. CS2Fixes: gamesystem.cpp:169-177 (ServerPreEntityThink: CGameUI
 | [0x181dbd3c0] = 0x181dbdc20 | the think manager (vtable 0x181808c38) |
 | 0x1821b9750..70 | gpGlobals-like fields zeroed in step 2 |
 | gpGlobals +0x10 | maxClients |
-| identity +0x30 bit 9 | dead (skipped by the think list) |
+| identity +0x30 bit 9 | clear on a live entity (the think list's test) |
 | pawn +0xc98 | controller |
 | controller +0x4b8 | m_nTickBase |
 | pawn +0xb50 | movement services (vfn 0xc8 RunCommand) |

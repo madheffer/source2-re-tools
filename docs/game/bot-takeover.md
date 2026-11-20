@@ -127,7 +127,7 @@ CCSPlayerController (client +0x40 for the run below):
 | spec_freeze_time 3.0, spec_freeze_traveltime 0.3, spec_freeze_time_lock 1.0, spec_freeze_deathanim_time 0.8 | storage 0x182171510 / 520 / 530 / 540 |
 | State_Transition states | 0 active, 6 observer mode (STATE_OBSERVER_MODE), 7 gungame respawn, 8 dormant |
 | 0x18191ca48 | CCSObserver_ObserverServices vtable (base CPlayer_ObserverServices 0x181952910) |
-| 0x182733f40 vfn 0x1e8 | client UI engine: last input time |
+| 0x182733f40 vfn 0x1e8 | client UI engine: read as its last input time |
 
 ## +use (180a4c2d0)
 

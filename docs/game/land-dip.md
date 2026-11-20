@@ -15,7 +15,7 @@ settings.md "The crosshair's drawing") start from the undipped eye while the vie
 | 180a645f0, 1808a61d0 | client | the angle punches (after the dip) |
 | 1808a5910 | client | hull trace for vfn 0xa98's offset (8 u) |
 | 180160580 | client | interpolated-var reader (also reads the DAT_1821bf098 flag) |
-| 18093c660 | client | C_CSPlayerPawn EyePosition (slot 0x568) |
+| 18093c660 | client | EyePosition: slot 0x568 of C_CSPlayerPawn, also of C_CSPlayerPawnBase and C_BasePlayerPawn |
 | 18015fab0 | client | GetAbsOrigin (180219a80) + vfn 0x5a0 |
 | 180160770 | client | vfn 0x5a0: m_vecViewOffset via 180160580(+0xf60, 0, -1.0) and 18016a3d0 |
 | 180c14130 | client | observer path (on vfn 0x998's +0x6cc) |

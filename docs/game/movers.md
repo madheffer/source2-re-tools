@@ -27,9 +27,9 @@ checked natively (SceneOracle `--movers`).
 | 180d223d0 -> 180d4eb90 | server | input Toggle |
 | 180d22540 | server | input SetSpeed |
 | 180d55fd0 | server | PlayLockSounds(this, m_ls +0x8f8, locked, flag, pos) |
-| 180d3c470 | server | Blocked (vtable 0x4d8) |
+| 180d3c470 | server | CBaseDoor::Blocked (vtable 0x4d8) |
 | 180d57760 | server | CBaseDoor outputs |
-| 180d60790 | server | CBaseDoor Use (vfn 0x498) |
+| 180d60790 | server | CBaseDoor::Use (vfn 0x498) |
 | 180d3d620 | server | chain Use to same-named doors |
 | 180d41250 | server | DoorActivate |
 | 180fea630 | server | master test |
@@ -322,6 +322,6 @@ MoveDone is m_pfnMoveDone alone: the speed changes run on the move-done timer.
 - m_flLocalTime's start; the entity time scale and interval system; movedir's AngleVectors / rotation precision.
 - CBaseDoor's wait and CRotDoor's distance defaults without a keyvalue (the schema's defaults).
 - The same-named doors' sync (+0x919); the start Teleport (1803ede40: abs or local?); which bounds the model gives the
-  collision property (+0x40 / +0x4c); where thinks run against PhysicsSimulate's push; the moving-sound and nav think
+  collision property (+0x40 / +0x4c: m_vecMins / m_vecMaxs); where thinks run against PhysicsSimulate's push; the moving-sound and nav think
   contexts; CFuncMoveLinear authoredposition 1 / 2's start move; the start-on use's order against the push.
 - Related: [momentary.md](momentary.md), [scene-node.md](scene-node.md) (VPhysicsUpdate), [trains.md](trains.md).

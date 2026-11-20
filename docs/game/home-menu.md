@@ -217,7 +217,8 @@ md5 df9d91c3 = panorama_installed_1112.dll). Mostly Valve's UI sources, not bina
 additive`, camera `0 470 0` looking at the origin, fov 100.
 
 - `m_nMaxParticles 256`, `m_nInitialParticles 32`, `m_flPreSimulationTime 4`; `C_OP_MaintainEmitter` 96.
-- Initializers: `C_INIT_CreateOnGrid` X 35, Z 3, spacing 32 / 32 (`m_bCenter` default true); radius (field 3) 20;
+- Initializers: `C_INIT_CreateOnGrid` X 35, Z 3, spacing 32 / 32 (`m_bCenter` default true: centred on CP0; the
+  playaction system writes `m_bCenter = false` explicitly, so the default is true); radius (field 3) 20;
   lifetime (field 1) RANDOM_BIASED 1..3 through REMAP 80..200 -> 0.5..2 (clamped: 0.5); `C_INIT_RandomSequence` 0..3;
   pitch (field 20) 85..90 with a sign flip; normal (21) 0 1 0; alpha (7) `C_INIT_DistanceToCPInit` from CP1 0..600 ->
   1..0.25, twice (the second `SCALE_INITIAL_VALUE`); alpha2 (16) RANDOM_BIASED 0.25..1; `C_INIT_VelocityRandom` local
@@ -228,7 +229,7 @@ additive`, camera `0 470 0` looking at the origin, fov 100.
   -0.7035, 0; Y 1; Z 4); `C_OP_SetFloat` lifetime = CP2.z remapped 0..1 -> 0.5..3 (`SCALE_INITIAL`); `C_OP_SetFloat`
   alpha x age curve (0,0) (0.199,1 slope 1.2494) (0.800,1 slope -1.2485) (1,0 slope -0.0774) (`SCALE_CURRENT`); `C_OP_Decay`.
 - Renderer `C_OP_RenderSprites`: radius scale 0.75, `materials/particle/glow_square_01.vtex` (256 x 256, white, alpha a
-  full square with a 1 px soft edge, no sprite sheet), animation rate 0.75 fit lifetime, self-illum 1, additive,
+  full square with a 1 px soft edge, no sprite sheet: the sequences change nothing), animation rate 0.75 fit lifetime, self-illum 1, additive,
   `ALIGN_TO_PARTICLE_NORMAL`, alpha scale 0.25, desaturation = CP2.z.
 - Children: `ui_mainmenu_navbar_press.vpcf` (32 x 2 grid burst on a press, colour CP17 / literal 0 255 212, fading over
   0.25 s of CP1's change age), `ui_mainmenu_nav_play_mg_mask.vpcf` (6 black scan_lines.vtex ropes from x 600 to -600 at z -24).
@@ -348,7 +349,8 @@ when selected. Only survival / rush tiles use movies (`file://{resources}/videos
   (`#ActiveGroupIcon` icons/ui/competitive.vsvg 24 x 24), `#MapGroupNewTag`, `#MapGroupMutators`, `#MapSelectionButton`
   (`#MapGroupCollectionMultiIcons`, the rating emblem frame, the wins row, `.map-selection-info` with
   `#MapGroupWaitTime` and `#MapGroupName.map-selection-info__map-name.stratum-regular-condensed`).
-- `_UpdateOrCreateMapGroupTile(mg)`: `MapGroupName` = `$.Localize(mg.nameID)`; `ActiveGroupIcon` visible when
+- `_UpdateOrCreateMapGroupTile(mg)`: `MapGroupName` = `$.Localize(mg.nameID)` (e.g. `#SFUI_Mapgroup_casualalpha`);
+  `ActiveGroupIcon` visible when
   `mg.grouptype === 'active'` (mg_de_ancient, mg_de_ancient_night, mg_de_anubis, mg_de_cache, mg_de_dust2,
   mg_de_inferno, mg_de_mirage, mg_de_nuke, mg_de_shortnuke, mg_active, ...; overpass / train / vertigo "reserves").
 - `UpdateIconsAndScreenshots(p, numTiles, mg)`: fewer than 2 maps: one Image `#MapGroupCollectionIcon`
@@ -393,8 +395,10 @@ when selected. Only survival / rush tiles use movies (`file://{resources}/videos
 - 0x1800ffa90: each child `LeftOfFocus<d>` / `RightOfFocus<d>` / `Focused` by distance d, `DistanceFromFocus<d>` (wrap
   only: min(d, n - d)), and 0x180278b84's class when panels-visible <= d.
 - So `autoscroll-delay="2s, 5s"`: each tile steps every 2 + U(0, 5) s, independently, wrapping, never while hovered.
-  The tile sets no `x-offset` / `focus-offset`; the shots must share the tile's box (inferred: the child placement is
-  unread).
+  `panels-visible="3"` marks children 3+ away (no rule in mainmenu_play.vcss uses it). 0x1800fb9b0 only serialises
+  the attributes. The tile sets no `x-offset` / `focus-offset`; the shots must share the tile's box (inferred: the
+  child placement is unread; the CSS only animates opacity and puts `Focused` at translatex(0), and any shot placed
+  beside the first would sit outside the clipped tile, where CS2's cycling could not be seen).
 - Hover: ChangeHoverState walks up from the new target to the first ancestor whose 0x5f0 is set, removing mask 1 along
   the old chain, adding it along the new: bit 0 is :hover, on the hit panel and its ancestors. The carousel holds only
   under the pointer over it or its screenshots; over the icons, name or top-row icon (siblings on top; only the

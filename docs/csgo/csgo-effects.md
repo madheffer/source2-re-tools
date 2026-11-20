@@ -95,7 +95,7 @@ particles/rain_fx.pcf.
 | 1e23 (0x65a96816) | trace's starting distance (id -1, normal 0) |
 | 1e-10 | DDotN, t and barycentric thresholds |
 
-Precipitation types (InitializeParticlePrecip, particles/rain_fx.pcf; types 0-3 the old sprite rain / snow / ash / snowfall):
+Precipitation types (InitializeParticlePrecip, particles/rain_fx.pcf; types 0-3 the old sprite rain / snow / ash / snowfall; ze_crazykart uses the particle types):
 
 | m_nPrecipType | Inner near | Inner far | Outer | Inner distance |
 |---|---|---|---|---|
@@ -118,7 +118,7 @@ Precipitation types (InitializeParticlePrecip, particles/rain_fx.pcf; types 0-3 
 
 ## env_spritetrail
 
-- Server: CSpriteTrail is a CSprite (ShowSprite / HideSprite / ToggleSprite); startwidth, endwidth, lifetime, startwidthvariance, textureres, minfadelength are keyvalues the client reads.
+- Server: CSpriteTrail is a CSprite (ShowSprite / HideSprite / ToggleSprite); startwidth, endwidth, lifetime, startwidthvariance, textureres, minfadelength are keyvalues the client reads (ze_crazykart sets them with AddOutput).
 - UpdateTrail: not before m_flUpdateTime. The origin becomes a new point unless the last is within 2 units (`(dy^2 + dx^2) + dz^2 <= 4.0`); a full ring drops its oldest. A point: place, die = now + lifetime, width variance RandomFloat(-variance, variance), texture coordinate = last point's + textureres x distance (0 for the first). Then `m_flUpdateTime = now + lifetime x 0.015625`.
 - DrawModel: CBeamSegDraw through the points oldest first, then the origin with die now + lifetime. Per point `t = clamp((die - now) / lifetime, 0, 1)`; fade t, or `min(t, (minfade - left) / minfade)` along minfadelength's run; alpha byte `(int)(brightness x fade)`; width `endwidth + (startwidth - endwidth) x t` (startwidth alone when endwidth < 0) + the variance, never below 0; colour rendercolor. An expired point leaves the ring's front.
 - NextSeg: from the second point on, `normal = (last - this) x (last - camera)`, normalised as `x / sqrt(length^2 + FLT_EPSILON)` (rsqrtss and one Newton step); the last point drawn by SpecifySeg with that normal when it is the first, else with `normalize((the normal before + this one) x 0.5)`; the final point with the last normal.
@@ -157,6 +157,6 @@ Precipitation types (InitializeParticlePrecip, particles/rain_fx.pcf; types 0-3 
 - CSpriteTrail's server Spawn, and whether SetScale reaches the trail (the client's draw reads no scale).
 - 0x10368b80, CBeamSegDraw::Start 0x109a94c0, 0x10369610 / 0x103697a0 / 0x103698b0.
 - 0x10797f60, 0x10799d20, 0x1079a580 (the old types 0-3).
-- SetupAccelerationStructure 0x10994ee0 (the normals' direction: the cross product and the debug mesh's winding).
+- SetupAccelerationStructure 0x10994ee0 (the normals' direction: the cross product and the debug mesh's winding). "inside" needs z < 0 for the top face seen from within, which only a normal pointing into the volume gives: taken as inward, unconfirmed.
 - The InitNewParticlesBlock twins; C_OP_SetControlPointToImpactPoint 0x10975cb0.
 - The world trace's mask and the DEBRIS group in the particle trace.

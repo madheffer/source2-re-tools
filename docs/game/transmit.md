@@ -8,7 +8,9 @@ server_20261105, client_20261015 (what the HUD shows of others).
 |---|---|---|
 | 180dd7150 | server | CSource2GameEntities::CheckTransmit (check infos param_2, count param_3, entity list param_5 (ushort indices), count param_8) |
 | 180cbc9a0 | server | the controller from the info's +0x240 slot |
-| 180de7410 | server | finds an earlier client with the same key |
+| 180de7410 | server | finds an earlier client with the same key (0xffff none) |
+| 180de7ad0 | server | adds the first client of a key to the key map |
+| 1813853d0 | server | 180b48900's index for record +0x3c's lookup (unread) |
 | 180c10aa0 / 1803d7630 | server | an entity's list (cleared from other clients' bits under sv_remove_ent_from_pvs) |
 | 180de3590 | server | one client's pass (this, record, entity count, entity pointers, entity indices, force) |
 | 180b51df0 | server | on the controller (zeroed when this+0x848 is clear) |
@@ -24,7 +26,7 @@ server_20261105, client_20261015 (what the HUD shows of others).
 | 180b524d0 | server | controller vfn 0x7e8: the record's origin: m_hPawn (+0x4e0) vfn 0x600 = 18014d450 -> vfn 0x5e8 (read as EyePosition) |
 | 18014d450 | server | pawn vfn 0x600 |
 | 18024b840 | server | CCSPlayerPawn ShouldTransmit (vfn 0x2f8) |
-| 180d11e00 | server | the base ShouldTransmit |
+| 180d11e00 | server | ShouldTransmit's test when +0x334 is clear |
 | 180b5d660 | server | the pawn's controller observed by the client's slot |
 | FUN_1801852d0 | server | the component's own state bits |
 | 180157430 | server | CCSPlayerPawn vfn 0x770: bare `ret` |
@@ -63,28 +65,32 @@ Registrations: `sv_shared_team_pvs` 1800f0ec0 (default 0, [spotting.md](spotting
 
 | Offset | Field |
 |---|---|
-| info +0x20 / +0x28 | area id count / list (up to 4) |
+| info +0 | the client's transmit bit vector (an entity's bit set: already marked) |
+| info +0x20 / +0x28 | area id count / list (up to 4; 180de3df0 binary-searches it, sorted, for an entity's spawn group past the first four) |
 | info +0x240 | the client's slot |
 | info +0x244 | clear: may share a result |
-| record (0x50 bytes) +0 | the info |
+| record (0x50 bytes) +0 | the info (180b48900 stores its third argument here) |
 | record +8 | the controller (the client's own entity) |
-| record +0x10 | the origin (vfn 0x7e8) |
-| record +0x20 | the controller's pawn |
-| record +0x28 | the observer target; also the sorted spawn-group list (+0x28 / +0x20) |
-| record +0x30 / +0x34 | the team (+0x344); +0x34 the key clients are grouped by |
+| record +0x10 / +0x18 | the origin (vfn 0x7e8's vector) |
+| record +0x20 | the controller's pawn (FUN_180cfa3e0) |
+| record +0x28 | the observer target (observer services vfn 0xc8, only when +0x3b; else 0) |
+| record +0x30 / +0x34 | both the team byte (controller +0x344); +0x34 the key clients are grouped by |
+| record +0x38 | written 0 by 180b48900 |
 | record +0x39 | the controller's +0x510 byte (GOTV-ish) |
 | record +0x3a | the controller's +0x5b4 |
-| record +0x3b | observing (observer services +0xb28 mode != 0) |
-| record +0x3c | a PVS present / the spawn group |
-| record +0x40 | the PVS bits; +0x38 0: no clusters |
-| record +0x40 / +0x48 / +0x4c / +0x4e | (CheckTransmit's record) the info / the client's index / earlier same-key client / copy mark |
+| record +0x3b | observing (the pawn's observer services +0xb28, its vfn 0xb8 != 0) |
+| record +0x3c | a PVS present (1813853d0's index found in a table) |
+| record +0x40 | the info again: CheckTransmit stores it before calling vfn 0x7e0 (both +0 and +0x40 hold the info: checked against the disassembly, 180dd72d0 / 180b489ff) |
+| info +0x38 / +0x3c / +0x40 | IsInPVS's PVS: cluster count (0: sees everything) / the client's spawn group / the PVS bits (IsInPVS loads the info from record +0 at 18018eeae: these are the info's, not the record's; checked against the disassembly) |
+| record +0x48 / +0x4c / +0x4e | the client's index / earlier same-key client (180de7410, 0xffff none) / copy mark |
 | param_1 +0x848 | the bool cvar at DAT_1821b9878 |
 | param_1 +0x30 | curtime less the float cvar at DAT_1821b9890 |
 | this+0x34 | a set whose failing entities walk their move parents |
 | controller +2000 (0x7d0) | bit vector |
-| entity +0x10 -> +0x1b8 | the networkable's transmit-state word: bit 8 always, bit 4 PVS check, bit 0x10 don't send |
-| networkable +0x180 | state: bit 8 never, bit 4, bit 0x10 PVS check |
-| entity +0x50 | spawn group |
+| entity +0x10 -> +0x1b8 | the transmit-state word check_transmit_dump_ents prints: bit 8 "%s (NEVER)", bit 4 "%s (ALWAYS)", bit 0x10 "%s (PVS)", else "%s (-)" (strings 0x1819942d0 / e0 / f0 / fc; checked against the disassembly, 180de397e) |
+| entity param +0x30 -> +0x180 | the state 180de3df0 tests (`& 0x1c`): bit 8 never, bit 4 always, bit 0x10 PVS check (the same meanings as the dump's) |
+| entity param +0x50 | spawn group (against param_5's four, then info +0x28 / +0x20) |
+| entity param +0x10 | the networkable entity the vfns are called on (none: skipped) |
 | entity +0x278 / +0x280 | per-client "sent recently" bits / time |
 | CNetworkTransmitComponent +0x190 | its entity |
 | component +0x186 | clusters dirty |
@@ -140,19 +146,21 @@ Registrations: `sv_shared_team_pvs` 1800f0ec0 (default 0, [spotting.md](spotting
 
 ## CheckTransmit (180dd7150)
 
-1. Per client: the controller; its vfn 0x7e0 fills the record. With DAT_1821b99c8 set and info +0x244 clear, same-key clients share one result.
-2. Serial, or the thread pool (2+ records, DAT_1821b9848 allows, DAT_181e33c30 set: sv_parallel_checktransmit).
-3. After: DAT_1821b99d8 non-zero: an entity's list is cleared from the transmit bits of every client whose controller isn't that entity.
+1. Per client: the controller (180cbc9a0 on info +0x240; none: skipped); record +0x48 = the index, +0x40 = the info; its vfn 0x7e0(controller, record, info) fills the rest; +0x4c = 180de7410(+0x34 key, info).
+2. With DAT_1821b99c8 set and info +0x244 clear: record +0x39 clear and an earlier same-key client (+0x4c != 0xffff): +0x4e = 1 (shares its result); otherwise the first of its key is added to the key map (180de7ad0); a +0x39 client never shares.
+3. Before: this+0x848 = DAT_1821b9878's bool; this+0x30 = curtime less DAT_1821b9890's float.
+4. Serial, or the thread pool (2+ records, DAT_1821b9848 allows, DAT_181e33c30 set: sv_parallel_checktransmit).
+5. After: DAT_1821b99d8 non-zero: an entity's list is cleared from the transmit bits of every client whose controller isn't that entity.
 
 ## One client (180de3590)
 
 1. Areas; 180b51df0; the three sets; the controller's bit vector. DAT_1821b9888 set: the transmit vector copied from the second set first.
-2. Each entity: 180de3df0, else the sets inline (an entity in the third set is sent unless info +0x39 / +0x3b, force, the controller's bit and 18018ed80(entity +0x30, record) all say no).
+2. Each entity: 180de3df0, else the sets inline (an entity in the third set is sent unless record +0x39 / +0x3b (180de36f1 / 180de36f7: rsi is the record, argument 2; checked 2026-11-21), force, the controller's bit and 18018ed80(entity +0x30, record) all say no).
 3. Parents' bits merged (180ddd780). check_transmit_dump_ents prints the state word at the end ("%s (-)" the other case).
 
 ## One entity (180de3df0)
 
-1. Skipped if already marked. Networkable +0x180 bit 8: never. Another spawn group than the client's four: skipped.
+1. Skipped if already marked (its bit in info +0). State (entity param +0x30 -> +0x180, `& 0x1c`) bit 8: never. Another spawn group (+0x50) than param_5's four and not in info +0x28 / +0x20's sorted list: skipped. No networkable (+0x10): skipped.
 2. Bit 4, or no state bits and vfn 0x2f8 ShouldTransmit(info) & 4: vfn 0x300 SetTransmit(info, always = 1).
 3. Else only with bit 0x10: force -> SetTransmit(0); with this+0x848 and a budget (param_6 > 0), the "sent recently" bit (time against this+0x30) keeps it sent (always = 1).
 4. IsInPVS true -> SetTransmit(0); an entity in this+0x34's set that fails walks its move parents: a parent sent or in the PVS sends it (always = 1).
@@ -161,7 +169,7 @@ Registrations: `sv_shared_team_pvs` 1800f0ec0 (default 0, [spotting.md](spotting
 
 1. True for the client's own entity (record +8), record +0x39, or no PVS (record +0x3c clear).
 2. sv_pvs_max_distance > 0: false past it, from the record's origin to the entity's origin plus its radius, or with sv_use_pvs_cache to its box.
-3. Clusters rebuilt when dirty. Client's spawn group: no clusters sees everything, else any (word, mask) pair set in the PVS bits. Another spawn group: 18018f470.
+3. Clusters rebuilt when dirty (component +0x186). Client's spawn group (component +0x1a0 0 or equal to info +0x3c): a PVS without clusters (info +0x38 0) sees everything, else any (word, mask) pair set in the PVS bits. Another spawn group: 18018f470.
 
 ## CCSPlayerPawn transmit
 

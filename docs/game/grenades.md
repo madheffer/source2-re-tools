@@ -129,7 +129,7 @@ server_20261105 (networksystem_20261015 for qangle_precise). CS2Fixes zombierebo
 | 181029810 -> 181067ff0 (+0x260 name) -> 18054a2f0 | weapon vdata lookup |
 | 1809aec60 | find shoot sound slot |
 | 180c8b5a0 | filter minus the thrower's controller |
-| 1807dfaa0 | client's twin of the throw sound |
+| 1807dfaa0 | client.dll: the client's twin of the throw sound |
 | 180a2c3a0 | CSmokeGrenade EmitGrenade (logs `sv_throw_smokegrenade`) |
 | 180a31b80 | deferred functor (vtable 0x18191a1a0 slot 0x10) -> Create |
 | 1803ee6e0 / 1803eb9e0 | set think / SetNextThink |
@@ -309,7 +309,10 @@ command's tick / 64 (f32), fraction 0.
      0.0203125)` (`target - value > speed` -> value + speed, `-speed > target - value` -> value - speed, else target);
      m_bJustPulledPin 1: strength = target, flag 0; m_nNextHoldTick + 1.
   2. m_bPinPulled and neither button: activity 0xca, StartGrenadeThrow, m_bPinPulled 0, weapon_fire; return.
-  3. m_bRedraw 0: CCSWeaponBase::ItemPostFrame (with the pin out too: PullPin refuses).
+  3. m_bRedraw 0: CCSWeaponBase::ItemPostFrame (knife.md "The gate"): attack 1 and the primary clock -> the primary
+     branch (freeze period, m_iShotsFired >= 1 without full auto, m_bWaitForNoAttack refuse) -> PrimaryAttack; else
+     attack 2 and the secondary clock -> SecondaryAttack; else (no attack button) m_bWaitForNoAttack 0,
+     m_iShotsFired 0. With the pin out it runs too: PullPin refuses.
 - PullPin: m_bIsHeldByPlayer, m_bPinPulled 0, not `0 < m_fThrowTime`, a pawn, ammo: strength = secondary ? 0 : 1,
   activity 200, m_bPinPulled 1, m_nNextHoldTick = tick + 1, m_flNextHoldFrac = fraction, m_fPinPullTime = curtime,
   m_bJustPulledPin 1. No pin time: a release on the next command throws.
@@ -361,7 +364,9 @@ command's tick / 64 (f32), fraction 0.
 - 180ac4c00 after each piece: SetAbsOrigin / SetAbsVelocity from mv, view offset, then with svc+0x68c > 0 and the
   piece's end not before it: 180ae4570: +0x1564 = 1, +0x1568 = vfn 0xd0 angles, +0x1574 eye, +0x1580 vfn 0x2c8,
   +0x158c abs velocity; svc+0x68c = 0. (+0x1568 / +0x1580 are as here; the throw's reader settles it.)
-- 180ad2570: `d = (curtime + extra) - pawn+0x1560`, true when `d > 0` and `0.2 >= d`.
+- 180ad2570: `d = (curtime + extra) - pawn+0x1560`, true when `d > 0` and `0.2 >= d`. So a release within (jump,
+  jump + 0.2] sets m_bJumpThrow (StartGrenadeThrow), and vfn 0xd10 delays a throw due inside that window without
+  m_bJumpThrow by 0.1.
 - A throw 0.1 to 0.3 s after the jump takes the pose at exactly jump + 0.1 s. UNSETTLED: the eye angles inside the
   movement (vfn 0x5f0 at 180ae4570) taken as that command's view, aim punch at the command's tick.
 - Nothing in the throw path reads a sub-tick time; only the jump's pose is sub-tick.
@@ -404,10 +409,13 @@ A grenade flies through living players: their collision carries no layer of 0x20
 - 180ae28e0 (18024a860 with its flag set: the death): interacts-as |= solid, &= ~player, exclude |= 0x40010, same tail.
 - SetCollisionGroup(collision, group): +0x5e, attribute group +0x3e; group 5 (debris): interacts-as &= ~0x20000,
   |= 0x100000; any other but 2 and 14: &= ~0x100000, |= 0x20000 (touchall); 2 and 14 leave the layers.
+- So a living pawn interacts as player (+ touchall under group 8), not solid: no layer of the grenade's filter.
+  ResolveFlyCollisionCustom's player branch (vfn 0x558) is for what else answers it.
 
 ## The spin
 
-- Create ignores its angular velocity argument (all classes; the molotov inlines the spawner); m_vecAngVelocity is
+- Create ignores its angular velocity argument (all classes; the molotov inlines the spawner), so ThrowGrenade's and
+  the death drop's (600, RandomInt(-1200, 1200), 0) only spend a draw of the global stream; m_vecAngVelocity is
   not the spin (CUSTOM never integrates it; PhysicsCustom zeroes it). The constructor (~1803a4300, 1803a43af) zeroes it.
 - Spawn (1809d2f1f..1809d2fe4), with a thrower: SetLocalAngularVelocity(0); thrower eye angles, roll `+ -20` ->
   SetAbsAngles; AngleVectors(eye, null, &left, null); `spin = (-l.x x 1500, -l.y x 1500, -l.z x 1500)` (xorps then
@@ -524,4 +532,7 @@ A grenade flies through living players: their collision carries no layer of 0x20
 - The throw's clip length on the weapon graph (when the switch after the throw happens); m_hMyWeapons' order.
 - A pawn's interacts-as bits before 180ae27b0; whether a dead pawn's solid layer meets anything; team bits 31 / 32.
 - 1809b38e0 (smoke / decoy resting angles); decoy 180c864b0's filter, 180b06bb0's record, the slot weapon +0x68 test.
-- No capture of a lineup against CS2 itself (retail has no `sv_throw_*`; bots threw nothing).
+- The inferno's spread rule (CInferno::Think / CreateFire not read), the flames' lifetimes and volume.
+- No capture of a lineup against CS2 itself: retail (server 2026-11-12) has no `sv_throw_*` commands (development
+  only: "Unknown command"), and bots on a local de_dust2 (bot_loadout with grenades, sv_bot_buy_grenade_chance 100)
+  threw nothing in three rounds.

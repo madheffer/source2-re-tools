@@ -26,7 +26,7 @@ server_20261105 (sha256 70c66e85...). Called by Weapon_Switch (weapon services v
 | 1809f7840 | server | (weapon, activity, flags, 0, force): set the gameplay activity (m_iWeaponGameplayAnimState) |
 | 180a276f0 | server | attack clocks move (fire-gate.md 5): only for flags & 0x1b |
 | 180927cb0 | server | now |
-| 18017e2d0 | server | f32 three-way compare (now, +0xfc0): -1 when +0xfc0 > now, 1 when now > +0xfc0, 0 equal, 0x80 unordered |
+| 18017e2d0 | server | f32 three-way compare of now with +0xfc0: -1 when +0xfc0 > now, 1 when now > +0xfc0, 0 equal, 0x80 unordered |
 | 180b763d0 / 180b76450 | server | set the attack clocks (value, mode) |
 | 180a02230 | server | grenade's owner |
 
@@ -83,7 +83,7 @@ server_20261105 (sha256 70c66e85...). Called by Weapon_Switch (weapon services v
 
 ## The gun's (180a042f0)
 
-1. Silencer switch in progress: 18017e2d0(+0xfc0, now); unless now is past it: +0xfc0 = 0, both attack clocks = now (180b763d0 / 180b76450 with 0.0, mode 0).
+1. Silencer switch in progress: now (180927cb0) compared with m_flTimeSilencerSwitchComplete (+0xfc0) by 18017e2d0; unless now is past it: +0xfc0 = 0, both attack clocks = now (180b763d0 / 180b76450 with 0.0, mode 0).
 2. vfn 0xcc8 (has zoom levels, fire-gate.md 5): m_zoomLevel = 0, m_weaponMode = 0.
 3. The base.
 

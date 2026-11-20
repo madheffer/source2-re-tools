@@ -53,9 +53,9 @@ server_20261105, client_20261105. pak01 panorama/layout/buymenu.vxml, styles/buy
 | 1808da650 | client | buy time not over |
 | 18075e0a0 | client | (int) mp_buytime |
 | 1808da6a0 | client | in a buy zone |
-| 18076b520, 18076b3d0 | client | gates (18076b3d0 branch at 180ca4061: team / gamemode test, unread) |
+| 18076b520, 18076b3d0 | client | gates (18076b3d0 branch at 180ca4061: the team / gamemode test before the time check, unread) |
 | 180e87ef0 | client | hint (text, flags) |
-| 180dabe70 | client | (this, inZone): false -> close (180da3790) and `#SFUI_BuyMenu_NotInBuyZone` (caller not found) |
+| 180dabe70 | client | (this, inZone): false -> close (180da3790) and `#SFUI_BuyMenu_NotInBuyZone` (caller not found; assumed the buy menu's own zone watch) |
 | 18010ae70 / 18010aee0 | client | ShowHudHintTextHighPriority / LowPriority registrations |
 
 ## Fields
@@ -112,7 +112,6 @@ Cvar value at +0x58 of the handle 8 bytes after the object.
 | 100 | full armor |
 | 1000 - 650 = 350 | assaultsuit price with full armor and no helmet |
 | 0x181e0f2c8 | cached item_defuser definition (schema vfn 0x148) |
-| 0x182 | 180b61d70 arg (damage-prediction.md) |
 
 ## CanPlayerBuy (180aba860)
 
@@ -120,7 +119,7 @@ Cvar value at +0x58 of the handle 8 bytes after the object.
 2. m_bWarmupPeriod: warmup end (18092b540: +inf when +0xdc4 is 0; 0 when the clock doesn't run (DAT_1821ba010 vfn 0x110 false and DAT_182119380 / DAT_182119738 off); else m_fWarmupPeriodStart + mp_warmuptime) + 3.0 compares -1 against the controller's time: false.
 3. `m_gamePhase - 4 <= 1`: false, nothing printed.
 4. m_bCTCantBuy and team 3: `#Cstrike_TitlesTXT_CT_cant_buy`; m_bTCantBuy and team 2: `#Cstrike_TitlesTXT_Terrorist_cant_buy` (when bPrint); false.
-5. `mp_buy_during_immunity == 1 || == team`: ok = m_bGunGameImmunity; else ok = !IsBuyTimeElapsed. ok: true. Else with bPrint: `V_snprintf(buf, 16, "%d", (int)buytime)`, ClientPrint(pawn, 4, `#Cstrike_TitlesTXT_Cant_buy`, buf); false.
+5. buytime = mp_buytime (float). `mp_buy_during_immunity == 1 || == team`: ok = m_bGunGameImmunity; else ok = !IsBuyTimeElapsed. ok: true. Else with bPrint: `V_snprintf(buf, 16, "%d", (int)buytime)`, ClientPrint(pawn, 4, `#Cstrike_TitlesTXT_Cant_buy`, buf); false.
 
 ## IsBuyTimeElapsed (18093d470), buy time (180926430)
 
@@ -159,7 +158,7 @@ Cvar value at +0x58 of the handle 8 bytes after the object.
 - CSGOBuyMenu (C++): five category containers: ccequip (18 %), ccpistols (18 %), ccmidtier (22 %), ccrifles (24 %), ccgrenades (18 %); 950 px wide, 180 px down.
 - Item: 90 px button-container (key, name, icon 45 % tall, price, current value); states buywheel-cant-buy / -cant-afford / -already-own.
 - buymenu-info: money, `#BuyMenu_TimerText` "Buy Time Remaining" + CountdownTimer {t:d:duration}, `#BuyMenu_MinMoneyNextRound`.
-- Navbar: Re-Buy (rebuy), Auto Buy (autobuy), Refund All (sellbackall), Back. Category key labels from C++ ({s:buymenu-category-key}).
+- Navbar: Re-Buy (rebuy), Auto Buy (autobuy), Refund All (sellbackall), Back. Category key labels from C++ ({s:buymenu-category-key}); the order and labels the C++ gives the columns aren't read.
 - hudmoney: `.money-text-buy-icon` (icons/ui/buyzone.vsvg, 30 x 30, wash lightgreen) opacity 0, 1 with `money__in-buy-zone` (set by CSGOMoneyPanel, unread).
 
 ## Default loadout (items_game.txt, flexible_loadout_default 1)

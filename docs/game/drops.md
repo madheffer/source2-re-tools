@@ -141,7 +141,7 @@ Names are the DLL's schema strings put on the offsets in declaration order (the 
 | 0.0048738797 | vfn 0x228's wake threshold on \|w\|² |
 | 30 (0x41f00000) | the removal think delay |
 | 0xe (14), 0xc3001 | collision group "weapon", interacts-with mask |
-| 0x18179be70 | water level scale |
+| 4.0 (0x18179be70) | water level scale (checked: the f32 at 0x18179be70 in server_20261105 is 4.0) |
 | 0xd7 | stat on a refused drop |
 
 ## DefaultTouch (1809fb3c0), a player toucher
@@ -179,7 +179,7 @@ Slots: DropWeapon 28 (+0xe0), BumpWeapon 29 (+0xe8), SelectItem 30 (+0xf0).
 3. maxplayers > 1 and spawnflag 0x40000000 -> think 180d0bca0 at curtime + 30.
 4. 1803ea490(1.0).
 
-Every stock weapon's world model binds its one part to `weapon_offset` (under the root `weapon`, the model's offset: 3-22 u): the body is the entity through that bone (pull 180588af0) and the entity the body through its inverse (push 1805c9530).
+Every stock weapon's world model binds its one part to `weapon_offset` (under the root `weapon`, the model's offset: 3-22 u): the body is the entity through that bone (pull 180588af0) and the entity the body through its inverse (push 1805c9530). The model (and so the physics FUN_180d111b0 makes) is the weapon's world model, weapons.vdata m_szWorldModel.
 
 vfn 0x228 (1800146e0): not finite or a static body -> nothing; angular velocity += `(v k) + w` per axis, k = 0.0174532924; `|w|² = (x x + y y) + z z` over 0.0048738797 wakes it. vfn 0x208 (180012620) adds, so the kick sums onto Drop's velocity.
 
@@ -229,7 +229,7 @@ Its drops call DropWeapon (slot 28) directly, not CSWeaponDrop: no throw (zero v
 
 ## GFL's values (read on GFL, 2026-11-09)
 
-mp_death_drop_gun 1, mp_death_drop_grenade 2, mp_death_drop_c4 / _defuser / _healthshot / _taser true, mp_weapon_prev_owner_touch_time 1.5, mp_drop_knife_enable false, mp_drop_grenade_enable true, sv_extract_ammo_from_dropped_weapons false: all CS2's defaults.
+mp_death_drop_gun 1, mp_death_drop_grenade 2, mp_death_drop_c4 / _defuser / _healthshot / _taser true, mp_weapon_prev_owner_touch_time 1.5, mp_drop_knife_enable false, mp_drop_grenade_enable true, sv_extract_ammo_from_dropped_weapons false: all CS2's defaults. So a death drops the best gun and one grenade (the one in hand, else the first carried in step 7's order), never the knife; with cs2f_drop_map_weapons 0 a map pistol under a rifle would vanish. A zombie's knife item dies with it (EntWatch); C4 items drop and can be picked up, with EntWatch's glow.
 
 ## Unread
 

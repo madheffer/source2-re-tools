@@ -69,7 +69,7 @@ Entry = 0x181f57380 + id x 0x28: `{ +0 int id, +8 value fn(controller, edx), +0x
 | action tracking +0x40 | m_perRoundStats |
 | action tracking +0xc8 | m_matchStats (CSMatchStats_t); its CSPerRoundStats_t base fields at +0xf8 |
 | CSPerRoundStats_t +0x30 .. +0x60 | m_iKills +0x30, m_iDeaths +0x34, m_iAssists +0x38, m_iDamage +0x3c, m_iEquipmentValue +0x40, m_iMoneySaved +0x44, m_iKillReward +0x48, m_iLiveTime +0x4c, m_iHeadShotKills +0x50, m_iObjective +0x54, m_iCashEarned +0x58, m_iUtilityDamage +0x5c, m_iEnemiesFlashed +0x60 |
-| CSMatchStats_t +0x68 .. +0xb8 | m_iEnemy5Ks +0x68, 4Ks +0x6c, 3Ks +0x70, KnifeKills +0x74, TaserKills +0x78, 2Ks +0x7c, m_iUtility_Count .. m_iEntryWins +0x80..+0xb8 |
+| CSMatchStats_t +0x68 .. +0xb8 | m_iEnemy5Ks +0x68, 4Ks +0x6c, 3Ks +0x70, KnifeKills +0x74, TaserKills +0x78, 2Ks +0x7c, m_iUtility_Count +0x80 .. m_iEntryWins +0xb8 (schema.py) |
 | action tracking +0x188 | m_iNumRoundKills |
 | action tracking +0x2a8 / +0x198 | the m_numChickensKilled block (m_killsWhileBlind, m_bombCarrierkills, m_flBurnDamageInflicted, m_flBlastDamageInflicted, m_iDinks, ...): match / round |
 | action tracking +0x3b8 .. +0x410 | unnamed in the schema (not networked) |

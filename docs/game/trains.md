@@ -121,7 +121,7 @@ server_20261105 (vtables through MSVC RTTI; sum orders from the disassembly). Na
 | train spawnflag 1 / 2 / 8 / 16 / 128 / 512 / 1024 | No Pitch / No User Control / passable / Fixed Orientation / solid type / unstick (and other, unread) / other (unread) |
 | 0.1f | think step |
 | 0.5 | SetMoveDoneTime in Next |
-| 100 | default m_maxSpeed / look-ahead distance |
+| 100 | Spawn: m_maxSpeed 0 -> m_flSpeed, else 100 (as read); look-ahead distance with m_length <= 0 |
 | 60 / 200 | default move sound pitches |
 | +72 | control volume height |
 | 0x42652ee0 = 57.29578 | rad -> deg |
@@ -206,7 +206,7 @@ server_20261105 (vtables through MSVC RTTI; sum orders from the disassembly). Na
 | Input | Does |
 |---|---|
 | Stop | Stop inline |
-| StartForward / StartBackward | SetDir(1 / -1), SetSpeed(max) |
+| StartForward / StartBackward | StartForward: SetDir(1), SetSpeed(max); StartBackward (180fa5db0) not described, taken as the mirror |
 | Toggle | SetSpeed(speed == 0 ? max : 0) |
 | Resume | speed = old speed, OnStart, Next |
 | Reverse | SetDir(m_dir != 1), SetSpeed(speed) |
@@ -217,7 +217,7 @@ server_20261105 (vtables through MSVC RTTI; sum orders from the disassembly). Na
 | SetSpeedDirAccel | SetSpeed's accel branch with c x max |
 | MoveToPathNode | below |
 | TeleportToPathNode | m_strPathTarget = the name; the entity of that name (any class) becomes m_ppath, ArriveAtNode, TeleportToPathTrack; velocity untouched |
-| LockOrientation / UnlockOrientation | spawnflag 16 set (angular velocity 0) / cleared |
+| LockOrientation / UnlockOrientation | spawnflag 16 (Fixed Orientation) set, angular velocity 0 / UnlockOrientation 180fa67e0 not described (taken as clearing it) |
 
 - **MoveToPathNode** (180fd4520): m_strPathTarget = the name; dest = FindEntityByName; no m_ppath or dest -> return; speed = m_ppath's speed, 0 -> max. dest is m_ppath: m_dir != 1 -> GetPrevious exists ? forward : Stop; else GetNext exists ? backward : Stop. Else GetNext up to 1000 nodes: found -> forward; else GetPrevious up to 1000 from m_ppath: found -> backward, else return. SetDir, SetSpeed(speed).
 
@@ -229,8 +229,8 @@ server_20261105 (vtables through MSVC RTTI; sum orders from the disassembly). Na
 ## Unread
 
 - Teleport (1803ede40: abs or local).
-- SoundUpdate (180fe36a0) / SoundStop (180fe3500) in this build (earlier build read); Use (180ff0ec0) and the control volume.
-- CPathTrack's Link / Activate (m_pprevious, m_paltpath) and its inputs in this build.
+- SoundUpdate (180fe36a0) / SoundStop (180fe3500) in this build (only the 2026-09-23 build's bodies read); Use (180ff0ec0) and the control volume.
+- CPathTrack::Link / Activate (m_pprevious, m_paltpath) and its inputs in this build.
 - NearestPath (180fd6310); the keyvalue names (Source's speed / startspeed / wheels / height / bank / orientationtype / velocitytype / manual*).
 - Spawnflags 512 / 1024's other flags.
 - Native re-check after an update: `dotnet run -c Release --project rubikon/tests/SceneOracle -- <binaries> trn.bin 1000000 --trains`, then `cargo run --release -p ze-sim --bin trains_check -- trn.bin`.

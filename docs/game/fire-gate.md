@@ -191,7 +191,7 @@ viewmodel_gun.vnmgraph, resource/csgo_english.txt.
 | 0.01 (0x3c23d70a) / 0.99 (0x3f7d70a4) | ratio snap to 0 / to the next tick |
 | 0.15 | cannot-shoot-underwater clock |
 | 0.2 | dry fire clock (mode 0) |
-| 0x32 | dry-fire sound; also activity 0x32 (idle) |
+| 0x32 | dry-fire sound; also activity 0x32 (SetZoomLevel, vfn 0xd88) |
 | 0.3 | SecondaryAttack's secondary clock |
 | 1.7 | the revolver's secondary clock factor |
 | 4 ticks | attack time clamp window |
@@ -232,7 +232,7 @@ viewmodel_gun.vnmgraph, resource/csgo_english.txt.
 1. attack held and the primary ready -> 180a0fac0.
 2. attack3 (0x400000000).
 3. attack 2 held and the secondary ready -> 180a10200.
-4. reload (held or pressed) -> not reloading: 1809fb150 / 1809f9f70, then 180a10140.
+4. reload (held or pressed) -> not reloading: 1809fb150 / 1809f9f70, then 180a10140 (Reload holds the shots back by the clocks it sets: now + m_flDisallowAttackAfterReloadStartDuration, [reload.md](reload.md)).
 5. 0x100000000 (inspect).
 6. Then, no attack button held: the revolver's idle (180a10400), m_bFireOnEmpty = 0, m_bWaitForNoAttack = 0, m_iShotsFired = 0, and the empty reload: primary ready, a pawn, vfn 0xa98(0), 180b7c520(0), Clip1 <= 0, reserve >= 1, !vfn 0xc98(2), not reloading -> Reload (vfn 0xd48). An empty gun reloads only once the trigger is up.
 7. Last, 0x800000000 -> 180a23e30.
@@ -275,7 +275,7 @@ viewmodel_gun.vnmgraph, resource/csgo_english.txt.
 
 1. No pawn returns. `canSwitch` = m_eSilencerType == 1 and now past m_flTimeSilencerSwitchComplete (18017e2d0(now, +0xfc0) == 1). `human` = the controller resolves and its +0x388 bit 0x100 is clear. Both: cl_silencer_mode (engine vfn 0x1a8, GetClientConVarValue) < 1 and silenced -> canSwitch false.
 2. HasZoom: controller +0x708 +0x80 bit 1 returns (no clock change); m_bIsDefusing returns; m_zoomLevel + 1, past vfn 0xc28 -> 0; SetZoomLevel(level).
-3. Else HasBurstMode: off -> "Switch_To_BurstFire", m_bBurstMode = 1, m_weaponMode = 1; on -> "Switch_To_FullAuto" / "_SemiAuto" (vfn 0xb90), m_bBurstMode = 0, m_weaponMode = 0; then Weapon.AutoSemiAutoSwitch (180f695d0: filter at the pawn's vfn 0x6b8 point, volume 1.0, sound level 100, flags `& 0xe5 | 5`, 0x181e23e88 = 1 around the emit).
+3. Else HasBurstMode: off -> "Switch_To_BurstFire", m_bBurstMode = 1, m_weaponMode = 1; on -> "Switch_To_FullAuto" / "_SemiAuto" (vfn 0xb90), m_bBurstMode = 0, m_weaponMode = 0; then, either way and after the hint, Weapon.AutoSemiAutoSwitch (180f695d0: filter at the pawn's vfn 0x6b8 point, volume 1.0, sound level 100, flags `& 0xe5 | 5`, 0x181e23e88 = 1 around the emit).
 4. Else canSwitch: 1809f7840(600 + IsSilenced, flags 0x1b, 0, force 1).
 5. Else vfn 0xd28 revolver with the secondary ready: its alt fire; otherwise silenced, detachable, not switching (180a0eec0) and cl_silencer_mode < 1 -> 18021a430(pawn, "#Cstrike_TitlesTXT_Silencer_Disabled").
 6. Every branch that didn't return: 180b76450(0.3, 0).

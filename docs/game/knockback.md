@@ -1,6 +1,6 @@
 # ZR's knockback
 
-CS2Fixes ZombieReborn (github.com/Source2ZE/CS2Fixes, commit 72ec6b9, 2026-04-21): zombiereborn.cpp, the Linux object `dockerbuild/cs2fixes.cs2/linux-x86_64/src_zombiereborn.o` and hl2sdk-cs2's prebuilt `sdk/lib/linux64/mathlib.a` (mathlib_base.o), read with an ELF symbol + relocation dump (constants from `.LCPI*`) and capstone. CS2 side: server_20261105.
+CS2Fixes ZombieReborn (github.com/Source2ZE/CS2Fixes, commit 72ec6b9, 2026-04-21): zombiereborn.cpp, the Linux object `dockerbuild/cs2fixes.cs2/linux-x86_64/src_zombiereborn.o` and hl2sdk-cs2's prebuilt `sdk/lib/linux64/mathlib.a` (mathlib_base.o), read with an ELF symbol + relocation dump (constants from `.LCPI*`) and capstone. ZR's knockback is the plugin's code, not CS2's: its truth is GFL's Linux build, so the compiled objects are read, not only the C++. CS2 side: server_20261105.
 
 ## Functions
 
@@ -94,6 +94,6 @@ addps / addss m_vecAbsVelocity ; then m_vecAbsVelocity_prop::Set
 ## Unread
 
 - fsincos on other CPU vendors (documented to differ in last bits; checked on AMD only).
-- Arguments past 2^40 radians (the x87 reduces up to 2^63).
+- Arguments past 2^40 radians (the x87 reduces up to 2^63; the command's yaw stops at 1e6 degrees).
 - GFL's build vs this dockerbuild object (same source, same mathlib.a); GFL's own weapons.cfg / hitgroups.cfg aren't public.
 - `m_vecAbsVelocity` on the pawn read as the movement's velocity (taken as so; SetupMove's read: movement.md).

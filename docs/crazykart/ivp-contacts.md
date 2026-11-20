@@ -47,7 +47,7 @@ the leaked IVP source's vocabulary; the addresses are the truth. vphysics' .text
 | 0x10080e60 | vphysics | contact dtor (unread) |
 | 0x10077520 | vphysics | core commits its pending changes |
 | 0x10078650 | vphysics | core's pending-change clamp |
-| 0x1008b0e0 | vphysics | IVP_Impact_Solver_Long_Term::do_impact_long_term(cores, rescue speed, cp) |
+| 0x1008b0e0 | vphysics | IVP_Impact_Solver_Long_Term::do_impact_long_term: this = lt (ecx), pushed cores[2] out, cp (stack, `ret 8`), rescue speed in xmm2 |
 | 0x10089a50 | vphysics | IVP_Impact_Solver::do_impact |
 | 0x100890a0 | vphysics | separating push along -d |
 | 0x1008a2c0 | vphysics | impact write-back |
@@ -125,7 +125,7 @@ IVP_Contact_Point (0xa0 bytes):
 | +0x58 | gap |
 | +0x5c | byte, 0x14 at creation |
 | +0x5d | byte: 1 = re-test the features |
-| +0x5e | short: solver activity counter |
+| +0x5e | short: the pressure solve's sort key, counted down / up by its pushes (Normal pressures 1, 4) |
 | +0x60 | f64 time of the last geometry |
 | +0x70 | last contact point |
 | +0x7c / +0x80 / +0x84 | last normal's z / x / y |
@@ -181,7 +181,7 @@ Other objects:
 | IVP_Core +0x60 | rows (impact solver) |
 | IVP_Core flags | upper half: impact counters; & 2 static (also & 0x12 static for 0x100821a0); & 0xc0 in this PSI's impact list |
 | object +0x28 / +0x40 / +0x44 | friction-synapse head / cache object / (< 8: refresh allowed) |
-| object +0x4c | friction system |
+| object +0x4c | read in 0x10088450 as "the object's friction system" here; ivp-impact.md reads it as the dynamic core's friction info (IVP_Core +0x4c) |
 | object +0x88 / +0x90 | own material / extra radius |
 | IVP_Cache_Object (0x68) +0x20 / +0x30 / +0x40 | rows of object -> world rotation |
 | IVP_Cache_Object +0x50 / +0x60 / +0x64 | position / stamp (refreshed when behind env+0x108) / users |
@@ -195,7 +195,7 @@ Other objects:
 | env +0x108 | cache stamp |
 | env +0x118 | 0.9^dt (energy damping) |
 | simulation unit flags (event +0xc) | & 0x3000 resting; & 0xc00; & ~0x200 \| 0x100 after the pressure solve |
-| IVP_Compact_Ledge +0 / +0xc | points' offset / short triangle count; triangles of 16 bytes after the header |
+| IVP_Compact_Ledge +0 / +0xc | points' offset / short triangle count; triangles of 16 bytes after the header; an edge is a dword index into its words; the ledge of an edge: `(edge & ~0xf) - ((tri index + 1) x 16)` |
 | triangle +0 | triangle index (low 12 bits); three edges: start point index (16 bits), opposite (15 bits signed, in edges), virtual (1 bit); byte 3 & 0x7f the material index |
 | mindist +0x14 | bits 8-9: which synapse (+0x28 / +0x44) is first; bits 18-21 status (3 = becomes a contact) |
 | mindist synapse +4 / +0xa | compact edge (dword index into the ledge's words: 4 x triangle + 5 + slot) / i16 feature (0 point, 1 edge, 2 face, 3 ball) |
@@ -328,11 +328,18 @@ IVP_Impact_Solver (0x140 bytes on 0x1008b0e0's stack):
 | +0x70 / +0x80, +0x90 / +0xa0 | last push's rot / speed change per core |
 | +0xb0 / +0xc0 / +0xd0 | relative speed at the point / push direction / second direction (sliding) |
 | +0xe0 | sliding flag (1008b820) |
-| +0x100 / +0x104 | cores (static first: swapped so +0x104 is dynamic, normal then negated) |
-| +0x108 / +0x10c | levers (lt +0xa0 / +0xb0) |
-| +0x110 / +0x114 / +0x118 / +0x11c / +0x120 | elasticity (lt +0x60) / cone cos / sin / normal / lt +0x20 |
+| +0x100 / +0x104 | cores: a static one always at +0x100, +0x104 always dynamic (below) |
+| +0x108 / +0x10c | levers: lt +0xa0 / +0xb0, swapped (+0xb0 / +0xa0) when the cores are |
+| +0x110 / +0x114 / +0x118 / +0x11c / +0x120 | elasticity (lt +0x60) / cone cos / sin / normal (lt +0x10, or its negation on a stack copy) / lt +0x20 |
 
-- **0x1008b0e0**: cores in order (a static one first, normal then negated; one earlier note read "a static one second": re-check in the disassembly); elasticity +0x60; with neither a car wheel, the friction cone: `a = atan(mu (1 + sqrt(e)))` via 0x100d7e25, `cos = (1 - a^2 / 2) + (a^2 / 24) a^2`, `sin = cos x tan`; 0x1008b820 when cp +0x34; then 0x10089a50.
+- **0x1008b0e0** (this = lt, arg 2 = cp; checked against the disassembly 2026-11-21), the cores (lt +0x70 / +0x74: dynamic cores, 0 when static):
+  - lt +0x74 == 0: +0x100 = object 1's core (`[lt+0x34] +0x94`), +0x104 = lt +0x70; normal = -(lt +0x10) (each lane `xorps` 0x80000000, 0x100f4310), levers +0xb0 / +0xa0.
+  - else: +0x100 = lt +0x70, or object 0's core (`[lt+0x30] +0x94`) when that is 0; +0x104 = lt +0x74; normal lt +0x10, levers +0xa0 / +0xb0.
+- Elasticity e = lt +0x60. Neither core with +0x48 set: the friction cone, mu = cp +0x44:
+  `t = (sqrtss(e) + 1.0) * mu` (0x10001950 is `sqrtss`), `a = atanf(t)` (0x100d7e25), `a2 = a * a`,
+  `cos = (1.0 - a2 * 0.5) + (a2 * 0.041666668) * a2` (0x3f000000, 0x3d2aaaab), `sin = cos * t`;
+  then 0x1008b820 when the byte cp +0x34 is set. A core with +0x48 set: cos 1, sin 0 (1008b252).
+- Then 0x10089a50.
 - **0x10089a50**: `e' = 1 - (1 - e) / (n / 2 + 1)` (n = lt +0x52); rescue `(0x1010d258 + arg) x 1.2`; speeds with pending changes; rel (10088850), lt +0x20 = rel; responses (1008a990); first push `q = (((-rel.n) 2 vm1) / (vm0 + vm1)) vm0 0.1`. Separating (rel.n not below -0.0001): 0x100890a0 along -n with flag 1 (the minss). Closing: direction 10088a70, up to 100 rounds of push q / rel / direction while closing (rel's normal speed > 0), then undo (10088fb0), a unit push along -n, the elastic push `tot / (rel.n + s)` (past 1e-4) via 1008a600, and 0x100890a0 along -n / the direction. Speed limits via env+0x20 hooks (never on the kart). Then 1008a2c0.
 - **0x100890a0**: (speed along -d of the point less the rescue speed) / (both cores' response along it + 1e-15), pushed as the last push.
 - **0x1008a2c0**: 0x1008a570 clears both pending changes first; cores' impact counters (flags' upper half) up (+2) unless static; with +0xc set, the core with the larger 1 / response checked by 0x10076570 against the other's new speeds (-0.8333333 x rescue): it keeps its old speeds and takes the push as pending changes (0x1008a4d0), the other gets its speeds (0x10088f10); else both do. A core already in this PSI's impact list (flags & 0xc0, 0x1008a0b2) moves its speeds into the changes (the impact system's double buffer, 1008b590).
@@ -384,6 +391,6 @@ Kart touchdown (flat-drive tick 8) call counts: 0x1008ac60 x3, 0x1008b0e0 x5, 0x
 
 - Sliding friction 0x1007fd70 (unreachable); car wheel's static friction 0x1007f300.
 - Undo 0x100a0d10; big-system split 0x100a0ad0 of 5.
-- System split / merge 0x100815a0, 0x100816a0, 0x10081280 (read since: ivp-touch.md); 0x10082ce0's dynamic branch at revival.
+- System split / merge 0x100815a0, 0x100816a0, 0x10081280 (read since: ivp-touch.md); 0x10082ce0's dynamic branch at revival (read since: ivp-pileup.md "Units and revivals").
 - Contact dtor 0x10080e60; pair +0x2c.
-- Read since (ivp-impact.md): the impact system, 0x10088450 with 0x100870c0 / 0x100871f0 / 0x100871c0, the removal's unit bookkeeping (0x10087270, 0x10071dc0), pair +0x28, system +0x24..+0x30, cache refresh 0x1006cd90 (ivp-mindist.md 3).
+- Read since (ivp-impact.md): the impact system, 0x10088450 with 0x100870c0 / 0x100871f0 / 0x100871c0, the removal's unit bookkeeping (0x10087270, 0x10071dc0), pair +0x28, system +0x24..+0x30, cache refresh 0x1006cd90 (ivp-mindist.md "The cache").

@@ -29,10 +29,10 @@ server_20261105, read from the disassembly alone. Vtables (MSVC RTTI): CMomentar
 | 180d06640 | server | the locked use (unread) |
 | 180bc3df0 | server | float output set |
 | 1801ab860 | server | builds a vector |
-| 180a3e840, 180991030, 18029f040 | server | vector scale / sub / add |
-| 180cdf210 | server | set angular velocity |
+| 180a3e840, 180991030 / 18029f040 | server | the vector ops building m_start (180a3e840 twice, 180991030) / m_end |
+| 180cdf210 | server | Use's angular velocity `m_vecMoveAng x (float(m_direction) x m_flSpeed)` |
 | 18017b8d0 | server | clamp |
-| 18017dc70 | server | addss |
+| 18017dc70 | server | curtime + 0.01 (ReturnMoveDone's next think) |
 | 180308890 | server | tick interval 1/64 |
 | 180ade3a0 | server | PlayerUse (CCSPlayer_UseServices) |
 | 180c80ad0 / 180c80ae0 | server | button pressed / released this command |

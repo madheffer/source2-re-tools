@@ -28,7 +28,7 @@ vphysics2_20260924 (image base 0x180000000) unless marked client_20261015. Chunk
 | 180047600 | vphysics2 | model joints (ragdoll) desc from VPhysXJoint_t |
 | 18001c350 / 18001c360 | vphysics2 | CPhysicsJoint slot 0x1a0 set +0xac (xmm1) / getter |
 | 18001c3c0 / 18001c3d0 | vphysics2 | CPhysicsJoint slot 0x1b0 set +0xb0 (xmm1) / getter |
-| 0x18044aeb0 | vphysics2 | near VPhysXJoint_t's schema class |
+| 0x18044aeb0 | vphysics2 | VPhysXJoint_t schema field entry m_flFriction (schema.py --near lists the class; checked: +0xac m_flFriction, +0xb0 m_flElasticity, +0xb4 m_flElasticDamping, +0xb8 m_flPlasticity) |
 | 18095acd0 / 18095af85, 180956138 | client | the only `call [reg+0x1a0/0x1b0]` in the ragdoll ranges: on a body's vtable, not a joint's |
 
 ## Fields
@@ -43,7 +43,7 @@ vphysics2_20260924 (image base 0x180000000) unless marked client_20261015. Chunk
 | joint +0x18 / +0x20 | body 1 / body 2 |
 | joint +0x28 | flags: bit 0 disabled, bit 1 bodies collide |
 | joint +0x41 | island edge |
-| joint +0xac / +0xb0 | break limits (linear / angular) |
+| joint +0xac / +0xb0 | break limits (from desc +0x64 / +0x68; CPhysicsJoint slots 0x1a0 / 0x1b0) |
 | joint +0xb8 / +0xc0 / +0xc8 | break callback: object, function, argument |
 | body +0x45 | manager state (3 = not in) |
 | body +0x54 | type: 0 static, 2 dynamic |
@@ -79,7 +79,7 @@ Nothing when already so (`(~flags & 1) == enable`) or a body is missing. Disable
    when body 1 static and body 2 not; body 1 when body 2 static and body 1 not; otherwise body 1 unless body 2 has fewer
    shapes (`cmp [A+0x60], [B+0x60]; cmovg`).
 3. +0x28 |= 1.
-4. vtable +0x58: impulses stored as zero (plain stores: a -0 or NaN does not survive). Slot +0x50 is the same function
+4. vtable +0x58: impulses stored as zero (plain stores: a -0 or NaN does not survive; checked natively against the DLL on 3000 random joints of both types, every byte). Slot +0x50 is the same function
    in both types.
 5. 1801e4000: a joint in the world, type != 0, enabled, both bodies in the manager, one dynamic, is an island edge
    (+0x41); otherwise taken out (1802cd5b0).

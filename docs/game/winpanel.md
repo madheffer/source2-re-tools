@@ -117,7 +117,7 @@ Player filter (18027a7c0..18027a8e9, the same in all three): the pawn from the c
 - CCSGameStats is the global 0x181f4ea10 (vtable 0x18178a2a8); a player's block 1801cafc0(stats, controller) = `stats + slot x 0x1128 + 0x9c`; three int arrays of 0x12e stats: +0 delta, +0x4b8 round (what the fun facts read), +0x970 match; `+ 0x44a9c + team x 0x4b8` a team's.
 - IncrementStat 1801cf720(stats, controller, id, delta, plain): skips a controller with +0x834 set; inlined copies elsewhere.
 - Stat table 0x181dfb6b0 ({ id, name, label, flags }, 32 bytes): 0x0 total_shots_hit, 0x1 total_shots_fired, 0x2 total_kills, 0x4 total_damage_done, 0x2b / 0x2c / 0x34 knife / hegrenade / taser kills, 0xb6 headshot kills, 0xb7 enemy blinded kills, 0xba enemy weapon kills, 0xbb knife fight kills, 0xc3 rescued hostages, 0xc4 broken windows, 0xcb zoomed sniper kills, 0xcc weapons donated, 0xcf dominations, 0xd0 overkills, 0xd1 revenges, 0xd2 MVPs, 0xd3 contribution score; the round-only 0xb8..0xd7 others have no name.
-- AT = the pawn's action tracking services (+0xe48) unless "controller AT".
+- AT = the pawn's action tracking services (pawn +0xe48 m_pActionTrackingServices, CCSPlayer_ActionTrackingServices) unless "controller AT" (controller +0x7f8).
 
 ### Each fun fact
 
@@ -139,7 +139,7 @@ Player filter (18027a7c0..18027a8e9, the same in all three): the pawn from the c
 | 0x11 | kills_with_last_round | 0.6 | StatBest 0xb9, min 1 | 180a44f40 (180a45478): the killer's active weapon's clip1 (vfn 0xac0(0) = m_iClip1 +0xec0, 1809b6b00) == 1, the info's weapon (+0x40) set and its CSWeaponType (vfn 0xc60, item +0x520) not 5 (sniper) or 0 (knife), its class not weapon_taser (0x181e06028, set from "*weapon_taser" at 1800b18e0), the killer the info's attacker, not a bot |
 | 0x12 | donated_weapons | 0.3 | StatBest 0xcc, min 2 | the drop key's drop (180b03210, 180b0341a): with m_bCanDonateWeapons and the weapon's +0x1034 unset: +0x1034 = 1, donor (+0x1030) = the dropper (180a1bdf0); the pickup (180b14480, 180b149e4..180b14a1e): m_bPickedUpWeapon = 1, a donor (1809f8d00) gets 0xcc (1801c8e30, no team test) and is cleared |
 | 0x13 | posthumous_kills_with_grenade | 1.0 | StatBest 0xd5, min 1 | 180a44f40 (180a453cb): the killer's pawn dead, the inflictor's class weapon_hegrenade (0x181e06130, "*weapon_hegrenade" at 1800b13a0), not a bot |
-| 0x14 | knife_in_gunfight | 0.4 | 180296fd0: the victim's AT +0xcd; filter 0 | 180a44f40 (180a4556e): the victim's active weapon a knife (type 0, class not weapon_taser), the info's weapon set, its class not weapon_knife, type not 7 (C4) or 9 (grenade), the victim's pawn vfn 0xc28 (1801d20d0: original controller +0xe14 differs from controller +0xc98, a taken-over bot) false. The class is the weapon's +0xff0 symbol (the designer name) against "*weapon_knife" (0x181e06100, set at 1800b1460): the CT knife only, not weapon_knife_t or a skin's |
+| 0x14 | knife_in_gunfight | 0.4 | 180296fd0: the victim's AT +0xcd; filter 0 | 180a44f40 (180a4556e): the victim's active weapon a knife (type 0, class not weapon_taser), the info's weapon set, its class not weapon_knife, type not 7 (C4) or 9 (grenade), the victim's pawn vfn 0xc28 (1801d20d0: original controller +0xe14 differs from controller +0xc98, a taken-over bot) false. The class is the weapon's +0xff0 symbol (the designer name: the weapon table also matches it against "weapon_deagle" ...) against "*weapon_knife" (0x181e06100, set at 1800b1460): the CT knife only, not weapon_knife_t or a skin's |
 | 0x15 / 0x16 | num_times_jumped / fall_damage | 0.1 / 0.2 | StatBest 0xbf min 20 / 0xc2 min 50 | no writer (player_jump fired at 180ab4e1b, player_falldamage at 1809b5de0; CCSGameStats listens to neither): 0 |
 | 0x17 | items_purchased | 0.2 | StatBest 0xcd, min 4 | 180b0f1e0 (+1, the purchase record) / 180b1ce60 (-1) |
 | 0x18 | won_as_last_member | 0.6 | 180297280: winner 2 / 3, 180922410's winners alive 1 and losers alive 0: the living winner, d1 its stat 0xc0, true above 1 | 1801c9040: stat 0xc0 when the killer's team has 1 alive and more than one dead (the counts' [team x 6 + 3]: dead without +0x1599) |
@@ -210,11 +210,15 @@ The win panel plays none (hudwinpanel.vts' PlaySoundEvent calls are the round en
 
 PlayMusic 18076cd70(type, kit): types 8..11 but 10 set the round end music flag (1824bdae4), which then blocks types 5..7 (bomb planted, bomb ten seconds, ten seconds); types 1..3 and 13 / 14 clear it; an HLTV replay plays nothing. The name: table 182212ae0 [0 ?, 1 StartRound_GG, 2 StartRound, 3 StartAction, 4 DeathCam, 5 BombPlanted, 6 BombTenSecCount, 7 TenSecCount, 8 WonRound, 9 LostRound, 10 GotHostage, 11 MVPAnthem, 12 Selection, 13 MatchStart, 14 MatchEnd, 15 MatchFound, 16 LoadingScreen] + "." + the kit's music definition name, "valve_cs2_01" by default (items_game music_definitions 1: valve_cs2_01, "Valve, Counter-Strike 2"); a kit id 0xffff asks the local / observed player's.
 
-Volume: the csgo_music events name volume_convar snd_roundend_volume / snd_mvp_volume (with _casual / _armsrace / _deathmatch / _rush ones by snd_music_mode), registered in client.dll at 1800f8f3d / 1800f90bd / 1800f8ffd / 1800f917d / 1800f923d and 1800f874d / 1800f88cd / 1800f880d / 1800f898d / 1800f8a4d: float [0, 1], default 0.16, flags 0x80080.
+Volume: the csgo_music events name volume_convar snd_roundend_volume / snd_mvp_volume and their _casual / _armsrace / _deathmatch / _rush variants, registered in client.dll at 1800f8f3d / 1800f90bd / 1800f8ffd / 1800f917d / 1800f923d and 1800f874d / 1800f88cd / 1800f880d / 1800f898d / 1800f8a4d: float [0, 1], default 0.16, flags 0x80080.
 
 Server side (server_20261105): TerminateRound 1809654b0 sets gamerules +0x140c (round_end's nomusic, written by 18094e5f0 only when set) when a pawn of each team is alive (vfn 0x550 by team +0x344), unless (cvar 18211a3f0, read as mp_halftime) in the first half (+0xf24 == 2) it is the last round before halftime. +0x1410 (legacy) only for a CT win by defuse with no T alive, from the CTs' largest defuse time left (AT +0x200, unnamed between m_hLastWeaponBeforeC4AutoSwitch 0x1f8 and m_bIsRescuing 0x224: -1.0 from the services' reset (slot 19 180a43140), written by CPlantedC4::OnDefuse 180a1ccd4 as `m_flC4Blow (+0xa9c) - now` for the defuser), starting from -1: < 1 -> 3, < 3 -> 2 with RandomFloat < 0.75, < 7 -> 1 with RandomFloat < 0.5.
 
+Sound events: Music.WonRound / LostRound / MVPAnthem.valve_cs2_01; Announcer.CTWin / TWin / RoundDraw / BombDefused.CS2_Classic; Event.BombDefused_Legacy1..3.
+
 ## End of match
+
+The server's cs_win_panel_match (GoToIntermission at the match's last round end) is the client's cue.
 
 | Address | Module | What |
 |---|---|---|
@@ -237,6 +241,7 @@ The panorama (endofmatch.vts):
 - endofmatch-skillgroup.vts (Premier): 1.5 s, 5 s when the rating changed; GetWinLossStyle no-points (new 0, or established now, or no change) / lost-points / gain-points; "+N Points" / "-N Points" (eom-premier-points-gained / -lost, 0 when established), "#cs_rating_rating_established"; UI.Premier.EOM.SlideIn, then RankNeutral / RankDown / RankUp; the new rating 0.75 s on.
 - eom-characters: EOM_Characters is no registered panel: endofmatch.vts starts it at 0.5 s with SetWantsCamera, its _DisplayMe (the lineup over the end_of_match prefab: end_of_match_camera and end_of_match_lineup_start / _end), then UIPanorama.gameover_show. Its player stats cards (player_stats_card.vts: each player's nomination, [accolades.md](accolades.md)).
 - eom-voting: endofmatch-voting.vxml / .vts / .vcss (MapGroupSelection tiles over mainmenu_play.vcss's .map-selection-btn, the 360p shots, "<font color='#ffc130'>votes</font>/votes_to_succeed", the 0.2 s update, the winner's vote_check, the tie's map-selection-btn__gradient--whiteout flicker, the sounds); the last panel, no display timer.
+- eom-rank: endofmatch-rank.vts / .vxml / .vcss.
 - The Premier emblem: RatingEmblemAnim (0.75 s: SetXuid with presentation 'digital') -> rating_emblem.vts _SetPremierRatingValue: DigitPanelFactory.MakeDigitPanel(major, 2, '', 1, #digitpanel_digits_premier " 1234567890,?") and (minor, 4), set at once when made, then rolled (digitpanel.vts: translate3D(d %, -index x 100 %) over 1 s, cubic-bezier(0.9, 0.01, 0.1, 1)); SplitRating's parts with their spaces. The particles (RankSkillgroupParticles) are the skill group modes'; Premier's options have do_fx false.
 - Strings: eom-win "MATCH RESULT", eom-skillgroup "SKILL RATING", eom-rank "RANK UP", eom-voting "VOTING", eom-result-win3 / -loss3 / -tie3 "VICTORY" / "DEFEAT" / "TIE", eom-skillgroup-win:f "{s:rating_type} {matcheswon, plural, one{Match} other{Matches}} Won".
 - Assets: the five eom sound events; images bracket.vsvg, premier.vsvg, premier-rankup-bg / -dash, the fade masks, linemap / premier_gain / premier_lost / speed_lines.webm.
@@ -246,3 +251,4 @@ The panorama (endofmatch.vts):
 
 - The flags gating 180c76830's intro / match-end music (mode -0x10e1 / -3).
 - The pawn's action tracking +0x60 (round kills) writer.
+- Which of the _casual / _armsrace / _deathmatch / _rush volume convars an event uses (client.dll has a snd_music_mode string; its reader not traced).

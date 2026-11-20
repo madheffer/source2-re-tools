@@ -13,7 +13,7 @@ client, server, matchmaking.dll and engine2.dll of the 2026-11-16 install; pak01
 | 0x180f93b30 | client | `GetCooldownReason`: jump table on `penalty_reason - 1` (23 entries, table 0x180f93c38) |
 | 0x180f93d10 | client | `GetCooldownType` (table 0x180f93d68 for 8..20) |
 | 0x180a75eb0 | server | a queued player's team as they connect |
-| 0x1808fe780 | server | writes the reservation string ("[%x]" per account) from MatchmakingGC2ServerReserve `account_ids` |
+| 0x1808fe780 | server | writes the reservation string ("[%x]" per account) from CMsgGCCStrike15_v2_MatchmakingGC2ServerReserve `account_ids` |
 | 0x180907ad0 | server | AreTeamsPlayingSwitchedSides (gamerules) |
 
 ## Fields
@@ -35,7 +35,7 @@ client, server, matchmaking.dll and engine2.dll of the 2026-11-16 install; pak01
 | sv_kick_players_with_cooldown | default 1: "0: do not kick on insecure servers; 1: kick players with Untrusted status or convicted by Overwatch; 2: kick players with any cooldown" |
 | sv_disconnected_player_data_hold_time | 60 (the scoreboard keeps a dropped player 60 s) |
 | 0x181aba088 | empty string (penalty reason 15) |
-| GC2ClientHello | field 2 `ongoingmatch` (a GC2ClientReserve), `penalty_seconds` 4, `penalty_reason` 5 |
+| CMsgGCCStrike15_v2_MatchmakingGC2ClientHello | field 2 `ongoingmatch` (a GC2ClientReserve), `penalty_seconds` 4, `penalty_reason` 5 |
 | GC2ClientAbandon | `account_id`, `abandoned_match`, `penalty_seconds`, `penalty_reason` (server.dll's embedded descriptor) |
 
 Penalty reasons (`#SFUI_CooldownExplanationReason_<x>`) and their type:

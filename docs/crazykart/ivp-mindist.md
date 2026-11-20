@@ -161,7 +161,7 @@ noted; `(a + b) + c` is the disassembly's association (an add's operands commute
 | object +0x30 | origin offset (unless +0x44 & 0x800) |
 | object +0x2c | a rotation (not read; NULL here) |
 | object +0x40 | cache |
-| object +0x44 | movement byte (1 moving, 8 static / frozen; 0x21 during a revival; & 0x800 no origin offset) |
+| object +0x44 | movement byte (1 moving, 8 static / frozen; 0x21 during a revival; & 0x800 no origin offset; ivp-shadow.md reads 0x10 for a static core's objects) |
 | object +0x48 | hull manager |
 | object +0x84 | surface manager (+4 the compact surface; slot 7 add_reference_to_ledge) |
 | object +0x8c | OV element |
@@ -235,21 +235,21 @@ noted; `(a + b) + c` is the disassembly's association (an add's operands commute
 | 0x4b, 0x3ff, 0x400 | create_exact_mindists' hash: `key = l1 x 0x4b ^ l0`, `h = ((key >> 8 signed) x 0x3ff + key) & mask`, size s = 0x400 halved while n < s, `n = (len0 x len1 + count) x 2 + 2` |
 | 1.000001 | FF's strict-improvement factor |
 
-ivp_mindist_settings (0x1010d130.., runtime values; collision tolerance 0.00635 m):
+ivp_mindist_settings (0x1010d130.., runtime values; collision tolerance 0.00635 m; an offset is its address - 0x1010d130):
 
 | Offset | Value |
 |---|---|
 | +0 | real_coll_dist 0x3a266515 |
 | +4 / +8.. | min_coll_dists / coll_dists[64] (0x1010d138) 0x3bcffe5a |
 | +0x108 | minimum_friction_dist 0x3bcffe5a |
-| | friction 0x3c4ffe5a ([0x1010d23c]), keeper 0x3c6f314e |
+| +0x10c / +0x110 | friction 0x3c4ffe5a ([0x1010d23c]) / keeper 0x3c6f314e ([0x1010d240]) (ivp-contacts.md names them the collision / friction distance) |
 | +0x114 | speed_after_keeper 0x3f143f75 |
-| | keepers_safety 0x38851daa |
+| +0x118 | keepers_safety 0x38851daa |
 | +0x11c | max_friction 0x3ce9fe25 |
-| | max_impact_system 0x3e0efede |
+| +0x120 | max_impact_system 0x3e0efede ([0x1010d250]) |
 | +0x124 | mindist_change_force_dist 0x3a266515 |
-| | min_vertical_speed 0x3c4ffe5a |
-| [0x1010d25c] | max_spawned 1000 |
+| +0x128 | min_vertical_speed 0x3c4ffe5a ([0x1010d258]) |
+| +0x12c ([0x1010d25c]) | max_spawned 1000 |
 | +0x130 | event_queue_min_delta_time_base 1.0f |
 
 ## Edges and ledges
@@ -260,7 +260,7 @@ ivp_mindist_settings (0x1010d130.., runtime values; collision tolerance 0.00635 
 - BBoxToCollide: equal mins / maxs -> NULL; cache lookup; else 0x1000a860: the 8 corners, the unit box's ledge copied
   (size_div_16 x 16 bytes), each point = corner(map[i]) as `(k x, -(z k), y k)`, k = 0.0254f, w 0; slot 0x38 builds the
   compact surface. Every BBoxToCollide box copies the unit box.
-- A box from -4096..4096 x -64..0 (BBoxToCollide): mass centre (0, 0.8128, 0), inertia 0x46292145, upper radius
+- A floor box -4096..4096 x -64..0 (its compact surface as the DLL built it, read from memory): mass centre (0, 0.8128, 0), inertia 0x46292145, upper radius
   146.13 (0x4313227f), deviation byte 0xfa, tree root sizes (177, 2, 177).
 - ze_crazykart_v4's world (BSP model 0): a compact surface with a ledge tree, two solids (1.3 MB, 30 KB).
 
@@ -606,7 +606,7 @@ else +0x90.
   edge's dword, or its triangle's: `edge & ~0xf`): side 0 point / ball vs side 1 edge / triangle: side 1 if virtual;
   side 0 edge vs side 1 point / ball, or side 0 triangle: side 0 if its triangle is virtual; edge vs edge: the virtual
   one, both virtual the radius rule; nothing virtual (and point / point): no split, the plain do_impact (0x100b1574: a
-  hull's real face is collided with as the hull ledge, ivp-virtualmesh.md 3); other statuses assert (0x32 / 0x5d /
+  hull's real face is collided with as the hull ledge, ivp-virtualmesh.md "3. vphysics.dll"); other statuses assert (0x32 / 0x5d /
   0x65) and split with the side it had. Then the split (0x100b1650).
 - 0x100b1a00: count > limit: nothing; else create_exact_mindists over +0x84 with fixed[1 - side] = the other synapse's
   ledge and from[side] = the split side's (scan = the argument), then slot 2 (new - old count).
@@ -628,9 +628,8 @@ else +0x90.
 
 - ConvexFromVerts (qhull + IVP's ledge builder), ConvertConvexToCollide's ledge soup, the static core's creation,
   set_collision_tolerance (the settings are taken as the DLL holds them).
-- minimize_on_other_side's and the rescue push's callers beyond the above; the anomaly manager's vtable.
-- The parallel fallback's sampled writes as KK reads them in calc_unscaled_KK_vals' early return (0x10079be4 is read;
-  the caller that tests its return: its address).
-- The PP event solver's types 0x10 / 0x11 paths; the balls; phantoms (0x10094cf0).
+- The anomaly manager's class and vtable (no RTTI).
+- The address of the caller that tests the parallel fallback's return (the edge step past 0.003; it takes the fault as a no).
+- The PP event solver's types 0x10 / 0x11 (transcribed, never reached in a run); the balls; phantoms (0x10094cf0).
 - The delegator roots' choice (OO watcher vs a direct mindist); the stage-4 budget past env+0x24+0x14 (env+0x20 slot 4);
   deletions beyond ~IVP_Mindist (0x100957a0).

@@ -38,7 +38,7 @@ server_20261105, tier0_20261103, engine2 (same build).
 | 0x18091f260 | server | the drop to the floor |
 | 0x180957e50 | server | RestartRound |
 | 0x1809621f0 | server | RestartRound's spawn configuration (rules, players), called at 0x18095a210 |
-| 0x180903d10 | server | MSVC std::sort _Sort_unchecked (<= 32: insertion 0x1809036a0; median guess 0x1809033b0; heap fallback) |
+| 0x180903d10 | server | MSVC std::sort _Sort_unchecked, ideal = count (<= 32: insertion sort 0x1809036a0; else median guess 0x1809033b0 and partition; the heap fallback) |
 | 0x180963250 | server | spot comparator (live first; origins as `cvttss2si` x, y, z; entity index) |
 | 0x1803d6f50 | server | abs origin |
 | 0x1813aa290 | server | entity index (from the identity's chunk, -1 none) |
@@ -51,14 +51,15 @@ server_20261105, tier0_20261103, engine2 (same build).
 | 0x180aea7a0 / 0x180a51080 | server | vfn 0xcb0: CCSPlayerPawn `return 0`, CCSObserverPawn `return 1` |
 | 180ae27b0 / 180a9aba0, 180a96f00 | server | the mass spawn's loops |
 | 0x1809575a0 | server | game-restart reset of rounds played |
-| 0x18093fe70 | server | match history restore (KeyValues "History/SpawnPointsCfg" 0x1818ca760; +0xf9c / +0xfa4 = 0) |
+| 0x18093fe70 | server | match history restore, a round backup restore (KeyValues "History/SpawnPointsCfg" 0x1818ca760 into +0xdc0; +0xf9c / +0xfa4 = 0) |
 | 0x1809058c0 | server | CCSGameRules constructor |
 | 0x1809669f0 | server | Think (vtable 0x1818c5450 slot 50, line ~490) |
 | 0x180965080 | server | TeamFull (from 18095fce0, 1802d5940, 1802de9b0, 180944090) |
 | 0x180910fb0 | server | team balance (from 180954a60) |
 | 0x1809543d0 | server | slot 8: a spawn group's load (map name not "<empty>", no landmark, +0x14 == 0, known group: 1805c4090) |
 | 0x18015d580 | server | tier0 GenerateDefaultRandomSeed (QueryPerformanceCounter) |
-| 0x18176a5e8 (import) / tier0 0x180140500 | tier0 | Plat_RelativeTicks: QueryPerformanceCounter, never below its last return (static) |
+| 0x18176a5e8 | server | import slot: tier0.dll!Plat_RelativeTicks |
+| 0x180140500 | tier0 | Plat_RelativeTicks: QueryPerformanceCounter, never below its last return (static) |
 | 0x1802085d0 / 0x180237bd0 | server | STATE_GUNGAME_RESPAWN enter (vtable 0x181792e40 slot 0) / think (slot 2) |
 | 0x1802521c0 | server | the respawn |
 | 0x180923bc0 | server | FrameUpdatePreEntityThink: zeroes the count (0x180233f10) |
@@ -75,9 +76,9 @@ server_20261105, tier0_20261103, engine2 (same build).
 | CSpawnPoint +0x4ac | m_bEnabled ("enabled"; maps write true / false; FGD default true) |
 | rules +0xf80 / +0xf88 | T base list count / handles |
 | rules +0xf68 / +0xf70 | CT base list |
-| rules +0xfc8 / +0xfd0 | T ordered list count / data |
-| rules +0xfb0 / +0xfb8 | CT ordered list |
-| rules +0xe8c / +0xe90 | ordered counts |
+| rules +0xfc8 / +0xfd0 | T ordered list (std::sort is passed +0xfd0, +0xfc8) |
+| rules +0xfb0 / +0xfb8 | CT ordered list (passed +0xfb8, +0xfb0) |
+| rules +0xe8c / +0xe90 | count the ordered lists (written by 0x1809563e0) |
 | rules +0xf9c / +0xfa0 | CT index / last pick time |
 | rules +0xfa4 / +0xfa8 | T index / last pick time |
 | rules +0xd84 | lists made (writers: ctor 0, 0x180916810 1, 0x1809543d0 0) |

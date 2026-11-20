@@ -16,7 +16,9 @@ original and kept honest across CS2 updates.
 | [docs/game/](docs/game/README.md) | The game-side traces: 115 subsystems of CS2's server.dll and client.dll (movement, weapons and shots, grenades, damage, the round, entity I/O, the HUD, physics, rendering, the menus), each as tables of functions, field offsets and constants, then sum orders; plus the general helpers' tables |
 | [docs/csgo/](docs/csgo/README.md) | CS:GO legacy (32-bit) notes: triggers, VScript, effects, the BSP bake. Not CS2 |
 | [docs/crazykart/](docs/crazykart/README.md) | ze_crazykart's physics on CS:GO's legacy vphysics.dll (IVP): the kart, contacts, impacts, mindists, shadows. Not CS2 |
-| [tools/docs_numbers.py](tools/docs_numbers.py) | Lists the addresses, offsets and numbers a doc edit dropped (`--git HEAD <paths>`): run it before committing a rewrite |
+| [tools/docs_numbers.py](tools/docs_numbers.py) | Lists the addresses, offsets and numbers a doc edit dropped, and with `--names` its field, cvar, token, method and sound names (`--names --git HEAD <paths>`): run it before committing a rewrite |
+| [tools/check_addresses.py](tools/check_addresses.py) | Every Functions-table (and helper-table) address checked against the DLL build its doc names: a function start, a site inside one, data, or bad (`--bin <builds dir> --csgo <CS:GO legacy install>`) |
+| [tools/check_fields.py](tools/check_fields.py) | Schema field names written beside an offset, checked against the schema tables of the doc's server / client builds (nested offsets through a field the doc names pass) |
 
 ## Setup
 
@@ -43,6 +45,9 @@ pages name each build's file and date).
   again (identical, relocated, moved, changed or missing).
 - Sum orders and constants come from the disassembly, not the decompiler (it drops register arguments and gets
   maxss / minss with NaN wrong).
+- Archive every build you read (`tools/re/binaries/<dll>_<yyyymmdd>.dll`) and name it in the doc's header:
+  `tools/check_addresses.py` can only check addresses whose build it has. Notes read from "the install's" DLL
+  without an archived copy (some panorama, particles, soundsystem rows) can't be checked once CS2 updates.
 - Write down what you reverse in the same change: addresses, what each function does, offsets, vtable slots,
   constants, and what's still unread.
 

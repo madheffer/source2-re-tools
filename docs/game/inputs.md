@@ -68,7 +68,7 @@ Statics: logic_relay's class 0x1820db7e0, class info 0x1820db798, schema binding
 
 ## Entity-API binding records
 
-A class's inputs are its "<Class>_API::<Input>" bindings (the records Pulse and cs_script call): 0x50 bytes in .data, one class's in a row.
+A class's inputs are its "<Class>_API::<Input>" bindings (the records Pulse and cs_script call): 0x50 bytes in .data, one class's in a row. (Which class holds which records is inferred from this grouping, not read from the input object at class+0x28.)
 
 | Offset | What |
 |---|---|
@@ -86,8 +86,8 @@ A class's inputs are its "<Class>_API::<Input>" bindings (the records Pulse and 
 ## Dispatch (1813ac4d0)
 
 1. 181373b60: the class chain's input objects.
-2. Not found: entity vfn 0x88 (Pulse graph).
-3. Not found: the script path after 1813ac5db (a script's `Input<name>`, io-targets.md; calls through the VM's vtable +0x120 / +0x108 / +0xa8 / +0xb8 not followed).
+2. Not found: entity vfn 0x88 (Pulse graph; the ZE maps read have none).
+3. Not found: the script path after 1813ac5db (a script's `Input<name>`, io-targets.md; calls through the VM's vtable +0x120 / +0x108 / +0xa8 / +0xb8 not followed; the ZE maps read have no scripts).
 4. Handled: the entity system's input listeners. Not handled: "unhandled input" logs.
 
 Names match case-insensitively by pooled pointer: `trigger` = `Trigger` = `TRIGGER`.
@@ -113,7 +113,7 @@ info_map_parameters FireWinCondition (ZR); any input starting "KeyValue" (Custom
 2. Each non-null case string compared with `V_stricmp_fast`; the first equal fires its output (1802a66e0 with the input's activator and the entity).
 3. No match: OnDefault (180e3e980) with the string as its value.
 
-No number parse: "0.0" is not "0". CS2 maps write counter-fed cases as "0.0", "1.0" (ze_dark_souls: all 50 logic_cases).
+No number parse: "0.0" is not "0". CS2 maps write counter-fed cases as "0.0", "1.0" (ze_dark_souls: all 50 logic_cases; its ending's overrides "0.0" / "1.0" match its cases "0.0" / "1.0").
 
 ## Unread
 

@@ -11,12 +11,13 @@ scripts/loadingscreen.ts, csgostyles (ProgressBar), resource/csgo_english.txt. N
     (blurred only inside `#LoadingScreenContents`, `blur: mipmapgaussian(6, 6, 3)`): `#BackgroundMapImageDefault`
     (`images/map_icons/screenshots/1080p/default_psd.vtex`, stretch-to-cover), `#LoadingScreenSlideShow`.
   - `#LoadingScreenContents.loading-screen-contents`: `.loading-screen-content__info__bg` (blue dots),
-    `#LoadingScreenContentsBottom` > `#LoadingScreenInfo.loading-screen-content__info` > `__info-container` > `__titles`:
+    `#LoadingScreenContentsBottom` > `#LoadingScreenInfo.loading-screen-content__info` > `__info-container` > `__titles`
+    holds the first three below; the rest follow in this order (the exact parent of each: not recorded):
     - `#LoadingScreenIcon.loading-screen__mapicon` (texture width 200)
     - `#LoadingScreenMapName.__info__text-title` (`.stratum-bold-condensed`)
     - `.__info__gamemode`: `#LoadingScreenGameModeIcon` (40 x 40 texture) + `#LoadingScreenGameMode`
       (`.stratum-regular-condensed`)
-    - `.__info-line`, `#LoadingScreenModeDesc` (`.stratum-regular`, html)
+    - then `.__info-line` and `#LoadingScreenModeDesc` (`.stratum-regular`, html)
     - `#LoadingScreenHintContents` (info icon + `#LoadingScreenHintText`; `visibility: collapse`: never shown)
     - `.loading-screen-progress-container`: `#ProgressStatusText` ("#SFUI_LOADING" "Loading..."),
       `#LoadingSecondaryProgressContainer` (`#ProgressSecondaryStatusText` + `#ProgressBarSecondary`), `#ProgressBar`.

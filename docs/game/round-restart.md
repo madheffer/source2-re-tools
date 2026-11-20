@@ -15,7 +15,7 @@ server_20261105 (image base 0x180000000).
 | 180592260 | server | spawn groups whose record has byte +9 set (spawngroupmgrgamesystem.cpp; the manager at 182087470) |
 | 1805921a0 | server | spawn group name |
 | 180592e70 | server | spawn group handle |
-| 181ab560 | server | entity lump by name: vfn 0x108, then vfn 0x30 |
+| 1823ab560 | server | global interface pointer (data, read at 180918362): its vfn 0x108 finds the entity lump by name, the lump's vfn 0x30 is passed to 180bf0b90 |
 | 180bf0b90 | server | (manager, group, lump, ..., "cs_respawn", ...): create the lump's entities again |
 | 1808d8b30 | server | respawn filter: the preserve list on each entity's "classname" keyvalue |
 | 18092cdf0 | server | RestartRound's own stores (unread) |
@@ -26,7 +26,7 @@ server_20261105 (image base 0x180000000).
 |---|---|
 | CCSGameRules +0x13d | skip CleanUpMap |
 | entity->m_pEntity +0x38 | CEntityIdentity m_worldGroupId (int) |
-| spawn group record +9 | respawned flag (byte) |
+| spawn group record +9 | byte: set = the group is listed by 180592260 (its meaning unread) |
 
 ## Constants
 
@@ -70,7 +70,7 @@ No math_counter, logic_relay, logic_branch or logic_case: in the main map those 
 
 ## Unread
 
-- Whether the respawn pass makes a second copy of a non-preserved entity step 2 left standing (a skybox math_counter): record byte +9 and what 180bf0b90 does with a group whose entities exist. A local dedicated server would show it (`ent_find` after `mp_restartgame 1`); the one try (2026-11-12) crashed loading ze_dark_souls (an access violation after `host_workshop_map`, live build 1.41.9.6).
+- Whether the respawn pass makes a second copy of a non-preserved entity step 2 left standing (a skybox math_counter): record byte +9, and what 180bf0b90 does with a group whose entities exist, are not read. The maps rely on one counter per name. A local dedicated server would show it (`ent_find` after `mp_restartgame 1`); the one try (2026-11-12) crashed loading ze_dark_souls (an access violation after `host_workshop_map`, live build 1.41.9.6).
 - Events still in the I/O queue for an entity that stays.
 - The weapons' branch of the walk; RestartRound's own stores (18092cdf0).
 - Which world group an `info_spawngroup_load_unload` group's entities get.

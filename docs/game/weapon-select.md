@@ -80,7 +80,8 @@ client_20261015. cfg/user_keys_default.vcfg (installed CS2, 2026-11-21). SelectS
 - **1811a7530** (mode 0 here): each m_hMyWeapons entry a C_CSWeaponBase, vfn 0x998 true; the lowest (gear slot, position) strictly after the asked one, strict compares (first of equal keys wins). 1811a68c0: after the active weapon's; none -> after (-1, -1); then vfn 0x320 + vfn 0x268. No foley. Modes 1..5 filter by vdata +0x520 (unused here).
 - **1811a77c0**: the highest (gear slot, position) strictly before the asked one. 1811a6980: before the active one's (a non-CS weapon active keeps it), none -> before (0xd, 9999); vfn 0x320, vfn 0x268, and `Player.WeaponSelectionFoley` (180c09310) when it isn't the active weapon.
 - invnext from the rifle: pistol, knife, Zeus, HE, flash, smoke, decoy, molotov, C4, rifle.
-- A pick during a throw waits as m_hSwitchToWeaponAfterThrow (grenades.md "After the throw").
+- The client picks: its usercmd carries the weapon.
+- A pick during a throw (the grenade still held, m_bThrowAnimating) waits as m_hSwitchToWeaponAfterThrow (grenades.md "After the throw").
 
 ## Binds (cfg/user_keys_default.vcfg)
 
@@ -88,7 +89,7 @@ client_20261015. cfg/user_keys_default.vcfg (installed CS2, 2026-11-21). SelectS
 
 ## Unread
 
-- vfn 0x998 (a weapon that can't be selected) and vfn 0x9e0.
+- vfn 0x998 / 0x9e0 are read in [player-sounds](player-sounds.md) (client_20261015): 0x998 = CanBeSelected (180805ce0: an owner and vfn 0x9e0); 0x9e0 true for guns, C4 and the Zeus (1807e24a0), for a grenade `(UsesClip and clip > 0) or reserve > 0` (1807e2450). Not re-read in this doc's build.
 - slot7..9's registrations.
 - lastinv (the pawn's m_hLastWeapon).
 - m_hMyWeapons' order (pickup order).

@@ -178,6 +178,16 @@ client_20261015 (crosshair code, drawing), client_20261112 (convar registrations
 
 The style and outline slots are ints (the decompiler shows float casts; the stores are ints: 5, not 7e-45). The new-format clamps are only on that branch; the classic branch returns its converted record unclamped.
 
+## Checked against the DLL
+
+- 180daf490 and 180dbca70 under Unicorn (tools/re/game/xhair_oracle.py: V_roundf and _V_StringAfterPrefixCaseSensitive stubbed, 180b80220 returning the case's height, the two ironsight value blocks pointed at the case's values) over 608 codes (classic versions 0-6, right and wrong checksums, new codes with noise and plausible fields, bad digits, overflow): every field and the rescale bit-exact, 437 valid.
+- The style functions under Unicorn (xhair_draw_oracle.py): 600 crosshairs, 1623 shapes equal.
+- 180d9e560 through the real 180c19db0 / 180c19cd0 / 180da17d0 and 181740910 under Unicorn (xhair_proj_oracle.py): 500 random views, every spread, centre and forward equal.
+- 180da7770 under Unicorn with tier0's maths (xhair_lineup_oracle.py): 300 views, 9842 shapes equal. The oracles run the real tier0 under Unicorn (tier0_link.py: relocated to 0x260000000, the client's imports pointed at it), so they take tier0's SSE2 path.
+- tier0's maths bit for bit, 20000 inputs each (6% huge): the SSE2 path against tier0 under Unicorn (tier0_trig_oracle.py), the FMA path against tier0 called natively on an FMA3 CPU (tier0_native.py: the flag read back is 1).
+- The shader against a CPU rasteriser of the same maths: 149 random crosshairs, 782,296 pixels within 1 / 255 (before types 3 / 4); 120 labels, 6 sizes, every glyph: 290,086 of 290,126 pixels within 1 / 255, the other 40 taps exactly on a texel boundary (a 33 px label's centre column).
+- Not checked: 180da0610's own arithmetic between those calls (from the disassembly), the friendly icon's rect, 180c9ae90's timers (from the decompile), the shader's float ops (the decompiled SPIR-V).
+
 ## Constants
 
 | Value | What |
@@ -266,10 +276,10 @@ Classic M (18 bytes) -> record:
 3. m_flAttackHoldStartTime (180828000 from PreThink): attack or attack2 (0x801) held and m_bWaitForNoAttack (as the last command left it) clear -> now if it was 0; else 0. Deploy zeroes it and sets m_bWaitForNoAttack; ItemPostFrame's no-attack branch clears m_bWaitForNoAttack and m_iShotsFired. So the line-up shows once the pin has been held past the delay (2 s by default), from a fresh press.
 4. m_bThrowAnimating: set by StartGrenadeThrow, cleared by the grenade's Deploy and by 1807d7f70 (on WPN_ACTION_COMPLETE that update).
 5. 180da7770 colour: cl_crosshaircolor_r / g / b each clamped [0, 255], alpha cl_crosshaircolor_a clamped, x +0xbc, V_roundf, (char) cvttss2si.
-6. Ticks: the forward vector turned step by step by a quaternion about the view's up (+0x34) and about its right (+0x28): the axis normalised (18015a140), `q = (axis x s, c)` from V_sincosf(0.0872664600610733) (zero axis: identity). SIMD lanes: `t = 2 (v.zxy q.yzx - v.yzx q.zxy)`, `v' = (t.zxy q.yzx - t.yzx q.zxy) + (v + w t)`; each step's `v' x 2000 + eye` on screen, kept in a CUtlVector. Counts: across `floor(atan(aspect tan(fov x 0.008726646)) x 114.59155 x 0.5 / 10)` (V_tanf, V_atanf), up `floor(fov x 0.5 / 10)`.
+6. Ticks: the forward vector turned step by step by a quaternion about the view's up (+0x34) and about its right (+0x28): the axis normalised (18015a140), `q = (axis x s, c)` from V_sincosf(0.0872664600610733) (zero axis: identity). SIMD lanes: `t = 2 (v.zxy q.yzx - v.yzx q.zxy)`, `v' = (t.zxy q.yzx - t.yzx q.zxy) + (v + w t)`; each step's `v' x 2000 + eye` on screen (180c19db0, 180da17d0), kept in a CUtlVector (UtlVectorMemory_*). Counts: across `floor(atan(aspect tan(fov x 0.008726646)) x 114.59155 x 0.5 / 10)` (V_tanf, V_atanf; the aspect the view render's vfn 0x88: +0x1cd0, set from engine2's CEngineClient vfn 0x2c0, 180076490), up `floor(fov x 0.5 / 10)`.
 7. Sizes from +0x58 (s = screen height / 1080): label `h = floorf(s 20)`, `w = floorf(h 1.28)`; `s' = floor(s)` when s >= 1; `n = max(1, cvtss2si(s' + s'))`, `a = (n + 1) / 2` above, `b = n - a` below (floats fa, fb).
 8. Boxes (180da8410, outline colour 0, outline (0, 0)): (0, cy - fa)-(cx + cx, fb + cy) and (cx - fa, 0)-(fb + cx, cy + cy); per across point `x = floorf(px)`: (x - fa, cy - L)-(x + fb, L + cy), its mirror at `(cx - x) + cx`; per up point `y = floorf(py)`: (cx - L, y - fa)-(cx + L, y + fb) and its mirror `(cy - y) + cy`. L starts at 10 for each set and becomes `floorf(L x cl_grenadecrosshair_tickscaling)` after each tick pair.
-9. Labels (180da7640): the rect (x, y)-(x + w - 1, y + h - 1), +0x10 = (float) glyph; glyph 0x7fffffff: none. Across: `x = floorf(((x - fa) + (x + fb) - w) 0.5)`, `y = (L + cy) + 2`; up: `x = (cx + L) + 2`, `y = floorf(((y - fa) + (y + fb) - h) 0.5)`. Glyph for the k-th tick (k 1..5 only): across `(5 - k) 4` for the computed side (counter -1, -2 ..), + 1 for the mirror (+1, +2 ..); up `22 - 4 k`, + 1 for the mirror: atlas cells "-kx" / "kx" / "-ky" / "ky" (grenade_crosshair_numerals: 4 columns of 64 x 50 texels, rows -5 .. -1 top to bottom).
+9. Labels (cl_grenadecrosshair_ticklabels; 180da7640, type 3, the colour as 180da8410's): the rect (x, y)-(x + w - 1, y + h - 1), +0x10 = (float) glyph; glyph 0x7fffffff: none. Across: `x = floorf(((x - fa) + (x + fb) - w) 0.5)`, `y = (L + cy) + 2`; up: `x = (cx + L) + 2`, `y = floorf(((y - fa) + (y + fb) - h) 0.5)`. Glyph for the k-th tick (k 1..5 only): across `(5 - k) 4` for the computed side (counter -1, -2 ..), + 1 for the mirror (+1, +2 ..); up `22 - 4 k`, + 1 for the mirror: atlas cells "-kx" / "kx" / "-ky" / "ky" (grenade_crosshair_numerals: 4 columns of 64 x 50 texels, rows -5 .. -1 top to bottom).
 
 ### The friendly warning (180da0610 +0x92)
 
@@ -279,7 +289,7 @@ Classic M (18 bytes) -> record:
 - 180c9ae90 each frame:
   1. m_iIDEntIndex = -1; mp_playerid 2: done; a screen fade over 75 with this pawn the local / observed one: done.
   2. Camera services vfn 0x108 (eye, angles), AngleVectors; TraceLine 180200f20 from eye + 10 fwd to eye + 2500 fwd (0xc3003, group 3, flags 0x49, the pawn ignored), the nearest hit.
-  3. No hit: filter 180352920 + 180aca060, UTIL_ClipTraceToPlayers(start, the line's end + 72 forward, filter, trace, 0, 60, |end - start| / |new end - start|): each player alive (vfn 0x4e8), not dormant, not the filter's two ignored handles, whose centre (vfn 0x2b0) lies 0..60 u from the line (18174cfb0), clipped by ClipRayToEntity; a fraction under the given one replaces the trace. (Every player's box is already in the first line's world: it can only find what that line found.)
+  3. No hit: filter 180352920 + 180aca060, UTIL_ClipTraceToPlayers(start, the line's end + 72 forward, filter, trace, 0, 60, |end - start| / |new end - start|): each player alive (vfn 0x4e8), not dormant, not the filter's two ignored handles, whose centre (vfn 0x2b0) lies 0..60 u from the line (18174cfb0), clipped by ClipRayToEntity (180a1aa70, a line ray); a fraction under the given one (the first line's own end) replaces the trace. (Every player's box is already in the first line's world: it can only find what that line found.)
   4. A hit entity not this pawn (and of its team when mp_playerid is 1), its centre not behind smoke (1807cd7f0 <= 0): a new index starts m_delayTargetIDTimer at mp_playerid_delay (0 for a player 1808d9120 says isn't an enemy); m_iIDEntIndex and m_iOldIDEntIndex = it, m_holdTargetIDTimer = mp_playerid_hold.
 - m_iIDEntIndex is client-only (no server.dll field).
 
@@ -291,7 +301,7 @@ One static combo; the vertex shader passes a quad's screen position and a 64-bit
 - Type 1: `d = |p - c|`, `a = atan2(dx, -dy)`, `t = max(smoothstep(0, pi / 2, a), smoothstep(-pi / 2, -pi, a))`, `fill = smoothstep(r + .5, r - .5, d) smoothstep(r - w - .5, r - w + .5, d)`, outline the same at `r + lerp(o.x, o.y, t)` and `r - w - lerp(o.y, o.x, t)`.
 - Type 2: also x `smoothstep(h + (o + .5) / d, h + (o - .5) / d, q)` for the outline and `smoothstep(h + .5 / d, h - .5 / d, q)` for the fill, `q = |a - floor(a 2 / pi) pi / 2 - pi / 4|`, h = angle / 2, d >= 1.
 - Types 3 / 4 (csgo_crosshair.vmat: g_tGlyphAtlas t31 grenade_crosshair_numerals, g_tFriendlyIcon t32 friendly_crosshair_icon): outside the rect nothing, else `size = max((zw - xy) + 1, 1)` and the mean of 3 x 3 SampleLevel .x taps (rows outer): type 3 at `(64, 50) (cell (g % 4, g / 4) + ((p + 0.5) - xy) / size) + ((i + 0.5) / 3 - 0.5) (64, 50) / size`, x 1 / 256; type 4 at `((p + 0.5) - xy) / size + ((i + 0.5) / 3 - 0.5) / size`. Type 3 is a fill (coverage x colour alpha) in the best-of choice; type 4 adds colour x coverage x alpha to a sum the composite adds x (1 - a) after.
-- Composite: the strongest fill and the strongest outline win (>=), then `out = (lerp(outline.rgb aO, fill.rgb, F) + add (1 - a), a = lerp(aO, 1, F))`, `aO = (1 - F) outline.a`.
+- Composite: the strongest fill and the strongest outline win (>=), then `out = (lerp(outline.rgb aO, fill.rgb, F) + add (1 - a), a = lerp(aO, 1, F))`, `aO = (1 - F) outline.a` (the outline's colour weighed aO (1 - F)). CS2 writes this linear output into its sRGB target.
 - Sampler: DefaultSamplerState (s15 / s16) is a render-state literal (VariableSource __RenderStateLiteral__, IntDefs 0, flags SamplerFlag4): packed description 0 = point sampling, REPEAT on both axes, no bias, no anisotropy (the 3 x 3 taps are its anti-aliasing). Taps exactly on a texel boundary are decided by the GPU's own coordinate rounding (vendor-specific).
 
 ### Packed sampler description (1800b35c0)
@@ -313,15 +323,15 @@ Each tests 1803ab28c first: set at start-up on a CPU with FMA3, it takes the FMA
 - expf: `t = x 92.33248261689366` (64 / ln 2); t >= 8192: inf, t < -9600: 0 (1802e9478); `n = cvtpd2dq(t)` (to nearest even), `r = x - n 0.010830424696249145`, `p = (r r) (r / 6 + 0.5) + r`, `(p T + T) 2^((n - j) >> 6)`, T = the 2^(j / 64) table at 18033e370, j = n & 63.
 - Payne-Hanek (sinf SSE2 >= 1.6e7; cosf SSE2 >= 500000; tanf both paths and sinf FMA >= 16779436: inline): e = x's exponent, `off = 0x86 - (e >> 3)` into the byte table at 1803403f0 (1803404a0 the same bytes for 1802e9830), m = the mantissa with its implicit bit; the 192-bit product `m (T[off] + T[off + 8] 2^64 + T[off + 16] 2^128) mod 2^192` in words r8 / r9 / r10 (mul / adc); `s = 54 - (e & 7)`: n = r10 >> s plus the bit below it (when set: all three words complemented and the sign bit set); region = n & 3; r10 keeps its low `54 - (e & 7) - 10` bits, normalised to 53 bits with r9 / r8 shifted in (6-bit shift counts), exponent and sign packed: that double x 1.5707963267948966. cosf FMA >= 3373259520 (1802e8e80): the same words, then a double-double head: the low word as a double, the high one split at 26 bits (& 0xfffffffff8000000), x pi / 2 in three parts (1.5707963109016418 / 1.5893254712295857e-08 / 6.123233995736765e-17) with fused adds.
 - FMA path: the same constants, Horner with fused steps (sin: `x + (((S4 x2 + S3) x2 + S2) x2 + S1) x^3`; sinf's cos: `fma(x2, -0.5, 1) + (((K4 x2 + K3) x2 + K2) x2 + K1) x4`; cosf's cos: `1 - x2 0.5` unfused, then the same; tan: `fma(x2 r, (T1 x2 + T0) / ((U2 x2 + U1) x2 + U0), r)`); one reduction step `n = trunc(fma(|x|, 2 / pi, 0.5))`, `r = fma(-n, p1, |x|) - n p1t` (thresholds 16779436 / 3373259520 / 3373259264, beyond them Payne-Hanek); small forms `x - (x x x) / 6`, `1 - x (x / 2)`, `(x x x) / 3 + x` fused; sinf's sign (region >= 2) xor (x < 0), cosf's (region + 1) & 2; expf `r = fma(-n, ln2 / 64, x)`, `p = fma(r2, fma(r, 1/6, 0.5), r)`, `fma(p, T, T) 2^m`.
-- atanf equals the correctly rounded atan narrowed to f32 on every input checked (both paths); powf doesn't (1 ulp on ~0.02%). powf SSE2: a packed-double log2 (the mantissa's top 8 bits rounded index an inverse table at 180305a30 and a log table at 18033c370; |x - 1| small: an atanh series 18033c300 / 18033c310) times y, then expf's table; then the special cases (negative x with integer y, zeros, infinities: 1802e96d4).
+- atanf equals JavaScript's Math.atan rounded to f32 on every input checked (both paths); powf doesn't (1 ulp on ~0.02% of inputs; its one crosshair use is 18174a050's colour linearisation, which the shader's 8-bit output can't show). powf SSE2: a packed-double log2 (the mantissa's top 8 bits rounded index an inverse table at 180305a30 and a log table at 18033c370; |x - 1| small: an atanh series 18033c300 / 18033c310) times y, then expf's table; then the special cases (negative x with integer y, zeros, infinities: 1802e96d4).
 
 ## Convar registrations
 
-Each is its own static initializer: `lea rdx, "name"; lea rcx, [handle]; call ctor`.
+tools/re/game/cvardefs.py `<dll> <names file> <out.json>` decodes many registrations at once (cvardump.py prints one's raw stores). Each is its own static initializer: `lea rdx, "name"; lea rcx, [handle]; call ctor`.
 
 - Int / bool, ctor 1819a6e40: a setup struct on the stack, [rsp+0x35] a word of has-min (0x01) / has-max (0x100), [rsp+0x37] default, [rsp+0x47] min, [rsp+0x57] max; r8d flags, r9 help.
 - Float, ctor 18015a620: builder 180765060 (xmm1 = min) then 180765050 (xmm1 = max), default in xmm2 (set before or after the name's lea), r9d flags.
-- The handle's +8 is the value block; the value at block + 0x58.
+- The handle's +8 is the value block; the value at block + 0x58 (as 180daf640 reads the ironsight pair).
 - `lea rdx, "name"` + ctor 1819a6010: a lookup of another DLL's convar (volume, fps_max, snd_voipvolume ...): no default here.
 
 ### Defaults (client_20261112)
@@ -348,7 +358,7 @@ Each is its own static initializer: `lea rdx, "name"; lea rcx, [handle]; call ct
 | cl_grenadecrosshair_<flash / explosive / fire / smoke / decoy> | true; delays 2 [0, 5] |
 | cl_sniper_delay_unscope / cl_sniper_show_inaccuracy / cl_sniper_auto_rezoom | false / true / true |
 | cl_crosshair_sniper_width | 1 |
-| sensitivity / zoom_sensitivity_ratio | 1.25 [0.0001, 8] / 1 [0.01, 3] |
+| sensitivity / zoom_sensitivity_ratio | 1.25 [0.0001, 8] / 1 [0.01, 3] (as mouse.md has them) |
 | hud_scaling | 1 [0.9, 1.1] |
 | cl_radar_scale / cl_hud_radar_background_alpha | 0.7 [0.25, 1] / 0.627 |
 | snd_menumusic_volume / snd_roundend_volume / snd_mvp_volume / snd_roundstart_volume_casual | 0.04 / 0.16 / 0.16 / 0.0225 ... |
@@ -381,4 +391,5 @@ Not in the extracted .vcss: the base Slider track / thumb.
 - The encoder behind MyPersonaAPI.GetCrosshairCode.
 - The settings menu's size-edit path (180da8b00 / 180daa8d0 / 180da0610 / 180dc0420): rescales the sizes to the screen, then sets the edited one and the height (as cl_crosshair_screen_height's help says).
 - 180da0610's own arithmetic between the checked calls (the dynamic gap's clamp, the alpha: from the disassembly); the friendly icon's rect; 180c9ae90's timers (from the decompile); the shader's float ops (decompiled SPIR-V).
+- powf against a native call (1 ulp on ~0.02%: see tier0's maths).
 - The smoke test's precision: CS2's client simulates its smokes in f32.

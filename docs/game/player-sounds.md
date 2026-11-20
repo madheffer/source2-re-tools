@@ -102,7 +102,7 @@ server_20261105 (image base 0x180000000) unless named; client_20261105 (client_2
 | 180d3d490 / 180bc68b0 / 18024cb10 | server | ItemSoda.Bounce / Metal.SawbladeStick / SprayCan |
 | 180582670 | server | physics dispatcher (physics game system, world) |
 | 180571240 -> 180593af0 | server | contact vectors adaptor |
-| 180d1a340 | server | CBaseEntity vfn 0x278 VPhysicsCollision |
+| 180d1a340 | server | CBaseEntity vfn 0x278 VPhysicsCollision (the weapons' and CPhysicsProp's sound slot too) |
 | 180d1a420 | server | vfn 0x280 (entity, index, event) |
 | 180c00e80 | server | game material of a surface |
 | 1805a9c70 | server | impact sound volume (system 181ff5690, ...) |
@@ -140,13 +140,13 @@ server_20261105 (image base 0x180000000) unless named; client_20261105 (client_2
 | 18082f260 | client | knife CanBeSelected: true |
 | 1807e24a0 | client | vfn 0x9e0 guns, C4, Zeus: true |
 | 1807e2450 | client | vfn 0x9e0 grenade: (UsesClip and clip > 0) or reserve > 0 |
-| 1811a9cb0 | client | SelectSlot (slot 0x248) |
-| 180c19e30 | client | slot 0x2d8 |
-| 180c0cc30 | client | GetNextActivePos (0x258) |
-| 1800dded0 | client | hud_fastswitch |
-| 1811a68c0 / 1811a6980 via 1811a7530 / 1811a77c0 | client | next / prev (0x228 / 0x230) |
-| 1811a5f30, 1811a5ac0, 1811a6450 | client | slots 0x2f0 / 0x2f8 / 0x300 |
-| 180943870 | client | owner |
+| 1811a9cb0 | client_20261015 | SelectSlot (slot 0x248 of vtable 0x181d21320) |
+| 180c19e30 | client_20261015 | slot 0x2d8 (from the per-grenade binds 0x288..) |
+| 180c0cc30 | client_20261015 | GetNextActivePos (0x258) |
+| 1800ddf70 | client_20261015 | hud_fastswitch registration (object 0x18256aeb0; 1800dded0 before it registers gl_clear: checked 2026-11-21) |
+| 1811a68c0 / 1811a6980 via 1811a7530 / 1811a77c0 | client_20261015 | next / prev (0x228 / 0x230) |
+| 1811a5f30, 1811a5ac0, 1811a6450 | client_20261015 | slots 0x2f0 / 0x2f8 / 0x300 |
+| 180943870 | client (build not stated; read with the 1015 callers) | owner |
 | 1803ae000 | client | client physics event dispatcher |
 | 1803ce260 | client | client impact (system, &scratch, event, index); twin of server 1805a9c70 |
 | 1803b7840 | client | speed `|(vz nz + vy ny) + vx nx|` |
@@ -173,7 +173,8 @@ server_20261105 (image base 0x180000000) unless named; client_20261105 (client_2
 | controller +0x514 | connection state |
 | controller +0x510 | m_bIsHLTV |
 | controller +0x708 | last CSGOUserCmdPB (+0x49 body / +0x4a head predicting) |
-| pawn +0xb18 (+0x163*8) | m_pItemServices (+0x49 m_bHasHelmet) |
+| pawn +0xb18 (+0x163*8) | m_pItemServices |
+| item services +0x49 | m_bHasHelmet |
 | pawn +0x1514 | m_ArmorValue |
 | pawn +0xe6a | m_bHasFemaleVoice |
 | pawn +0xe70 | m_strVOPrefix |
@@ -259,7 +260,7 @@ server_20261105 (image base 0x180000000) unless named; client_20261105 (client_2
 
 ## Recipients
 
-- 180a77f60: the info's attacker (+0x3c) when a player pawn that is also the inflictor (+0x38) and whose controller's +0x708 block has +0x49 (body) / +0x4a (head) set -> that controller, else 0. That is cl_predict_body_shot_fx / cl_predict_head_shot_fx (damage-prediction.md): a predicting client is left out of the server's copy.
+- 180a77f60: the info's attacker (+0x3c) when a player pawn that is also the inflictor (+0x38) and whose controller's +0x708 block has +0x49 (body) / +0x4a (head) set -> that controller, else 0. Read as the client's cl_predict_body_shot_fx / cl_predict_head_shot_fx (client-side userinfo, the defaults read as 0; damage-prediction.md): a client that predicts its hit effects is left out of the server's copy.
 
 ## A hit (180a94400 -> 180a95310)
 
@@ -292,18 +293,18 @@ The post first sets pawn +0x1494 when armor was hit and none is left; `armorDmg 
 ## A pickup (BumpWeapon 180b1c290's tail; pickups.md)
 
 - `silent = 18024b730(_, pawn)`: 1 when the game rules exist, **m_bFreezePeriod is 0** and the pawn's 2D speed **< 135.2**. It is item_pickup's `silent`; when 0 the pawn emits (180f695d0): `Player.PickupGrenadeAudible` for type 9, `Player.PickupC4` for type 7, else `Player.PickupWeaponAudible`.
-- `Player.PickupWeapon`: items/pickup_weapon_02.wav, volume 0.7.
-- Own silent pickup (client 180c77710): "item_pickup" with the event's userid this pawn and the local player's live pawn (180c7781f..: [rbp+0x130]), `silent` set: **Player.PickupWeaponSilent** from the pawn (180c0ad30).
+- `Player.PickupWeapon`: items/pickup_weapon_02.wav, volume 0.7 (its emitters unread; the ammo extraction's is in pickups.md).
+- Own silent pickup (client 180c77710): "item_pickup" with the event's userid this pawn and the local player's live pawn (180c7781f..: [rbp+0x130]), `silent` set: **Player.PickupWeaponSilent** from the pawn (180c0ad30). item_pickup's silent is BumpWeapon's / GiveDefuser's (18024b730).
 
 ## Armour MyTouch (slot 0x9a8 (309))
 
 1. (item, pawn): nothing unless the pawn's vfn 0x558 and 0xca8 (presumably IsPlayer / IsAlive).
 2. Suit only: m_bHasHelmet = 1. Both: m_ArmorValue = 100; kevlar leaves the helmet.
 3. 18023a540(pawn).
-4. Pawn vfn 0x550 true: CRecipientFilter with AddAllPlayers, the *item's* entity index, EmitSound of `Player.EquipArmor_CT` for team 3, else `Player.EquipArmor_T`.
+4. Pawn vfn 0x550 true (unread): CRecipientFilter with AddAllPlayers, the *item's* entity index, EmitSound of `Player.EquipArmor_CT` for team 3, else `Player.EquipArmor_T`.
 5. Returns 1 (taken), 0 when the gate failed.
 
-- From game_player_equip / GiveNamedItem: no position (param 6 null) sets weapon services +0xd8 = 1; a non-weapon (cast null) gets vfn 0x4b8 with the pawn: CBaseEntity::Touch, which runs m_pfnTouch (+0x2b0) and the other's vfn 0x4c8 / 0x4b8. The item spawns at the pawn's origin + 5 z (then 180571ca0).
+- From game_player_equip / GiveNamedItem: no position (param 6 null) sets weapon services +0xd8 = 1; a non-weapon (cast null) gets vfn 0x4b8 with the pawn: CBaseEntity::Touch (both items' slot), which runs m_pfnTouch (+0x2b0) and the other's vfn 0x4c8 / 0x4b8. The item spawns at the pawn's origin + 5 z (then 180571ca0).
 - The buy menu's armour doesn't come here: item_kevlar 180a6f6f0 / item_assaultsuit 180a6ee50 play Player.PickupWeapon (buy.md; from the pawn, no silent test: item_pickup's silent is 0).
 
 ## Low-ammo click (client FX_FireBullets 180d25990)
@@ -312,8 +313,8 @@ The post first sets pawn +0x1494 when armor was hit and none is left; `armorDmg 
 - The server reads slot 12 nowhere (1809aec60's eight callers: zoom 1809c05c0 / 1809c0660, 1809c0760, grenades 1809d3cd0 / 1809d4a50, vdata parse 180c9e320 / 5b0 / 7e0).
 - Client, right after the shot's sound (180d25dcf: 180d26730 with SINGLE or 0x12), weapon in r12:
   1. weapon_near_empty_sound on;
-  2. the weapon not null; vfn 0xa48(0) (max clip) > 1;
-  3. `f32(vfn 0xa58(0)) / f32(vfn 0xa48(0)) <= 0.2f` (comiss; both cvtdq2ps);
+  2. the weapon not null; vfn 0xa48(0) > 1 (the max clip: read by use, it must exceed 1 and divides);
+  3. `f32(vfn 0xa58(0)) / f32(vfn 0xa48(0)) <= 0.2f` (comiss 0x181acff20 against the quotient; the clip over the max clip, both cvtdq2ps);
   4. `180d26730(player / entity, weapon, 12, the shot's r9, volume = the shot's xmm7, sound level 100 (0x64), the shot's [rbp+0x518])`.
 - FX_FireBullets runs before BaseGunFire's Clip1 - 1 (fire-gate.md): a 30-round mag clicks on its last 6 rounds, a 5-round AWP on its last.
 - Default.NearlyEmpty: lowammo_01.wav, volume 1.5, delay 0.05 s, position_offset z 60; positional, 1100 u.
@@ -325,9 +326,11 @@ The post first sets pawn +0x1494 when armor was hit and none is left; `armorDmg 
 3. Slot ([rbp+0x508]) 2 and `m_flInaccuracyAltSoundThreshold > 0 && > a` (two comiss / jbe): slot 0x12, shift 0.
 4. Pitch `100 + (int)shift` (cvttss2si; add 0x64); volume 0 when [rbp+0x528] is 0.
 - weapons.vdata sets the two on the Negev alone (-50 and 0.02; 83 others 0); its SINGLE_ACCURATE is `Weapon_Negev.SingleFocused` (items_game `sound_single_shot_accurate` agrees). Under 0.02: focused at 100; from 0.02 plain at 99 down to 96 (0.08 and over).
-- A silenced shot's slot is SPECIAL1 (9), never 2; no silenced gun has an accurate sound.
+- A silenced shot's slot is SPECIAL1 (9), never 2 (taken from the weapons' sound pick, fire-gate.md); no silenced gun has an accurate sound.
 
 ## Ricochet (client 180b9b490)
+
+The impact effect's sound function: (this, the trace's record, the impact's data).
 
 1. Surface: the record's own (+0), or for fraction >= 1 without flag +0xbb / the same entity with a non-zero surface index, the physics properties' by the data's index (+0x4c).
 2. Name: damage bit 0x80 and a non-empty m_meleeImpact, else m_bulletImpact. **Empty: return** (no ricochet).
@@ -345,7 +348,7 @@ The post first sets pawn +0x1494 when armor was hit and none is left; `armorDmg 
 ## Drowning (water services slot 0x60, 180b25450)
 
 1. m_nActualMoveType 7 (noclip) without a move parent: the reset, done.
-2. Health >= 0 and alive (vfn 0x550), else nothing.
+2. m_iHealth (180cf7020) >= 0 and alive (vfn 0x550), else nothing.
 3. **m_flWaterLevel != 1.0** (or slot 0xc0): m_AirFinishedTime != 0 and < now -> **Player.DrownStart** from the pawn; the reset.
 4. Fully under: m_AirFinishedTime 0 -> now + 12.0f; then when < now, no FL_GODMODE and m_NextDrownDamageTime < now: damage = rate + 1 (at most 5), CTakeDamageInfo (the world as inflictor and attacker, DMG_DROWN), TakeDamageOld, m_NextDrownDamageTime = now + 1.0f.
 - Runs once per command from PreThink, before movement. 12 s of air, then 3, 4, 5, 5 ... a second apart (65 ticks: the compares are strict); the gasp on surfacing after the air ran out.
@@ -391,9 +394,9 @@ The post first sets pawn +0x1494 when armor was hit and none is left; `armorDmg 
 
 - Data: a weapon's world model shapes carry a surface (`WeaponRifle`, `WeaponPistol`, `WeaponSMG`, `WeaponSniper`, `WeaponShotgun`, `WeaponHeavy`, `WeaponKnife`, `WeaponC4`, the grenades'), whose impactHard / impactSoft events are `weapon.Rifle.Impact` ... (game_sounds_physics.vsndevts: csgo_mega, mixgroup Physics, `volume 1.5`, block_duration 0.2, block_distance 25, block_match_entity, instance_limit 3, child `weapon.Rifle.Impact.Rattles`, `use_impact_speed_input_volume_mapping_curve` with `impact_speed_input_volume_mapping_curve` (0 -> 0.114, 203.1 -> 0.305, 408.6 -> 1.0)).
 - **Dispatcher 180582670**: the world's events (world vfn 0x3d0; 0x100 bytes: +0 flags, +8 / +0x10 bodies, +0x18 / +0x1c entity handles, +0x20 / +0x24 surface indices). Flag 1 collision, 4 start touch, 8 / 0x10 others. A collision builds the game's event (+0 / +8 bodies, +0x10 / +0x14 surfaces, **+0x18 = 10.0**, **+0x1c speed**, +0xd8 / +0xe0 entities) and calls each entity's VPhysicsCollision (vfn 0x278). Speed (180582b90..180582bf1): `|((Vy Ny + Vz Nz) + Vx Nx)| x ((tsA + 0 + tsB) x 0.5)`, V and N from 180593af0, ts each body's vfn 0x430.
-- **vfn 0x278 (180d1a340)**: vfn 0x280, then clears flag 0x40 of +0x414 on an entity slower than 1 u/s.
+- **vfn 0x278 (180d1a340)**: vfn 0x280, then clears flag 0x40 of +0x414 (m_fFlags-like) on an entity slower than 1 u/s.
 - **vfn 0x280 (180d1a420)** (every weapon class and CBaseEntity: vslot of CAK47 1818f1b98, CCSWeaponBase 1818ec818, CKnife 1819154a0, CHEGrenade 181914520): needs the other entity, either one's m_MoveType == 5 (VPHYSICS), and (event +0x18 >= 0.5 or the other isn't itself). Both surfaces' game material must differ from 181e27f58. Then `1805a9c70(system 181ff5690, entity, body, other body, surface, other surface, speed, 1.0)`, then 180e8df50 / 180e8dde0.
-- **180cbd840** (CWorld's vfn 0x278): an entity hit by a dynamic body whose own surface has +0xc0 > 0: the same call with that as the scale.
+- **180cbd840** (CWorld's vfn 0x278): an entity hit by a dynamic body (the other's vfn 0x20 == 2) whose own surface has +0xc0 > 0: the same call with that as the scale.
 - **1805a9c70**: `volume = min(1, speed x speed x 9.765625e-06 x scale)`, then `180575ab0(system, entity, entity index, body, other body, surface, other surface, volume, speed, 0)` and the listeners.
 - **Queue 180575ab0** (entries: +0 entity handle, +4 entity index, +8 volume, +0xc speed, +0x10 other body's mass (vfn 0x128 when its vfn 0x20 == 2, else 500.0), +0x14 surface, +0x18 other surface, +0x1c position): `speed += 0.0001`; an entry with the same surface, or any entry once more than 4 are queued, absorbs the new one (lower volume: takes the new position, entity and other surface; mass = max; volume += new; speed = max); else a new entry. Position: the argument, else the body's (vfn 400), else the entity's origin.
 - **Flush 1805ad380**: frame time summed at +0xd8; **past 0.05 s** every entry plays, last first: surface = props (`1823ab5c0` vfn 0xb8, Get vfn 8); nothing without a hard sound (+0x50). `under = hardVelocityThreshold (+0xbc) > 0 && speed < it`. No soft sound: skipped when sv_phys_sound_disable_impact_sounds_under_hard_threshold and `under`, else hard. With a soft sound: soft when the other surface's hardness (+0xac) < this surface's hard threshold (+0xb8), or `under`; else hard. Played by 1805aa5b0. Then the break queue: each surface's +0x78 sound at volume 1.0 (1805aaaf0).

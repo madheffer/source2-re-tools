@@ -39,7 +39,7 @@ server_20261105. Graph: pak01 viewmodel_gun.vnmgraph+<variation>.
 | 180cacba0 | server | now |
 | 1813b8fb0 | server | clock - now |
 | 180c629e0 | server | ticks -> seconds |
-| 180a0fe70 / 180a10400 | server | R8's ItemPostFrame |
+| 180a0fe70 / 180a10400 | server | taken as the R8's ItemPostFrame (old reading). Disassembly: 180a10400 (0x180a10400..0x180a104f2) is called first by 180a10140 and from 180a0f6e7 (ItemPostFrame): when vfn 0xd28, +0xf70 = 1, +0xfa0 = 0x7fffffff, +0xfa4 = 0, and when +0xfbc is set it is cleared and the state set to 0x32 (1809f7840) |
 
 ## Fields
 
@@ -81,6 +81,12 @@ server_20261105. Graph: pak01 viewmodel_gun.vnmgraph+<variation>.
 | 182178640 / 182178660 / 182178668 | symbols WPN_ACTION_COMPLETE / WPN_RELOAD_ADD_AMMO / WPN_RELOAD_SILENT |
 | 1821ba010 vfn 0x1a8 | engine client convar read (cl_weapon_stealth_reload_toggle, 0 here) |
 | 2.2 s | USP-S m_flDisallowAttackAfterReloadStartDuration |
+
+## Per command
+
+PreThink (180236f50: the silent reload 180a27170 on the active weapon), then the movement, then the post-think
+(180ac4e30 -> 180b06e70): the active weapon's ItemPostFrame (vfn 0xd00) first, then vfn 0xd08 / 0xd10 and
+ShootVerify, then CCSPlayerWeaponTimingGraph::RunTick and its tags (vfn 0xd78, 180a1e7c0 for a gun).
 
 ## R in ItemPostFrame (180a0f4b0)
 

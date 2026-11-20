@@ -71,7 +71,7 @@ One node per map (`n0` or `node000`).
 | `.m_nLODOverride` | -1 everywhere |
 | `m_aggregateSceneObjects[]` | one model, many draw calls `m_aggregateMeshes[]`. de_dust2 379 / 3,472, de_inferno 346 / 6,176, de_nuke 352 / 8,239, de_ancient 273 / 4,733, ze_hold_em_p 7 / 58 |
 | `m_aggregateMeshes[]` | `m_nDrawCallIndex`, `m_bHasTransform` (a row in `m_fragmentTransforms`, 12 floats), `m_vTintColor` (3 bytes), `m_objectFlags`, `m_nLightProbeVolumePrecomputedHandshake` |
-| `.m_nVisClusterMemberOffset` / `Count` | 0 / 0 everywhere |
+| `.m_nVisClusterMemberOffset` / `.m_nVisClusterMemberCount` | 0 / 0 everywhere |
 | `m_visClusterMembership` (node and aggregate) | empty everywhere: clusters must be worked out at load (untraced how) |
 | `.m_nLODSetupIndex`, `.m_nLODGroupMask` | -1 / 0 on most. de_inferno 180 meshes (mask 1: 107, 2: 70, 4: 3), de_nuke 72 (24 each of 1, 2, 4), de_ancient 34 (17 each of 1, 2) |
 | `m_lodSetups[]` (AggregateLODSetup_t, parsed by worldrenderer) | `m_vLODOrigin`, `m_fMaxObjectScale` (0.96 .. 1.2), `m_fSwitchDistances` (2 or 3 floats, first 0, then 8 .. 80). de_inferno 129 setups, de_nuke 24 (all 0 / 30 / 80), de_ancient 34 (all 0 / 35.446) |
@@ -122,7 +122,8 @@ ze_crazykart_v4.
    xmm3 = dz²); `s = r x view+0x420 x rsqrt(d²)` (rsqrtss, not 1 / sqrt) clamped [0, 1]; s = 1 when `r² > d²`.
 5. `p = s x (float)(view +0xc8c)`.
 6. 0x1804afed0: n = [L + 0xb8] (0 -> level 0); `q = 50.0 / p` (0 when p <= 0); for i = n - 1 down to 1:
-   `t = [L + 0xc0][i]`; `if (t > 0 && q > t) return i`; return 0.
+   `t = [L + 0xc0][i]`; `if (t > 0 && q > t) return i`; return 0. So level i is drawn while the model covers fewer
+   than 50 / t pixels of the view's height (the highest such i wins).
 7. Mask byte = `1 << level`.
 
 ## World aggregates (GPU)

@@ -94,7 +94,7 @@ An earlier build's physbox addresses: `181837f98` / `180ed7520` / `180ebce10`.
 | 6 / 5 | solid type / move type VPHYSICS |
 | 0.1 | m_flPressureDelay when 0 |
 
-## Spawn (180e98a90)
+## CPhysicsProp::Spawn (180e98a90)
 
 1. +0xca4 = classname is "prop_physics_override"; +0xab4 = 8; CBreakableProp::Spawn.
 2. `forcemotiondisabled` true: spawnflags |= 8; `phys_start_asleep` true: |= 1.
@@ -103,13 +103,13 @@ An earlier build's physbox addresses: `181837f98` / `180ed7520` / `180ebce10`.
    spawnflag 4 -> SetCollisionGroup(5) (and 0x1000 -> 180cf5910); allow_flatten_hierarchy -> 180cb8510;
    CreateVPhysics; 180b49710; +0xc8a -> 180cf1730; the four glow setters; 180e6db60, 1813ab520, +0xca1 = 0.
 
-## CreateVPhysics (180e76070)
+## CPhysicsProp::CreateVPhysics (180e76070)
 
 1. Spawnflag 0x200000: 180cee2e0.
 2. Group = collision +0x5e (4 without a collision property). 180d0f2c0: vfn 0x248; SetCollisionGroup(group);
    interacts-with cleared if any bit, then |= 0xc3001 (each change through vfn 0x5e0); solid 6; SetMoveType(5) for
    motion argument 1 (6 otherwise; 2 becomes 3 with a move parent); node motion type 1; physics made; last argument
-   1 -> the physics' vfn 0x178 (Sleep).
+   1 -> the physics' vfn 0x178 (Sleep). What VPhysicsInitNormal does for a physbox, plus the group and the sleep.
 3. m_massScale > 0 and != 1: vfn 0x148 (mass) x it into vfn 0x150. m_buoyancyScale > 0 and != 1: vfn 0x1b8 (water).
 4. No body: `Cannot create physics for %s "%s" (%s) @{%g,%g,%g}`, return 0.
 5. Group 0x18 and every part's vfn 0x58 is 9: SetCollisionGroup(9).
@@ -122,7 +122,8 @@ No damping, drag or friction set by either function.
 
 CBreakableProp::Spawn (180bc5720): +0xab0 = 2, impact energy scale, a time; base spawn; prop data; `health` ->
 180d0e5d0; takedamage by health and breakable flags; max health; m_flPressureDelay 0 -> 0.1; `fire_interactions`
-keys (flashpoint, heat_delay, ...). No mass, damping or collision call: a prop's mass is its model's x massscale.
+keys (flashpoint, heat_delay, ...). No mass, damping or collision call: unlike CBreakable::Spawn for a physbox
+(gamemass, masscenteroffset), a prop's mass is its model's, scaled by massscale in CreateVPhysics alone.
 
 ## Entity.Teleport (18024e660)
 

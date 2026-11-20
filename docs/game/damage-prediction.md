@@ -18,7 +18,7 @@ Damage prediction decides who plays a hit's effects first (the shooter's client 
 | 18082e180 / 180833b30 / 180d02130 | client 1015 | taser / knife / other fire path using 180882d00 |
 | 180af3bb0 | client 1015 | controller test |
 | 18022e9e0 | client 1015 | victim's client-side TakeDamage(victim, info, 0) |
-| 180b61d70 | client 1015 | (&msg, 0x182): gates sending CCSUsrMsg_DamagePrediction (engine vfn 400) |
+| 180b61d70 | client 1015 | (&msg, 0x182): gates sending CCSUsrMsg_DamagePrediction (engine vfn 400); unsettled, read as a recording / log path |
 | 180b754f0 | client 1015 | camera-shake-like call when the command's +0x94 == 2 |
 | 1808de930 | client 1015 | pawn TakeDamage vfn 1: push predicted damage |
 | 18089fb40 | client 1015 | (pawn+0x15a0) == 0 gate |
@@ -89,7 +89,7 @@ Damage prediction decides who plays a hit's effects first (the shooter's client 
 
 | cvar | DLL | Site | Handle | Flags | Default | What |
 |---|---|---|---|---|---|---|
-| cl_predict_body_shot_fx | client | 1800ad5ec | 182533430 | 0x80088 | 0 | "Predict Body Shot Effects" |
+| cl_predict_body_shot_fx | client | 1800ad5ec | 182533430 | 0x80088 | 0 | Settings > Game > Damage Prediction "Predict Body Shot Effects" |
 | cl_predict_head_shot_fx | client | 1800ad69c | 182533440 | 0x80088 | 0 | "Predict Head Shot Effects" |
 | cl_predict_kill_ragdolls | client | 1800ad74c | 182533450 | 0x80088 | 1 ([rsp+0x37] = 1) | "Predict Kill Ragdolls" |
 | sv_damage_prediction_allowed | server / client | 1800c64fc / 1800aef3c | 182173a28 / 182533420 | 0x82000 (replicated) | 1 | the server lets clients predict |
@@ -131,13 +131,13 @@ return controller.m_bFireBulletsSeedSynchronized (+0x97c)
 
 - 180a9e270: `m_bFireBulletsSeedSynchronized = (181daae64 == 181daae60)`, NetworkStateChanged on change.
 - 180c7f1e0: A = the command's random seed (-1 with none); B = the same, unless sv_usercmd_custom_random_seed: B = SHA1(Plat_FloatTime() + 2^32 as a double, RandomInt(0, 0x7fffffff), 0) word +0x64. 180c70120: A = -1 after.
-- 1802a4e90: A == B -> the client's seed hashed with the two angles (18029f080 each) and the shot's int (a 12-byte MD5-style update via the import at 0x...f09 / f1f / f2a, unread); else B.
+- 1802a4e90: A == B -> the client's seed hashed with the two angles (18029f080 each) and the shot's int (a 12-byte MD5-style update via the import at 0x...f09 / f1f / f2a, unread), so the client's spread is the server's; else B (a server-only seed).
 - Default (0): every controller synchronized; the gate passes on latency alone.
 
 ## FireBullet's predicted damage (client 180887d60, decompile lines ~632-748)
 
 1. After the bullet walk, with the shooter's controller, 180af3bb0 and 180882d00 true: for each player damaged (alive: vfn 0x4f0, 0xab8), info gets the force position and its trace; `18022e9e0(victim, info, 0)`.
-2. Fills CCSUsrMsg_DamagePrediction (command_num = controller+0x780 +8, pellet_idx = param_9, victim_slot, victim_starting_health (180c671a0 before), victim_damage = (int)info+0x44, shoot_pos, shoot_dir, aim_punch); sent via engine vfn 400 only when 180b61d70(&msg, 0x182). The server registers the class; no server reader found.
+2. Fills CCSUsrMsg_DamagePrediction (command_num = controller+0x780 +8, pellet_idx = param_9, victim_slot, victim_starting_health (180c671a0 before), victim_damage = (int)info+0x44, shoot_pos, shoot_dir, aim_punch); sent via engine vfn 400 only when 180b61d70(&msg, 0x182). The server registers the class; no server reader found. The message is not part of the damage: TakeDamage is.
 
 ## Victim's client TakeDamage (vtables 181c8a898 / 181c8a8a0, 181c905d8 / e0, 181c911a8 / b0, 181c95d18 / 20)
 
@@ -148,8 +148,8 @@ return controller.m_bFireBulletsSeedSynchronized (+0x97c)
 ## Hit effects (client)
 
 - **180887960(info, head, mode)**: attacker (+0x3c) alive with a controller; inflictor (+0x38) the attacker; its command (+0x780) with +0x49 (body) / +0x4a (head) set; then mode 1 -> 0 (predicted: play here), mode 0 -> 0 only for the local controller (+0x790). Any test failing: returns the controller (the server's copy plays). No attacker: 0.
-- **1808a00e0**: unless damage bits have 4, 18089d3b0 (blood); then as server 180a94400, `type & (armor hit ? 0x28 : 0x20)` clear -> 1808a0150 (sounds).
-- **18089d3b0**: needs info +100; head = hit group 1 (180aadf40); `180887960(info, head, 1) == 0` -> head, damage > 0 and helmet (+0x65): `particles/impact_fx/impact_helmet_headshot.vpcf` at the hit; then victim vfn 0x4e0 with a level from health left vs damage (< 1: -1; < 12: 0; < 16: 3; < 22: 4; < 31: 5; < 75: 6; else 7; health - damage <= 0: 7), then vfn 0x4e0(0), then 18122a800 (CEffectData at the hit, shot direction negated). Effect names unread.
+- **1808a00e0**: unless damage bits have 4 (DMG_SLASH..., read as "not a bullet"), 18089d3b0 (blood); then as server 180a94400, `type & (armor hit ? 0x28 : 0x20)` clear -> 1808a0150 (sounds).
+- **18089d3b0**: needs info +100; head = hit group 1 (180aadf40); `180887960(info, head, 1) == 0` -> head, damage > 0 and helmet (+0x65): `particles/impact_fx/impact_helmet_headshot.vpcf` at the hit; then victim vfn 0x4e0 with a level from health left vs damage (< 1: -1; < 12: 0; < 16: 3; < 22: 4; < 31: 5; < 75: 6; else 7; health - damage <= 0: 7), then vfn 0x4e0(0), then 18122a800 (CEffectData at the hit, shot direction negated). Read as the blood decal / spray size; which effect names is unsettled.
 - **1808a0150**: attacker feedback only (`Player.DamageBody[Armor][.Knife].AttackerFeedback`, `Player.DamageHeadShot[Armor].AttackerFeedback`, parameter 0xdd82057c), same line-of-sight and smoke (< 1.4) gate (player-sounds.md 2), only when `180887960(info, head, 1) == 0`. Burn / club / Player.DamageKevlar as the server's.
 - **1808c8880**: `Player.Death[Body|HeadShot][Armor].AttackerFeedback`, same gate.
 - Knife flesh (client 180834006, server 180a30179): a body-predicting attacker plays `Weapon_Knife.Hit.*.Flesh` itself.
@@ -158,7 +158,7 @@ return controller.m_bFireBulletsSeedSynchronized (+0x97c)
 
 - 180c8f940: inflictor's controller passes 180af3bb0, GetHealth < 1, command +0x4b set, pawn +0x34e8 clear (then set), no ragdoll (+0x11a8 == 0): `180c70920(pawn, trace bone (+0x68 -> +0xb8, -1 without), info force (+8..+0x10), 180905020(), 0x80000)`.
 - 1808a1250: `expire = 1809442a0() - (int)((min(0.07, sv_maxunlag x 0.95) + 18093f590(-1) + 1/64 + 0.1) x 64)`, at least gpGlobals +0x44; 180c914f0 drops entries with tick <= expire.
-- 1808a1080 -> 180c8c070: a predicted ragdoll whose GetHealth > 0 again -> 1808e4b60, ragdoll (+0x11b0) freed via vfn 0x448, 18095b260: the player snaps back ("the target snaps back to its server-authoritative position").
+- 1808a1080 -> 180c8c070: a predicted ragdoll whose GetHealth > 0 again (the server's m_iHealth arrived and the entries expired) -> 1808e4b60, ragdoll (+0x11b0) freed via vfn 0x448, 18095b260: the player snaps back (the setting's own help text: "the target snaps back to its server-authoritative position").
 
 ## Server's half
 

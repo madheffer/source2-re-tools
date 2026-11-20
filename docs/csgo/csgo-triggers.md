@@ -26,8 +26,8 @@ server.dll (CS:GO legacy, md5 8048019154549052cb6dc057b76f6a85, Ghidra `/csgo_se
 
 | Offset | Field |
 |---|---|
-| CBaseEntity +0x114 | solid flags (ushort) |
-| CBaseEntity +0x158 | the VPhysics object |
+| CBaseTrigger +0x114 | solid flags (ushort) |
+| CBaseTrigger +0x158 | the VPhysics object |
 | CBaseTrigger +0x31c | spawnflags |
 | CBaseTrigger +0x408 | m_bDisabled |
 | CBaseTrigger +0x410 | m_hFilter |
@@ -76,11 +76,11 @@ OnEndTouch fires for whatever was inside when the trigger is disabled (the SDK's
 
 ## ze_crazykart's oil puddle
 
-`i_item_oil_trigger` (trigger_multiple, filter_kart): `OnStartTouch !activator RunScriptCode AddSpeed(-0.24)`, `OnEndTouch !activator RunScriptCode AddSpeed(0.24)`. The puddle goes with `OnUser1 !self Disable` at 0, `!self Kill` at 0.05: the speed returns only because Disable ends the touch and EndTouch fires.
+`i_item_oil_trigger` (trigger_multiple, filter_kart): `OnStartTouch !activator RunScriptCode AddSpeed(-0.24)`, `OnEndTouch !activator RunScriptCode AddSpeed(0.24)`. The puddle goes with `OnUser1 !self Disable` at 0, `!self Kill` at 0.05: the speed comes back only if Disable ends the touch and EndTouch fires the output.
 
 ## Unread
 
-- A killed trigger: the SDK's CBaseEntity::PhysicsRemoveTouchedList (UpdateOnRemove) calls PhysicsNotifyOtherOfUntouch(this, other), which calls `other->EndTouch(this)`: the removed entity is not told, so a killed trigger fires no OnEndTouch. Read both in this server.dll.
+- A killed trigger: the SDK's CBaseEntity::PhysicsRemoveTouchedList (UpdateOnRemove) calls PhysicsNotifyOtherOfUntouch(this, other), which calls `other->EndTouch(this)`: the removed entity is not told, so a killed trigger fires no OnEndTouch (the map's "Disable, then Kill 0.05 s later" reads as written for that). Read both in this server.dll.
 - The frame EndTouch lands on after a Disable (PhysicsCheckForEntityUntouch runs in the toucher's own physics step; for a VPhysics prop its VPhysicsUpdate).
 - Enable 0x103b59b0 and StartTouch 0x103b6090: whether an Enable with something already inside starts a touch the same frame.
 - A player (not a kart) in a CS:GO map's trigger goes through the CS2 engine's own trigger code, not these rules.

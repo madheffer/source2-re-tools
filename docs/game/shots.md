@@ -14,7 +14,7 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | 180181520 | server | CHitboxSystem intervals (CHitboxSystem, out, start, delta, filter, 0, set) |
 | 18018e630 | server | AABB tree walk of hitbox entities (radius 1.0, zero extents) |
 | 180a385c0 | server | CCSHitboxSystem slot 0: one entity |
-| 180a37900 | server | CCSHitboxSystem slot 1: TraceShapeAgainstHitboxes |
+| 180a37900 | server | CCSHitboxSystem slot 1: CCSHitboxSystem::TraceShapeAgainstHitboxes |
 | 1801a82b0 | server | CHitboxSystem::TraceShapeAgainstHitboxesDefault (the nearest) |
 | 18149c820 | server | hitbox -> query shape |
 | 180188810 | server | the hit's stored transform |
@@ -33,14 +33,14 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | 1802c9d40 | server | bot part point (no hitboxes) |
 | 1817b2518 | server | bot group -> part table (groups 0..5 to 4 parts) |
 | 18157f4e0 | server | box centre |
-| 180189050 | server | hitboxes against a sphere (18017cbc0(centre, radius)), nearest per group; from 180bb7e20 <- 180b9c320 (a parts / "Disabled" system) |
+| 180189050 | server | CHitboxSystem: an entity's hitboxes against a sphere (18017cbc0(centre, radius)), skipping m_bvDisabledHitGroups (180b52c10), nearest per group; from 180bb7e20 <- 180b9c320 (a parts / "Disabled" system) |
 | 180b9eaf0 | server | (owner+0x60's entity, out*, hit group): group bounds (boxes 1814759f0, spheres / capsules centre +- radius); from 180b94bf0 <- 180bb90b0 (five groups) |
 | 180ba1a10 | server | debug draw of hitboxes (colour per group 181936700, 180d59c20); from 180ba4b50 ("Health: %d, collision group: %d, nav ignore: %s") |
 | 180ca9a20 -> 180ca9c60 | server | debug overlay (colour bytes, duration); from 180184bb0 and 180baac70 (sv_debug_overlays_broadcast / ScriptDebugDraw callers) |
 | 180d1d630 | server | debug command timing 180181520 ("Traced intervals in %.3fus") |
 | 180cbd2b0 | server | the skeleton's 4-entry render-time hitbox history (+0x3f8) via 180caefb0 |
 | 180eda860 | server | clear older lag records |
-| 180cb9bd0 | server | model state set-up for a model (this = sk+0x120; 6 callers) |
+| 180cb9bd0 | server | model state set-up for a model (this = sk+0x120; 6 callers, the model-change paths) |
 | 1814a4420 | server | pose sized for the model (unread) |
 | 1814a3040 | server | per-bone flags |
 | 180cb7d10 | server | vfn 0x78: sk+0x410 = 0, valid mask cleared (1814a4780) |
@@ -49,7 +49,7 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | 18149f1e0 | server | one bone's bind pose (bad index: identity 182337e70) |
 | 180b44f00 | server | anim graph controller after its graph ran |
 | 180cb69b0 | server | graph pose into the model's bones |
-| 18149ee90 | server | model's map for a graph skeleton; 1814a19a0 / 1814a1a30 read the same list |
+| 18149ee90 | server | (model, graph skeleton): the model's map for that skeleton, searched by the skeleton's pointer, returns entry+8; 1814a19a0 / 1814a1a30 read the same list |
 | 1814a4750 | server | mark all bones valid |
 | 180ca5f30 | server | CSkeletonInstance::CalcAnimationState (line 0xd5b) |
 | 180b78a90 | server | CBaseAnimGraphController AddAnimationDecode (vfn 0xa8; callback 18195a0e0: 180ca3ca0 / 180ca3c20 -> 1814a4110 / 1814a4030) |
@@ -67,7 +67,7 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | 1804ac0e0 / 1804acdd0 | animationsystem | pose reset / bind pose (model+0x130, n, data) |
 | 180b670b0 | server | pawn OnTakeDamage (vtable 181794998 slot 128) |
 | 180adb1f0 | server | slot 254 |
-| 180a93f70 | server | damage services (pawn+0xe60) |
+| 180a93f70 | server | pawn +0xe60 services (schema: m_pDamageReactServices; read before as the damage services) |
 | 180a89430 | server | hit group step |
 | 180cacf80 | server | trace -> m_pHitbox +0x38 |
 | 180a3f3d0 | server | flinch (aim-punch.md) |
@@ -79,7 +79,7 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | 180a7ab50 | server | weapon lookup |
 | 180e83b50 | server | CCSGameRules vfn 0x110: `return 1` |
 | 180b5d1e0 | server | (pawn) test before dropping armor items |
-| 180a998f0 | server | item services (pawn+0xe40) on kevlar / assaultsuit |
+| 180a998f0 | server | pawn +0xe40 services (schema: m_pBuyServices; read before as the item services) on kevlar / assaultsuit |
 | 1803ed610 | server | CBaseEntity::TakeDamageOld |
 | 180fba770 | server | build the damage result |
 | 180cf7020 | server | health |
@@ -184,7 +184,7 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | +0x3c | m_nShapeType |
 | +0x48 | hitbox index |
 | skeleton +0x1c0 | model handle |
-| skeleton +0x270 -> vfn 0x60 | skeleton instance (from the entity's model vfn 0x1b8) |
+| entity vfn 0x1b8 (the model), +0x270 -> vfn 0x60 | the skeleton instance |
 | sk +0x308 | mesh group mask |
 | sk +0x3bc | m_nHitboxSet |
 | sk +0x3f8 | render-time history (4 entries) |
@@ -212,8 +212,8 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | pawn +0x14fc | m_LastHitGroup (stored +1) |
 | pawn +0x1514 | m_ArmorValue |
 | pawn +0xb18 | ItemServices (+0x49 m_bHasHelmet) |
-| pawn +0xe40 | item services |
-| pawn +0xe60 | damage services (+0x48 dmg_health, probably m_nTotalledHealthLost; +0x4c dmg_armor) |
+| pawn +0xe40 | m_pBuyServices (CCSPlayerPawn schema, server_20261105; m_pItemServices is +0xb18) |
+| pawn +0xe60 | m_pDamageReactServices (schema; m_pDamageServices is another class's) (+0x48 dmg_health, probably m_nTotalledHealthLost; +0x4c dmg_armor) |
 | pawn +0x15a8 | skip (unread) |
 | entity +0x2dc | m_flDamageAccumulator |
 | entity +0x2e8 | m_nTakeDamageFlags |
@@ -235,7 +235,8 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | entry +0x20 -> +0x18 | cl_interp frac (default 0x181e0e300) |
 | entry +0x28 / +0x30 | sv_interp0 / sv_interp1 (+0x1c src, +0x20 dst, +0x18 frac; default 0x181e0e2d8) |
 | CUserCmd base +0x40 -> +0x40 +0x18 / +0x1c / +0x20 | view angles |
-| movement services +0x1ac | m_flMaxspeed (pawn +0xb50) |
+| pawn +0xb50 | movement services (m_pMovementServices) |
+| movement services +0x1ac | m_flMaxspeed |
 | pawn +0x344 | m_iTeamNum |
 | segment (0x18) +0 / +4 / +8 / +0xc / +0x10 / +0x12 / +0x14 | start / end / damage / penetrations left / first (15 bits) / last / solid bit 0 |
 | game surface +8 / +0x14 | bulletPenetrationDistanceModifier / gamematerial (surface +0x10 x 0x20 + DAT_18218e4f8 +0x28) |
@@ -280,7 +281,10 @@ server_20261105 unless named; vphysics2_20260924; animationsystem_20261023; play
 | sv_csgo_shoot_use_full_interp | 0x18212b270, default 1, flags 0x2002 |
 | sv_csgo_shoot_force_full_interp | 0x18212b280, default 0 |
 | sv_csgo_shoot_force_use_target_time | 0x18212b290, default 0 |
-| sv_csgo_shoot_log / _verify / _verify_on_attack_only / _log_attack_cmds_only | 0x18212b210 / 0x18212b230 / 0x18212b260 (1) / 0x18212b220 (1) |
+| sv_csgo_shoot_log | 0x18212b210 |
+| sv_csgo_shoot_verify | 0x18212b230 (the head check) |
+| sv_csgo_shoot_verify_on_attack_only | 0x18212b260, default 1 |
+| sv_csgo_shoot_log_attack_cmds_only | 0x18212b220, default 1 |
 | 300 (0x18179bea8), 1.5 (0x1817a4420), 0.707107 (0x18196cdb0) | view-angle filter |
 | 1/512 u | entry / exit swap distance |
 | 500 | range modifier distance unit |
@@ -335,7 +339,7 @@ agents/models/ctm_sas/ctm_sas.vmdl (MDAT `m_hitboxsets`): set **"cstrike"**, 19 
 | spine_3 | 2 chest | 5.0 | | | | |
 
 - characters/models/ctm_fbi/ctm_fbi.vmdl and characters/models/tm_phoenix/tm_phoenix.vmdl have an empty `m_hitboxsets`.
-- With CS2's player anim graph (worldmodel.vnmgraph and its references, parameters from ReflectPawnState) the head sits at 64.08 u standing, 47.03 ducked; the lag record keeps 180ed9330's transforms (at most 32).
+- The pose comes from CS2's player anim graph (worldmodel.vnmgraph and the graphs it references, fed the parameters ReflectPawnState sets); evaluated by an Esoterica-derived runtime (not checked against animationsystem.dll), composed down the skeleton's parents at the body yaw, the head sits at 64.08 u standing, 47.03 ducked, still. The lag record keeps 180ed9330's transforms (at most 32) and the rewind blends them by 180cb4090.
 
 ### 3b. A set per model
 
@@ -344,8 +348,8 @@ agents/models/ctm_sas/ctm_sas.vmdl (MDAT `m_hitboxsets`): set **"cstrike"**, 19 
 - Every caller of 180cacd40 (9): 180a37900 (FireBullet's hitboxes); 1801a82b0 (blood trace, ragdoll decal); 180ed9330 / 180edebe0 (lag record / StartLagCompensation); 1802c1020 (CS2's bots: 0 hitboxes -> every part 1802c9d40's point; else groups 0..5 -> 4 parts via 1817b2518, each box's centre); 180189050; 180b9eaf0; 180ba1a10; 180ca9a20. So a hitbox set matters to bullets (blood / decals), the lag record, CS2's bots and debug drawing; grenades, the knife, +use and triggers never read it.
 - GFL's models (workshop 3160448201, `hitboxSets.cstrike`):
   - The 8 zombie models: 19 capsules, all "playerflesh", in ctm_sas's order and groups. zombie_chris_walker's are ctm_sas's; zombie_cultist and zombie_frozen differ in head_0; zombie_basic, ghoul_soldier, marauder and skeleton_bloody_lp in head_0, neck_0, pelvis, spine_0..3, the ankles and the arms (zombie_basic: head (-1.24, -0.07, 0)-(2.95, -0.91, 0) r 4.3 vs ctm_sas's (-1, 1.8, 0)-(3.5, 0.2, 0) r 4.3; spine_1 r 4.5 vs 6.5; spine_2 5.5 vs 6.2).
-  - classic_zombie: its group-1 box is named and boned **"fake_neck"** (a (4.92, 3.93, 0.99) b (2.22, -4.70, 0.99) r 4.2), its own bone: parent spine_3, bind pose (8.00204, -1.03499, -0.0000064) q (-2.9e-7, 2.6e-6, 0.1217463, 0.9925613) (bits 4100085c bf847a90 b6d6f198 / b49e2c8a 362d0f4f 3df95621 3f7e187f; neck_0's is 6.5152 along spine_3 with the same turn); child fake_head carries no hitbox; no head_0 box. Its BoneConstraintList is the pack's common one (2 CBoneConstraintDotToMorph, a CTiltTwistConstraint on head_0, a CPointConstraint on neck_0 + head_0, 2 CAimConstraint on the scapula helpers): none drives fake_neck (inferred from the lists being equal). fake_neck is posed per 3c.
-  - The 12 human models ("nohitbox" in 11 names, and `vector`): **one capsule**, "ankle_l" on bone ankle_l (tifa's "ankle_L"), group 6, radius 2.6, "playerflesh"; five different capsules across the pack (e.g. master_chief (-1.82, -4.26, -0.81)-(6.32, -0.17, -0.38)). A bullet hits such a human only on that ankle; the lag record keeps one transform (a count change 1 <-> 19 at an infection clears older records: 180eda860); collision box, the backstab's "spine_1" bone, grenades untouched. Purpose: teammates' bullets pass through a human (section 6: a teammate's hitbox costs damage and penetration).
+  - classic_zombie: its group-1 box is named and boned **"fake_neck"** (a (4.92, 3.93, 0.99) b (2.22, -4.70, 0.99) r 4.2), its own bone: parent spine_3, bind pose (8.00204, -1.03499, -0.0000064) q (-2.9e-7, 2.6e-6, 0.1217463, 0.9925613) (bits 4100085c bf847a90 b6d6f198 / b49e2c8a 362d0f4f 3df95621 3f7e187f; neck_0's is 6.5152 along spine_3 with the same turn); child fake_head carries no hitbox; no head_0 box. Its constraint list (m_modelInfo's BoneConstraintList) is the pack's common one (2 CBoneConstraintDotToMorph, a CTiltTwistConstraint on head_0, a CPointConstraint on neck_0 + head_0, 2 CAimConstraint on the scapula helpers): none of its own that could drive fake_neck (the slaves' names aren't in the KV3 read: an inference from the lists being equal). fake_neck is posed per 3c.
+  - The 12 human models ("nohitbox" in 11 names, and `vector`): **one capsule**, "ankle_l" on bone ankle_l (tifa's "ankle_L"), group 6, radius 2.6, "playerflesh"; five different capsules across the pack (e.g. master_chief (-1.82, -4.26, -0.81)-(6.32, -0.17, -0.38)). A bullet hits such a human only on that ankle; the lag record keeps one transform (a count change 1 <-> 19 at an infection clears older records: 180eda860); everything else about the pawn (its collision box for the knife's TraceShape and for movement, the backstab's "spine_1" bone, grenades) untouched. Purpose: teammates' bullets pass through a human (section 6: a teammate's hitbox costs damage and penetration).
 
 ### 3c. A model bone the graph's skeleton lacks (fake_neck)
 
@@ -358,7 +362,7 @@ agents/models/ctm_sas/ctm_sas.vmdl (MDAT `m_hitboxsets`): set **"cstrike"**, 19 
 - 180ca5f30: the wanted bones (flags vs mask) not valid; a sequence decode is added and run (g_pAnimationSystem vfn 0x68) only when the controller's vfn 0xd0 is neither 2 nor 3 (AddAnimationDecode adds one for mode 1 only); then 1814a47a0. **With a graph (modes 2, 3) nothing is decoded: an unwritten bone is valid with what the buffer holds.**
 - 180ca4490, per bone: the override interface (vfn 0 returns 0 none / 1 parent-space / 2 model-space transform), the bone-merge list, a physics body's transform (-1 in the bone -> body map: bind pose by 18149f1e0), else the animation pose's bone (180cab630 -> 180ca5f30).
 - 180ca6840: `parent = 1814a30a0(model, bone)`, `world = 181476030(parent pos, parent rot, local pos, local rot)`; a root bone takes sk+0x10 .. +0x2c plus 180cab450's offset.
-- classic_zombie's vmdl names `animation/graphs/worldmodel/worldmodel.vnmgraph` and `animation/skeletons/characters/worldmodel.vnmskel` like every pack model; the stock skeleton has no fake_neck, so its entry is negative and fake_neck keeps 180cb7d80's bind pose, under spine_3's animated world transform.
+- classic_zombie's vmdl names `animation/graphs/worldmodel/worldmodel.vnmgraph` and `animation/skeletons/characters/worldmodel.vnmskel` like every pack model; the stock skeleton has no fake_neck, so its entry is negative and 180cb69b0 never writes it: fake_neck keeps 180cb7d80's bind pose from the moment the pawn gets the model, 180ca4490 copies it to the parent-space pose and 180ca6840 puts it under spine_3's animated world transform. No constraint drives it.
 
 ## 4. Damage (180b670b0 -> 180adb1f0 -> 180a93f70)
 
@@ -370,7 +374,7 @@ agents/models/ctm_sas/ctm_sas.vmdl (MDAT `m_hitboxsets`): set **"cstrike"**, 19 
    - The flinch: mp_flinch_punch_scale x constants (-0.1, -4 floor; head without helmet -0.2 / -12 and a `RandomFloat(-1, 1)` yaw off the global stream clamped to [-9, 9]; chest / stomach / neck -0.005 armored, -0.033 not), 180a3f3d0 (aim-punch.md 5).
    - Damage force x phys_playerscale, on a headshot also phys_headshotscale and flag 0x80000; 0 for a grenade's head hit. Ragdolls only.
 2. Listeners; `healthshot_healthboost_damage_multiplier` while boosted (180ac60b0).
-3. **Friendly fire (180a89230)**: ff_damage_reduction_bullets / _grenade / _grenade_self / _other on teammates; 1.0 for an enemy.
+3. **Friendly fire (180a89230)**: ff_damage_reduction_bullets / _grenade / _grenade_self / _other on teammates; 1.0 for an enemy. (ZE runs mp_friendlyfire 0: teammates take none.)
 4. Gamerules 180231840.
 5. **Armor (180a88f30)**, damage type 0 or `& 0xc6`, unless info+0x70 bit 18 (0x40000: the C4 shockwave's hit):
    - IsArmored (180ad24c0): armor > 0 and hit group generic, chest, stomach, arms, neck; head only with a helmet; **legs never**.
@@ -404,13 +408,13 @@ agents/models/ctm_sas/ctm_sas.vmdl (MDAT `m_hitboxsets`): set **"cstrike"**, 19 
 
 ### 5b. StartLagCompensation's choice (180edebe0)
 
-1. The job's target (CLagCompensationManager vfn 0x28's, usercmd.md 8) clamped by 180ec2130 twice: local_948 with the job's max unlag (param_3 + 0x10; sv_maxunlag_player read when not above 0) and local_8e0 (the pawns' target, vfn 0x568).
+1. The job's target (vfn 0x10 of its +0x70: CLagCompensationManager vfn 0x28's, usercmd.md 8) clamped by 180ec2130 twice: local_948 with the job's max unlag (param_3 + 0x10; sv_maxunlag_player read when not above 0) and local_8e0 (the pawns' target, vfn 0x568).
 2. +0x78 -1 or not below +0x30 ("clamped invalid attack history index") -> target time. sv_csgo_shoot_use_full_interp off -> target time. The entry (+0x38 list + 8 + index x 8) without has-bit 2 (`+0x10 >> 1 & 1`) -> target time.
 3. 180ebc9c0 builds I0 (sv_interp0) and I1 (sv_interp1). 180ed23a0: valid when `-1 < src <= dst` and `0 <= frac <= 1`; invalid: "full interp info not valid, using target time".
 4. `T = 1813b93b0(out, &I0, &I1, cl_interp's frac)`: each info's time = (src, `(float)(dst - src) x frac`) folded (I1's first, then I0's), `d = time(I1) - time(I0)`, out = (time(I0).tick, `((float)d.tick + d.ratio) x f`) folded: time(I0)'s own ratio dropped.
-5. now = (gpGlobals +0x44, 0); `lower = now - 1813b9230(sv_maxunlag x 64)`; 180ebdc90 (ticks -1 (0xff) / 1, equal ticks: ratios 0xff / 1 / 0 / 0x80 unordered): T < lower -> lower; T > now -> now; else T. Not T itself (NaN not equal): "clamping to sv_max_unlag (%.3f), using target time" (180eddd80(3) rate-limits).
-6. `1813b9930(T, interp x 64 + 1) - target` (the controller's +0x5a8 x 64.0 + 1.0; GameTick + a float count of ticks), `(float)tick + ratio >= 1`: "full interp info doesn't match target time, using target time instead" (one-sided).
-7. 180ebc010 snaps I0, I1 (`|1 - frac| < 0.01`: src = dst; `|frac| < 0.01`: dst = src); S0 = I0's src, S1 = I1's dst: **S1 - S0 == 0 -> target time; == 1 -> single interp** (unless sv_csgo_shoot_force_full_interp: full); **else full interp**. sv_csgo_shoot_force_use_target_time forces the target time.
+5. now = (gpGlobals +0x44, 0); `lower = now - 1813b9230(sv_maxunlag x 64)`; 180ebdc90 (ticks -1 (0xff) / 1, equal ticks: ratios 0xff / 1 / 0 / 0x80 unordered): T < lower -> lower; else T > now (> 0) -> now; else T. Not T itself (the ticks compared, then ucomiss on the ratios; a NaN not equal): "clamping to sv_max_unlag (%.3f), using target time" (180eddd80(3) rate-limits).
+6. `1813b9930(T, interp x 64 + 1) - target (local_948)` (the controller's +0x5a8 x 64.0 + 1.0; GameTick + a float count of ticks), `(float)tick + ratio >= 1`: "full interp info doesn't match target time, using target time instead" (one-sided).
+7. 180ebc010 snaps I0, I1 (`|1 - frac| < 0.01`: src = dst; `|frac| < 0.01`: dst = src); S0 = I0's src, S1 = I1's dst: **S1 - S0 == 0 -> target time; == 1 -> single interp** (local_res20 = sv_csgo_shoot_force_full_interp: set, the full interp instead); **else full interp**. sv_csgo_shoot_force_use_target_time forces the target time.
 
 Per player (the job's filter vfn 0, not the shooter):
 - Target time (180edfacb..): `local_960 - 1813b9870(lerp x 64 + 1)`, lerp = 1/64 for maxClients 1, else `(int)(+0x5a8 x 64 + 0.5) x 1/64` (180edf656..); BacktrackPlayer(lc, entity, &{mode, a, b, frac}, record set, restore buf, change buf, 1) mode 0.
@@ -424,7 +428,7 @@ BacktrackPlayer, the rest: no record set -> 2, empty -> 3; restore record (param
 
 ### 5c. Who is rewound, the angles' blend
 
-- **WantsLagCompensationOnEntity (180d1b4e0)**: mp_friendlyfire 0 and pawn vfn 0xc78(entity) (a teammate): no; index bit not in the mask: no; sv_lagcomp_filterbyviewangle off: yes; else `d = |entity origin - pawn origin|` (`sqrt((dz dz + dy dy) + dx dx)`); speed = the player's m_flMaxspeed, else 300; **`sv_maxunlag x (speed x 1.5) > d`: yes**; else the forward of the command's view angles dotted `((fz z + fy y) + fx x)` with the normalised direction (1e-17 / 1e17 bounds, 1814738b0 outside, 0 stays 0): **`0.707107 <= dot`** (comiss / setbe: unordered counts as yes). A refused player keeps their current pose.
+- **WantsLagCompensationOnEntity (180d1b4e0)**: mp_friendlyfire 0 and pawn vfn 0xc78(entity) (a teammate): no; index bit not in the mask: no; sv_lagcomp_filterbyviewangle off: yes; else `d = |entity origin - pawn origin|` (`sqrt((dz dz + dy dy) + dx dx)`); speed = for a player (vfn 0x558) its movement services' m_flMaxspeed (+0xb50 -> +0x1ac), else 300; **`sv_maxunlag x (speed x 1.5) > d`: yes**; else the forward of the command's view angles dotted `((fz z + fy y) + fx x)` with the normalised direction (1e-17 / 1e17 bounds, 1814738b0 outside, 0 stays 0): **`0.707107 <= dot`** (comiss / setbe: unordered counts as yes). A refused player keeps their current pose.
 - **Angles' blend** (180ec1480, LAB_180ec1467): when the two records' abs angles differ, 1814774c0: AngleQuaternion each, the fitted slerp (`q = b w1 + a w0`, zero length 0x181f4a000 = zeros), QuaternionAngles; equal: the older's. A pawn's abs angles are (0, yaw, 0).
 - sv_unlag_fixstuck default 0: CS2 doesn't run the hull trace by default.
 
@@ -440,7 +444,7 @@ BacktrackPlayer, the rest: no record set -> 2, empty -> 3; restore record (param
 
 - FireBullet's arguments (rbp = entry rsp - 0x28c8): xmm3 the range (180a782a9..), stack +0x28 (rbp+0x28f0) penetration, +0x48 (rbp+0x2908) damage **as an int** (180a784a1 movd + cvtdq2ps: m_nDamage), +0x58 (rbp+0x2918) range modifier; the walk gets (damage, penetration, range modifier) in xmm1..3 and 4 penetrations (rbp+0x3b4 = 4 at 180a7827b). +0x7c is the count of solids before the air segment (rbp+0x2908 reused: `inc` at 180a7867e, stored at 180a791a4); damage the segment's +8 (180a78fe6); type bits `| 0x20040` (180a7919c).
 - Surface (180a97a80 decompile lines 109-113, 180a74a20 +0x18): the interval's +0x30 short via vfn 0xb8, the controller's vfn 0x18 (1800729c0: list at +8, `0 <= i < count`, else null), then 180c00e80. Find by hash (1800729f0): open-addressed, linear probe; hit sets *found = 1 and returns the slot's +8; **a miss sets *found = 0 and returns +0x30**, set by the loader to find(0x75de364e) ("default"). vphysics2 names one file, `surfaceproperties/surfaceproperties.vsurf`; pak01 holds only that vsurf_c: a map's own surface (any unknown hash) is "default". The aggregate loader's own vfn 8 call per m_surfacePropertyHashes entry taken as this find.
-- Game table order: CS2 walks in the vsurf's order. The stock vsurf (2026-11-16) has one child before its base, concrete (#46, base no_decal #105); concrete's surfaceproperties_game.txt entry sets both keys (0.5, "C").
+- Game table order: CS2 walks in the vsurf's order. The stock vsurf (2026-11-16) has one child before its base, concrete (#46, base no_decal #105); concrete's surfaceproperties_game.txt entry sets both keys (0.5, "C"): no surface's values differ by the order.
 - **Teammate branch** (decompile lines 200-235): the regular path unless the entry is flesh 'F', ff_damage_reduction_bullets is 0, the entry trace's entity is a player (vfn 0x558), mp_teammates_are_enemies is 0, and the handle's entity (1813aa290 -> 180c10aa0) is a player with vfn 0xca8 set whose m_iTeamNum equals the shooter's (the walk's 4th argument): then the modifier is ff_damage_bullet_penetration, 0 stopping the bullet (LAB_180a97f93). cfgs: gamemode_competitive.cfg / _competitive2v2.cfg ff_damage_reduction_bullets 0.33 (a teammate costs what an enemy does), gamemode_casual.cfg 0 (**a teammate stops the bullet**), gamemode_deathmatch.cfg 0.0 with mp_teammates_are_enemies 1 (regular).
 - Stop branch with a debug list (param_5, sv_showimpacts_penetration's): constants 1.18, 2.8, 0.15 fill the debug record only (returns 1).
 - Contents (bit 13, PASS_BULLETS): a shape's vfn 0x50 first qword (m_nInteractsAs); a hitbox's entity's collision property +0x18, the pawn's m_nInteractsAs (0x40000, solid cleared: 180ae27b0, grenades.md "Players and the projectile's filter"): no bit 13, and a hitbox's flesh meets no material rule.
@@ -454,7 +458,7 @@ BacktrackPlayer, the rest: no record set -> 2, empty -> 3; restore record (param
   2. Missed or hit no pawn: the same line with a plain filter (rbp+0x340, built at 180a2fead).
   3. Missed: spheres (180a30058, plain filter as 5th argument) of radius 14, 11, 8, 5, 2 to `end - fwd x radius`, each kept while it hits, the first miss ends it. vphysics2's sphere casts: CastShape type 1 (1801f5770: a ray at radius <= 1e-6, else the clip, the trees, the walk), a mesh's vfn 0x20 (180242750 -> 180247c30), a hull's (180250b20 -> 180253ac0, GJK). Checked natively: 60,000 casts, 0 mesh casts differ, 2 hull casts at radius 30 with a 1-ulp normal.
 - **Backstab** (a pawn hit): attacker-to-victim direction normalised in x, y (180a2f000), dotted (180a2b2c0) with the victim's forward from its abs angles and from its eye angles (vfn 0x5f0): above 0.475 either way. Else (180a302c3 .. 180a303eb), for a pawn (vfn 0x558) with a model (vfn 0xca8): bone **"spine_1"** (180b61300 -> 180cb4800 by MurmurHash2 0x6994cde, seed 0x31415926) and its world transform (180b52420 -> 180caf670: the bone cache sk+0x1a0, 0x20 bytes a bone, set up by 180ca6840 when +0x418 lacks the bits; a bad index gives 1803d5fa0). Direction from the bone to the attacker's eye (vfn 0x5e8) normalised (180148890: `|v| = sqrt((y y + z z) + x x)`, `1 / |v|` times each; zero stays zero; below 1e-17 or above 1e17 another path), dotted (y, z, then x) with the bone's quaternion applied to 182337f10 = (0, 1, 0) (`t = 2 (v x q)`, `C + (v + w t)`) and negated: above 0.475 is a backstab. The bone cache, not the lag record's blended hitbox transforms: the animation's last pose at the backtracked origin and angles.
-- **Damage** (180a2b280): stab 65, 180 from behind; slash 90 from behind, else 40 when the last attack was more than 0.4 s before (+0xeb0 tick), else 25; DMG_SLASH through TakeDamageOld, hit group generic.
+- **Damage** (180a2b280): stab 65, 180 from behind; slash 90 from behind, else 40 when the last attack was more than 0.4 s before (+0xeb0 tick), else 25; DMG_SLASH through TakeDamageOld, hit group generic (a pawn box has no hitbox).
 
 ## 8. The hitbox cast (query vfn 0x168)
 
@@ -465,7 +469,7 @@ BacktrackPlayer, the rest: no record set -> 2, empty -> 3; restore record (param
 
 - What CS2 hits on a pawn with an empty-set model (ctm_fbi / tm_phoenix): 180cacd40 returns 0 and 180a37900 logs "%s has no hitboxes"; whether SetModel / the animgraph's model swaps in a set.
 - 1814a0e00's join when several shown meshes carry the set (GFL's pack: every mesh carries the same-sized "cstrike" set).
-- The function that fills a model's graph-skeleton map (nothing reaches model+0x440 / +0x448 but the readers; a negative entry for a missing bone read from the `>= 0` test; match by bone name inferred); 1814a4420; where the bone constraints run.
+- The function that fills a model's graph-skeleton map (a raw scan of server.dll and animationsystem.dll finds nothing reaching model+0x440 / +0x448 but the readers, so it is built through another pointer; a negative entry for a missing bone read from the `>= 0` test; match by bone name inferred); 1814a4420; where the bone constraints run.
 - Where in CS2's frame the server evaluates the player anim graph; animationsystem.dll's graph runtime itself.
 - Who sets TakeDamageFlags in ZE (a map's damage); player_hurt's dmg_health source; pawn +0x15a8.
 - 180a998f0's armor item handling.

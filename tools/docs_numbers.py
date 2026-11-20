@@ -1,4 +1,5 @@
-"""docs_numbers.py <old.md> <new.md> | --git <rev> <path>...: the addresses, offsets and numbers a doc lost.
+"""docs_numbers.py [--names] <old.md> <new.md> | [--names] --git <rev> <path>...: the addresses, offsets and numbers
+(and with --names the field, cvar, token, method and sound names) a doc lost.
 
 For condensing a trace doc without losing data: every hex value (0x..., or a bare 9-10 digit VA like 180ab7ec0)
 and every decimal with a fraction or 3+ digits in the old text must still appear in the new one. Prints what's
@@ -13,8 +14,18 @@ B, E = r"(?<![0-9A-Za-z.])", r"(?![0-9A-Za-z])"
 TOKEN = re.compile(rf"0x[0-9a-fA-F]+|{B}1[0-9a-f]{{8,9}}{E}|-?{B}\d+\.\d+(?:e-?\d+)?{E}|{B}\d{{3,}}{E}")
 
 
+# --names: the names a doc must keep too: schema fields (m_...), cvars (sv_ / mp_ / cl_ / ...), localisation
+# tokens (#...), Class::Method, sound events (A.B.C)
+NAMES = re.compile(r"(?<![A-Za-z0-9_])(?:m_[A-Za-z0-9_]+|(?:sv|mp|cl|bot|snd|r|ammo|ff|spec|weapon|player|inferno|"
+                   r"molotov|ragdoll|phys|view|cash|hud|voice|tv|net|host)_[a-z0-9_]{3,}|#[A-Za-z][A-Za-z0-9_]{3,}|"
+                   r"[A-Z][A-Za-z0-9_]+::~?[A-Za-z_][A-Za-z0-9_]+|[A-Z][A-Za-z0-9]+(?:\.[A-Z][A-Za-z0-9_]+){1,3})")
+WITH_NAMES = False
+
+
 def tokens(text):
     out = set()
+    if WITH_NAMES:
+        out |= set(NAMES.findall(text))
     for t in TOKEN.findall(text):
         t = t.lower()
         if t.startswith("0x"):
@@ -32,6 +43,10 @@ def missing(old, new):
 
 
 def main(argv):
+    global WITH_NAMES
+    if "--names" in argv:
+        WITH_NAMES = True
+        argv = [a for a in argv if a != "--names"]
     pairs = []
     if argv and argv[0] == "--git":
         rev = argv[1]

@@ -54,8 +54,9 @@ server_20261105, vphysics2_20260924, client_20261112 (image base 0x180000000).
 ## Client death ragdolls
 
 client.dll has no ragdoll sleep convar (strings: `cl_ragdoll_limit`, `cl_ragdoll_physics_enable`,
-`cl_ragdoll_workaround_threshold`, `cl_phys_sleep_enable` "Enable sleeping for dynamic physics bodies"). A client
-ragdoll sleeps only through vphysics2's island sleep. No client function calls both `call [reg+0xc0]` / `call
+`cl_ragdoll_workaround_threshold`, `cl_phys_sleep_enable` "Enable sleeping for dynamic physics bodies", nothing like
+`ragdoll_prop_sleepaftertime`). A client ragdoll sleeps only through vphysics2's island sleep: every body under the
+speed / spin limits for 0.5 s, then the island. No client function calls both `call [reg+0xc0]` / `call
 [reg+0xd0]` with an immediate edx: the client keeps 8 / 2 iterations; a ragdoll's island gets the world's.
 
 With these iterations and this sleep test, light parts (3 kg) resting on other ragdolls' parts keep a solved velocity

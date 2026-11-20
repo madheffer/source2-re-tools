@@ -46,13 +46,13 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | 0x10078860 | vphysics | an info onto a core (core, info) |
 | 0x10076330 | vphysics | a static core's info hash, made on first use |
 | 0x100870c0 | vphysics | a contact into its pair (system, cp) |
-| 0x10081280 | vphysics | two friction systems merge ([ivp-touch.md](ivp-touch.md) 2) |
+| 0x10081280 | vphysics | two friction systems merge ([ivp-touch.md](ivp-touch.md) "0x10081280: T into S") |
 | 0x100871f0 | vphysics | a core into a system (system, core) |
 | 0x100871c0 | vphysics | a contact into a system (system, cp) |
 | 0x10086de0 | vphysics | friction system ctor (new 0x4c; env) |
 | 0x1008877b | vphysics | 0x10088450's tail |
 | 0x10082a60 | vphysics | the spring's mass |
-| 0x10071800 / 0x100718e0 / 0x100713b0 / 0x10071aa0 | vphysics | two units merge ([ivp-touch.md](ivp-touch.md) 4); 0x10071800 clears and 0x100713b0 rebuilds a unit's controller list |
+| 0x10071800 / 0x100718e0 / 0x100713b0 / 0x10071aa0 | vphysics | two units merge ([ivp-touch.md](ivp-touch.md) "Simulation units of several cores"); 0x10071800 clears and 0x100713b0 rebuilds a unit's controller list |
 | 0x10071d40 | vphysics | a controller onto a core and its unit (core, controller) |
 | 0x10071550 / 0x100714f0 | vphysics | a unit controller entry made / a core added to it |
 | 0x10071e40 | vphysics | the unit's controller sort |
@@ -74,7 +74,7 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | 0x10081211 | vphysics | (in 0x100810a0) the unit flags `& ~0x200 | 0x100` |
 | 0x10086e30 -> 0x10086e60 | vphysics | the system's end (slot 7): its vectors freed |
 | 0x10082fce | vphysics | (in 0x10082f60) the event's unit (es+0xc) flags `& ~0x200 | 0x100` |
-| 0x100815a0 / 0x100816a0 | vphysics | the system's split ([ivp-touch.md](ivp-touch.md) 3) |
+| 0x100815a0 / 0x100816a0 | vphysics | the system's split ([ivp-touch.md](ivp-touch.md) "The split") |
 | 0x10072540 | vphysics | the unit's step; its rebuild at 0x100727ee |
 | 0x10071710 | vphysics | the unit's split test |
 | 0x10011eb0 | vphysics | vphysics' friction listener |
@@ -104,12 +104,12 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | env+0x98 (object env) | the material manager (slot 2 mu, slot 3 elasticity) |
 | env+0xa0 | the temporary memory (+0x10 its use count) |
 | env+0xa8 | dt |
-| env+0xac | the rescue scale |
+| env+0xac | 1/dt (the rescue's scale) |
 | env+0xc0 | 0x41a28f5c (the pressure solve) |
 | env+0xca / +0xcc | env collision listeners: count / list |
 | env+0xf0 | the event's time (f64) |
 | env+0xf8 | the next PSI's time |
-| env+0x100 | the time (f64) |
+| env+0x100 | the last PSI's time (f64) |
 | env+0x108 | time events counted |
 | env+0x10c | the impact count (cores' +0x1a0 stamps) |
 | env+0x114 | the PSI's stage |
@@ -122,7 +122,7 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | core +4 | radius |
 | core +8 | (rot step: 0 skips the wheel path) |
 | core +0xc | env |
-| core +0x3c | (friction listener factor) |
+| core +0x3c | inv_mass (the friction listener's factor) |
 | core +0x48 | car wheel |
 | core +0x4c | friction info (dynamic core) |
 | core +0x5c | spin rate |
@@ -136,6 +136,7 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | core +0x140 / +0x142 / +0x144 | controller lists |
 | core +0x14c | the unit |
 | core +0x1a0 | impact stamp (env+0x10c) |
+| core +0x150 / +0x158 | reference times (f64) |
 | core +0x1a4 | 0 at rest |
 | core +0x1ac | the impact block (0x30): +0..+8 rot, +0x10..+0x1c q_next, +0x20 took part |
 | object +0x20 | exact synapses (next at +8; mindist = synapse + (i16) +0x18) |
@@ -143,7 +144,7 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | object +0x40 | the cache (its +0x68) |
 | object +0x44 | movement state (8 at rest), & 0x2000 listeners |
 | object +0x48 | hull manager: +0 time, +8, +0xc, +0x10, +0x14 |
-| object +0x52 / +0x54 | (core's objects: count / list) |
+| core +0x52 / +0x54 | the core's objects: count / list |
 | object +0x94 / +0x98 | core / original core |
 | mindist +0x14 | bits 8-9: synapse order; status bits & 0x3c0000 (0xc0000 exact); & 0xc000 |
 | mindist +0x28 / +0x44 | synapse 0 / 1 objects |
@@ -156,7 +157,6 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | cp +0x48 | friction energy accumulator |
 | cp +0x58 | gap |
 | cp +0x90 | the friction system |
-| cp +0x150 / +0x158 | reference times |
 | lt +0x20..+0x28 | relative speed (written by the impact) |
 | lt +0x30 / +0x34 | objects |
 | lt +0x38 / +0x3c | edges |
@@ -165,7 +165,7 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 | lt +0x54 | refreshed flag |
 | lt +0x56 | features left (1: removed) |
 | lt +0x58 | rescue |
-| lt +0x5c | the impact's urgency |
+| lt +0x5c | `gap - (normal speed + rescue x 0.5) x dt` (1e20 past the gap limit): the round picks the least below coll_dists[63] |
 | lt +0x60 | elasticity (x87 fstp) |
 | lt +0x70 / +0x74 | long-term cores |
 | friction info (0xc) | +0 / +4 a contact vector, +8 the system |
@@ -215,7 +215,7 @@ vphysics.dll (CS:GO legacy, 32-bit, md5 d97cf2194594d7545427cdabc7376db4, Ghidra
 
 From simulate_time_event when the recalculated length is below `coll_dists[selector] + mindist_change_force_dist`, inside the time event:
 
-1. Per synapse in the mindist's order: an object with +0x44 == 8 has its original core's unit revived (0x10071ef0: each of the unit's cores, last to first, with movement byte >= 8 through 0x10086b70; then a unit in state 8 moved from the sleeping list to the active one, state 1). A static object's unit isn't in state 8: nothing. 0x10086b70 runs each revived core's collision side as at a PSI's revival: 0x100778d0, then 0x10082ce0. That can make a contact with a dynamic partner outside any friction system, whose reference times (+0x150 / +0x158) become the event's time (a sleeping kart hit by a climbing lift: [ivp-pileup.md](ivp-pileup.md) 7). It runs before the impact, on the contacts the impact then reads.
+1. Per synapse in the mindist's order: an object with +0x44 == 8 has its original core's unit revived (0x10071ef0: each of the unit's cores, last to first, with movement byte >= 8 through 0x10086b70; then a unit in state 8 moved from the sleeping list to the active one, state 1). A static object's unit isn't in state 8: nothing. 0x10086b70 runs each revived core's collision side as at a PSI's revival: 0x100778d0, then 0x10082ce0. That can make a contact with a dynamic partner outside any friction system, whose reference times (+0x150 / +0x158) become the event's time (a sleeping kart hit by a climbing lift: [ivp-pileup.md](ivp-pileup.md) "Units and revivals"). It runs before the impact, on the contacts the impact then reads.
 2. env+0xa0 +0x10 += 1 (freed by 0x1006dd90 when it drops back to 0 at the end).
 3. Per object (+0x94): movement byte < 8 and not pinned: 0x100779f0 (section 3).
 4. env+0x10c += 1.
@@ -262,7 +262,7 @@ The block is the impact's: 0x1008b4c0 sets its +0x20 (the core took part); 0x100
 4. A found contact: *fs = the dynamic core's info's system (+8); 0x1008d230 and 0x1008afc0 (0x1008af60, manager slot 3 elasticity into lt+0x60 (x87 fstp), slot 2 mu into cp+0x44); done.
 5. A new contact: geometry, materials; listeners 0x10084df0 / 0x100867c0; then:
    - The dynamic core has an info: the other's info for this system (a static core keeps several, found by 0x1006e4b0: a CRC-32 (table 0x100f2080) of the system's address into the hash 0x1006e520; a dynamic one its own +0x4c when its +8 is the system). Found: cp+0x90 = the system, the contact at the head of +0x20, +0x3e += 1, 0x100870c0. Not found and the other dynamic with an info: 0x10081280 (two systems merge). Else a new info for the other, 0x10078860 (a static core: its hash, made by 0x10076330 on first use; a dynamic one: +0x4c), 0x100871f0(system, other), the contact linked as above, 0x100870c0.
-   - No info: a new one for it; the other dynamic with an info: join that system (0x10078860, 0x100871f0, 0x100871c0, 0x100870c0: [ivp-touch.md](ivp-touch.md) 1). Else a new system (new 0x4c + 0x10086de0(env)) and an info for the other; both infos' +8 = it; 0x10078860 (other, then dynamic); cp+0x90, the contact at the head, +0x3e += 1, 0x100870c0, 0x100871f0(dynamic), 0x100871f0(other).
+   - No info: a new one for it; the other dynamic with an info: join that system (0x10078860, 0x100871f0, 0x100871c0, 0x100870c0: [ivp-touch.md](ivp-touch.md) "0x10088450's branches"). Else a new system (new 0x4c + 0x10086de0(env)) and an info for the other; both infos' +8 = it; 0x10078860 (other, then dynamic); cp+0x90, the contact at the head, +0x3e += 1, 0x100870c0, 0x100871f0(dynamic), 0x100871f0(other).
    - The tail (0x1008877b): both infos' contact vectors take the contact; *fs = the system; 0x10082a60; two dynamic cores on different units merge them (0x10071800 / 0x100718e0 / 0x100713b0 / 0x10071aa0).
 6. 0x100870c0(system, cp): the pair of cores (cp+0x10's, cp+0x24's) in either order (last to first); else a new 0x40 pair: +0x28 = -1000.0, +0x30 = 0, +0x20 = 1, +0x34 syn0's core, +0x38 syn1's, appended to +0x34..+0x38, listener 0x10084e90; the pair's vector takes the contact.
 7. 0x100871f0(system, core): +0x24..+0x28 takes it; a dynamic one also +0x2c..+0x30 and 0x10071d40 for +8 (priority 0), +0 (600), +0x10 (2000): appended to the core's list (+0x140 / +0x142 / +0x144) and the unit's (+0x1c / +0x1e / +0x20: an entry made by 0x10071550 if new, the core added by 0x100714f0), then 0x10071e40; +0x3c += 1.
@@ -318,14 +318,14 @@ env+0x114 (set in 0x10084fb0): 0 at 0x10084fcf, 2 at 0x100850a5 before stage 4's
 ## 8. Sleeping and waking on the ground
 
 - A freeze (0x10077820, from 0x100722d0 in stage 2): 0x10077750 -> 0x100775f0 (q_next = q_last, +0x138 = the event's 1/dt, +0x5c 0, speed and delta zero, +0x13c 0, +0x1a4 0, +0x120 = (1, 0, 0); also at a revival). Then per object (+0x52 / +0x54, last to first): +0x44 = 8; 0x10094de0 (two objects at rest no longer pair: the OO watcher and its mindist deleted); the hull manager (+0x48): `d = f32(env+0xf0 - +0)`, `+0x14 += +0xc x d`, `+0x10 += +8 x d`, +0xc = +8 = 0 (its time +0 kept), reset 0x10093bb0; the cache (+0x40) released (its +0x68 = 0, +0x40 = 0). The core still takes this PSI's stage 3 (hull manager time = now, gradients 0).
-- A revival (stage 1, 0x10071ef0 -> 0x100778d0): the creation path every time (recheck_ov_element with movement bytes 0x21: a new OO watcher and mindist, [ivp-mindist.md](ivp-mindist.md) 4); 0x10082ce0 (the object's exact mindists not phantom: the other core static -> skipped for a dynamic core (a static pair is deleted, slot 4); the other dynamic without an info: recalc, len below 0x1010d24c -> 0x10088450 and its geometry; [ivp-pileup.md](ivp-pileup.md) 6).
+- A revival (stage 1, 0x10071ef0 -> 0x100778d0): the creation path every time (recheck_ov_element with movement bytes 0x21: a new OO watcher and mindist, [ivp-mindist.md](ivp-mindist.md) "Creation"); 0x10082ce0 (the object's exact mindists not phantom: the other core static -> skipped for a dynamic core (a static pair is deleted, slot 4); the other dynamic without an info: recalc, len below 0x1010d24c -> 0x10088450 and its geometry; [ivp-pileup.md](ivp-pileup.md) "Units and revivals").
 - The friction system survives the sleep (its unit isn't simulated, its controllers don't run); its contacts carry on at the revival.
 
 ## Unread
 
-- The sliding friction 0x1007fd70 and the sliding impacts 0x1008b820 / 0x10088cc0 never run on these paths ([ivp-contacts.md](ivp-contacts.md) 7).
-- The impact's speed-limit hooks; a core past perf +0xc impacts; a core already in this PSI's impact list (flags & 0xc0, 0x1008a0b2).
-- The pressure solve's undo 0x100a0d10; FF minimize 0x100984c0 and the rescue push 0x100980a0 ([ivp-mindist.md](ivp-mindist.md) 10).
+- (Not unread: the sliding friction 0x1007fd70 and the sliding impacts 0x1008b820 / 0x10088cc0 never run on these paths: [ivp-contacts.md](ivp-contacts.md) "Materials".)
+- The impact's speed-limit hooks. (A core past perf +0xc impacts and the frozen branch (flags & 0xc0, 0x1008a0b2): read in [ivp-pileup.md](ivp-pileup.md) "The freeze".)
+- The pressure solve's undo 0x100a0d10. (FF minimize 0x100984c0 and the rescue push 0x100980a0: read in [ivp-mindist.md](ivp-mindist.md) "p_minimize_FF" and [ivp-touch.md](ivp-touch.md) "The rescue push".)
 - asinf above sqrt(3)/2 (0x100d7b4b, 0x100d7ca5) and cosf's large-argument path 0x100d80e0.
 - The listeners (0x10084d60 / 0x10084da0 / 0x10084df0 / 0x10084e90, 0x10086690 / 0x100866f0 / 0x100867c0): vphysics' collision callbacks, no physics state.
 - env+0xc0 and env+0x118's formulas (their values taken from the running environment).

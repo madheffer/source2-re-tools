@@ -99,7 +99,7 @@ particles, networksystem under them): per subsystem, its functions, field offset
 | [round-sounds](round-sounds.md) | The round's cues: freeze beeps, match announcements, the kill sound, the death cam's sounds |
 | [rubikon-colour-joints](rubikon-colour-joints.md) | Rubikon: joints in a graph-coloured island |
 | [rubikon-joint-break](rubikon-joint-break.md) | Rubikon: breaking joints, and their break limits |
-| [scene-node](scene-node.md) | Scene node: an entity's transform (CGameSceneNode) |
+| [scene-node](scene-node.md) | Scene node: an entity's transform (CGameSceneNode, each entity's m_pGameSceneNode) |
 | [score](score.md) | The kill's score: contribution score and deathmatch points |
 | [scoreboard](scoreboard.md) | The scoreboard per game mode (CSGOScoreboard) |
 | [settings](settings.md) | Settings menu, crosshair codes and drawing, convar defaults |

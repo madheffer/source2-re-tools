@@ -66,7 +66,7 @@ brackets); pak01 panorama.
 | rules +0xd9 | m_bWarmupPeriod |
 | rules +0xe4 / +0xe5 | m_bTerroristTimeOutActive / m_bCTTimeOutActive |
 | rules +0xe8 / +0xec | timeout clocks |
-| rules +0xfc | m_iFreezeTime |
+| rules +0xfc | m_iFreezeTime (GFL's ZE config: mp_freezetime 5, three start beeps and the final one) |
 | rules +0x108 | m_fRoundStartTime |
 | rules +0x120 | m_totalRoundsPlayed |
 | rules +0x128 | m_nOvertimePlaying |
@@ -75,7 +75,7 @@ brackets); pak01 panorama.
 | rules +0xf0c | match block: rounds played (short) |
 | rules +0xf18 / +0xf20 | two teams' total scores (shorts; which is whose unread) |
 | rules +0xf24 | phase: 2 first half, 3 second half |
-| rules +0xf6c / +0xf68 | handle / curtime + xmm6 after a kill (unread) |
+| pawn (Event_KilledOther this) +0xf6c / +0xf68 | handle / curtime + the float in xmm6, written last (unread) |
 | info +0x3c | attacker |
 | info +0xe8 block | +0 byte, +8 slot, +0xc team |
 | pawn +0x344 | team |
@@ -177,7 +177,7 @@ Only for the local pawn / controller, not during an HLTV replay.
 
 Param: the replay's delay (0 = END). Start, cvar 1824a6c20 on: 2D `Deathcam.Review_Victory` when replay type is 4,
 else `Deathcam.Review_Start`; mix layers ReplayLayer / ReplayBlinkLayer. End: both stopped (180c1b5a0); cvar on:
-`Deathcam.Review_End` from the local player; `hide_freezepanel`.
+`Deathcam.Review_End` from the local player; `hide_freezepanel`. (The kill replay, spec_replay.)
 
 ## Other sounds
 

@@ -88,7 +88,7 @@ Node vtable slots (RTTI `CNm*Node`): 1 IsValid, 8 GetSyncTrack, 9 InitializeInte
 
 ## Clips
 
-- 180398ef0, per bone: rotation 3 x u16, each `(u & 0x7fff) x 4.315969e-05 - 0.70710677`; the dropped one `sqrt(1 - ((x² + y²) + z²))` (no clamp), placed by the first and second words' top bits (neither: (w, x, y, z); second: (x, w, y, z); first: (x, y, w, z); both: (x, y, z, w)). Translation `u / 65535 x length + start`; scale the same; static channels from the track. The resource stores some track numbers as doubles: CS2 holds floats.
+- 180398ef0, per bone: rotation 3 x u16, each `(u & 0x7fff) x 4.315969e-05 - 0.70710677`; the dropped one `sqrt(1 - ((x² + y²) + z²))` (no clamp), placed by the first and second words' top bits (neither: (w, x, y, z); second: (x, w, y, z); first: (x, y, w, z); both: (x, y, z, w)). Translation `u / 65535 x length + start`; scale the same; static channels from the track. The resource stores some track numbers as doubles: CS2 holds floats (648 of 1,082,700 numbers in the player bakes weren't floats).
 - 18007bf90: 0 -> frame 0; 1 -> the last frame; else 18038ef40 wraps it, `V_modff((frames - 1) x it)` splits frame and fraction, a fraction within 1e-4 is 0.
 - 18039a8f0: a fraction != 0 decodes the next frame (the same one for a fraction <= 0) and blends every bone: the fitted slerp and `t (b - a) + a` on position + scale. Type 4 for an additive clip, else 1.
 
@@ -158,6 +158,6 @@ with π/2; Circ through sqrt. Expo calls a tier0 pow (unread; no player graph us
 - The rest of the transition update: the source's range shift, the clamped end at progress 1, cached / forced sources, the bone-mask start blend, the non-synchronized time advance.
 - ReferencedGraph; the bone mask nodes and the mask task list (states' layer masks).
 - Event and state conditions (IDEventCondition, GraphEventCondition, StateCompleted, TimeCondition, CurrentSyncEventID); the sampled-event weights.
-- Root motion (deltas inverse(T(prev)) x T(cur) over the rootMotion track, m_bSampleRootMotion, m_rootMotionBlend, m_bOnlySampleBaseRootMotion: Esoterica's rules, not checked against the DLL).
+- Root motion, taken after Esoterica and not checked against the DLL: a clip's delta inverse(T(prev)) x T(cur) over its rootMotion track (the resource's m_transforms), a loop as the end's delta then the start's, none when the node's m_bSampleRootMotion is off; Blend1D / 2D and transitions lerp position and fitted-slerp rotation by their weight (m_rootMotionBlend "Blend"); a layer blend keeps its base's (m_bOnlySampleBaseRootMotion); states, selectors and passthroughs pass their child's on.
 - PreferClosestSyncEventID and Expo easing (unused).
 - The pose the Aim IK starts from at 75-89° ([fp-legs.md](fp-legs.md)).

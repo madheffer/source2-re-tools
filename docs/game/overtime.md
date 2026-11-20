@@ -89,5 +89,5 @@ with mp_overtime_halftime_pausetimer sets mp_halftime_pausetimer 1; writes +0x11
 ## Unread
 
 - The halftime's duration and how the halftime phase ends (the players' own team switch at the next round reset).
-- A surviving player's weapons when an overtime starts (no swap) or at a swapping halftime.
+- What happens to a surviving player's weapons when an overtime starts (no swap).
 - +0x839 on the controllers.

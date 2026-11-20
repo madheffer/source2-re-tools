@@ -1,6 +1,6 @@
 # Aim IK (CNmAimCSTask)
 
-client_20261015. Source file named by its asserts: `game/shared/csgo/animgraph2/tasks/animtask_aim_cs.cpp`. Imports: tier0's V_sincosf / V_acosf (IAT 181aac630 / 181aac628). Checked bit for bit by running the DLL natively (rubikon AimOracle).
+client_20261015. Source file named by its asserts: `game/shared/csgo/animgraph2/tasks/animtask_aim_cs.cpp`. Imports: tier0's V_sincosf / V_acosf (IAT 181aac630 / 181aac628). Checked bit for bit by running the DLL natively (rubikon AimOracle: client_20261015.dll loaded unresolved, its two imports and the start-up globals patched, the execute's body calling the DLL for every step; TrySetupSolverData's block comes from the cases): V_sincosf, V_acosf, the transform product / inverse, the quaternion product, rotation-between, the task's quaternion difference, model transforms, the twist pass (any twist and weight) and the task for every class with the hands: 0 differ (10,000 task cases a class set; 1,487 straight-arm IK solves).
 
 ## Functions
 
@@ -195,7 +195,7 @@ Pivot pre-multiplied by a turn about Y (remap(pitch, 0x30), no s); the same tilt
 1. w = clamp(weight); <= 0.001 nothing.
 2. Chain = [grandparent, parent, bone]; base = the grandparent's parent's model transform (182721070 for none); M0..M2.
 3. w < 1 (and the byte 0, as the aim passes): the target (the caller's copy) blended toward M2 (fitted slerp, position and scale lerped).
-4. Reference copies from m_modelSpaceReferencePose (skeleton +0x50).
+4. Reference copies from m_modelSpaceReferencePose (CNmSkeleton schema: the vector at skeleton +0x48, its data pointer at +0x50).
 5. 1812f6530; locals written back (hand, lower, upper); pose+0x38 = 1 unless 1 or 4; pose+0x20 = 0.
 
 Solve (1812f6530):

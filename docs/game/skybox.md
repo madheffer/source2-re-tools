@@ -10,7 +10,7 @@ client_20261015; shaders_vulkan_dir.vpk (sky.vfx, csgo_unlitgeneric.vfx).
 | 0x1800c0540 | client | registers r_draw3dskybox |
 | 0x180c0d8d0 | client | fog record = `0x18096a8f0() + 0x13e8` |
 | 0x18096a8f0 | client | fog record base |
-| 0x1807a8240 | client | finds the sky camera volume at view + 0x4a0 |
+| 0x1807a8240 | client | finds the sky camera volume (local_1568) at view + 0x4a0 |
 | 0x1809205f0 | client | reads clip_3D_skybox_near_to_world_far |
 | 0x180ad9150 | client | reads enable_separate_skybox_fog |
 

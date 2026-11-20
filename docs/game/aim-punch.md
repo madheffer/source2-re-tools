@@ -79,10 +79,12 @@ server_20261105 unless named; tier0_20261103. CS2Fixes 59fd932 (src/cvars.cpp pU
 ## Recoil (0x180a21030)
 
 - Index: `(int)m_flRecoilIndex` for a full-auto gun, else the prediction random seed (0x181daae60).
-- Entry `(index & 63) + mode x 64`. A zoomed gun with 2+ zoom levels blends the two modes' magnitudes by zoom level / levels.
+- Entry `(index & 63) + mode x 64` (mode: the weapon's m_weaponMode). A zoomed gun with 2+ zoom levels blends the two modes' magnitudes by zoom level / levels.
 - Then the kick 0x180a4c5d0.
 
 ## The kick (0x180a4c5d0)
+
+The attack time is GetWeaponAttackTime's (fire-gate.md 3, usercmd.md: the input history entry's, or the calculated one).
 
 1. `T1 = attack + (1, 0)`, `Th = attack + (0, 0.5)`; `punch = evaluate(base, angle, velocity, T1)`.
 2. `dt = (Th - base) as ticks`; `k = V_expf((dt > 0 ? dt x 0.015625 : 0) x -4.5)`; `v = k x velocity`, zero when `0.03125 > |v|`.

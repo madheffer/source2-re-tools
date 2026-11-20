@@ -27,7 +27,7 @@ The menu's grade is `post_vanity`, the one enabled master. (The last master in t
 
 - With shoulder 0 and toe 1 / 1 / 1 the curve is f(x) = (1e-6 x + 1) / (0.001 x + 1) - 1 ~ -0.001 x; divided by f(2^1.4986 = 2.826) it is ~ 2.8 x / 2.826: near-linear, clipped at x ~ 1.
 - CS2's default curve (no vpost): shoulder 0.15, linear 0.5, angle 0.1, toe 0.2, 0.02 / 0.3, white point 4.
-- Measured, the same view at 1360 x 765, default curve -> the vanity's: luma std 27.0 -> 41.4, mean saturation 0.104 -> 0.144, Laplacian variance 59.8 -> 115.1, mean luma 160 -> 189.5.
+- Measured on a render of the menu (not CS2's frame), the same view at 1360 x 765, default curve -> the vanity's: luma std 27.0 -> 41.4, mean saturation 0.104 -> 0.144, Laplacian variance 59.8 -> 115.1, mean luma 160 -> 189.5.
 - Other maps whose volumes name stock vposts in pak01 (each a tone curve and a 32^3 lookup): de_dust2 (de_dust2_prefab.vpost), de_inferno (de_inferno_prefab.vpost), de_mirage (de_mirage.vpost), ze_atix_panic_2017_p (de_nuke_prefab/de_nuke_post.vpost).
 
 ## The agents' textures
@@ -42,7 +42,7 @@ pak01 characters/models/<agent>/materials, .vtex_c DATA block: version u16, flag
 | ctm_sas_head_gasmask_* | 1024 x 1024 | 1024 x 1024 |
 | ctm_sas_lenses_ao | 128 x 128 | 128 x 128 |
 
-In the menu: vanity_character is 209 units from cam_default at a 30 degree vertical FOV: ~6.8 screen px a unit at 765 px tall (12 at 1350), ~490 px for the body; a 1024 body texture gives ~13 texels a unit on the torso.
+In the menu: vanity_character is 209 units from cam_default at a 30 degree vertical FOV: ~6.8 screen px a unit at 765 px tall (12 at 1350), ~490 px for the body; a 1024 body texture gives ~13 texels a unit on the torso, about one texel per pixel at 1440p (a 1024 cap is a quarter of CS2's texels on the body and legs).
 
 ## cam_default
 

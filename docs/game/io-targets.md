@@ -99,6 +99,6 @@ Type 2 searches names only, 7 names then classes; any other logs "Encountered un
 ## Unread
 
 - The deletion's place in the frame (a killed entity leaves the name table when deleted, after the frame's events).
-- A pawn's place in the entity list; which list 18137cd30 links into.
+- A pawn's place in the entity list; which list 18137cd30 links into (a map's entities look to be in creation order, at the tail).
 - The `!pvsplayer` PVS search (180fe9da0); the vfn 0xa0 game system (DAT_18218bff8).
 - CS2's other lookups (FindEntityByName and friends: parentname, SetParent, scripts, KeyValues targets), to trace with their callers.

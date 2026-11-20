@@ -50,7 +50,7 @@ models/hostage/hostage_carry.vmdl) and a carrier touching a func_hostage_rescue 
 | 180239eb0 | server | radio line (auto) |
 | 180923710 | server | the pickup |
 | 180a7af40 | server | CCSPlayer_HostageServices: carry (services, hostage) |
-| 180d0e200 | server | effects |= (+0x5e8, 1) |
+| 180d0e200 | server | effects |= (+0x5e8, 1): EF_NODRAW-like |
 | 1803ebc00 | server | set parent |
 | 1803d6ab0 | server | bones follow (.., 1) |
 | 180b556c0 -> 180b76fb0 | server | skin copy |
@@ -138,7 +138,7 @@ models/hostage/hostage_carry.vmdl) and a carrier touching a func_hostage_rescue 
 | CCSPlayerPawn +0x1488 / +0x291*8 | once-only hint bits: 0x20000 rescue zone, 0x20 careful, 0x40 lost money, 0x200000 only CT |
 | pawn +0x344 | team (3 CT) |
 | movement services +0x58 | buttons (IN_USE, 0x100000000) |
-| controller +0x1c9*8 = 0xe48 | action tracking services: +0x218 hostages carried (count), +0x224 picked-up flag, +0x21c (damage) |
+| controller +0x1c9*8 = 0xe48 | action tracking services: +0x218 hostages carried (count), +0x224 picked-up flag (stats), +0x21c (written on a player's hostage damage; meaning unread) |
 | controller +0x48 | radio line timer (10 s) |
 | controller +0x7f8 +0x1b8 | counter + 1 on carry |
 | CCSGameRules 0x12c | m_iHostagesRemaining |
@@ -362,8 +362,9 @@ aside). Accelerate's walk `s * 0.52` (movement.md) is skipped while carrying.
 
 ## The round
 
-- Elimination (180917420): on a map without a bomb target the Ts' win (reason 9) pays {(T, 2)}, the CTs' (reason 8)
-  {(CT, 3)} (bomb maps: 4). No planted-bomb hold.
+- Elimination (180917420): on a map without a bomb target the Ts' win (reason 9) pays {(T, 2)}
+  cash_team_elimination_hostage_map_t, the CTs' (reason 8) {(CT, 3)} cash_team_elimination_hostage_map_ct (bomb maps:
+  4). No planted-bomb hold.
 - Clock (180916fb0): mp_default_team_winner_no_objective -1, no bomb target, m_bMapHasRescueZone: Ts win, reason 13
   HostagesNotRescued, {(T, 5)}.
 - Money list 1809124d0: the winner's pairs; then over the hostage list (health >= 1 and not rescued adds

@@ -53,9 +53,10 @@ g_tMetalness go on the weapon in first person, on other players and on the groun
 | Offset | Field |
 |---|---|
 | C_CSWeaponBase +0x1268 | item view |
-| +0x1b22 | skips the econ attachments |
-| C_StattrakModule +0x1270 | is a knife |
-| item +0x58 | owner account (also the global +0x58: kill eater) |
+| C_CSWeaponBase +0x1b22 | set: skips the econ attachments |
+| +0x1270 | = is a knife, set by 180801e30 (the object is not named in the notes: beside the weapon's +0x1268 item view, so likely the weapon) |
+| item +0x58 (server, 1809202a0) | the owner's account |
+| a global +0x58 (client, 180801e30) | kill eater value when 181187750 has none |
 | entity +0x610 | vfn +8: second request (stickers) |
 | request +0x70 | name ("stickers") |
 | sticker entry (stride 0x28) | +0 sticker_material string, +8 / +0xc offset x / y, +0x10 scale, +0x14 rotation, +0x18 wear, +0x1c UICameraRotation, +0x24 deprecated |
@@ -89,7 +90,7 @@ g_tMetalness go on the weapon in first person, on other players and on the groun
 ## Textures
 
 - The composite reads CS2's compiled `.vtex_c` files, each mip in its stored format (BC7, DXT1, ATI1N, ATI2N, RGBA16F,
-  RGBA8888; LZ4 mips): the GPU decodes them; an ATI1N samples as (r, 0, 0, 1).
+  RGBA8888; LZ4 mips): the GPU decodes them; an ATI1N samples as (r, 0, 0, 1). The files' level chains stop at 4 x 4.
 - Codec (VRF Texture.RetrieveCodecFromResourceEditInfo, from the file's CompileTexture special dependencies): "Mip
   HemiOctIsoRoughness_RG_B" gives HemiOctRB 4, "Image NormalizeNormals" 8; Dxt5nm 16 for a DXT5 with NormalizeNormals;
   a BC7 with both drops NormalizeNormals.
@@ -121,7 +122,7 @@ g_tMetalness go on the weapon in first person, on other players and on the groun
   The module models' UVs: u 1..6.37, v -1..-0.92.
 - Server increment (1809202a0): the item's "kill eater" attribute; killer != victim; the killer's CSteamID (180b56340)
   valid (universe 1..4, account type 1 with instance 1 and a non-zero account, or type 9) and its account == the item's
-  (+0x58); the victim's the same; the victim's vfn +0xc20 false; then attribute += amount and GC message 0x432.
+  (item +0x58); the victim's the same; the victim's vfn +0xc20 false; then attribute += amount and GC message 0x432.
 
 ## Knives
 

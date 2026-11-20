@@ -53,7 +53,8 @@ world_physics and lightmaps) and `[PR#]tree_vpk` (prefabs/tree: no vpk in the it
 | 0x52e | m_bQueueActiveSpawnGroupChange |
 | 0x52f | m_bQueueFinishLoading |
 | 0x530 | load helper (+0x18 = entity +0x548: the group's handle; +0x28 / +0x40 landmark origin / angles) |
-| 0x1821b9010 | engine object: vfn 0x2a0 group by name, 0x1f0 loaded, 0x1f8 loading / waiting, 0x1e0 load |
+| 0x1821ba010 | engine object (pointer): vfn 0x2a0 group by name, 0x1f0 loaded, 0x1f8 loading / waiting (0x1804a87f0's `mov rcx, [rip + 0x1d117b0]` at 1804a8859: the old notes' 0x1821b9010 was a slip; checked against the disassembly) |
+| 0x1823ab630 | object (pointer) whose vfn 0x1e0 is the load (1804a8a1f / 1804a8aa3 in 0x1804a87f0; checked against the disassembly) |
 | 0x182087470 | object: vfn 0x38 make active group, 0x40 unload |
 | 0x1821ba1c0 | vfn 0x2f8: engine allows unload |
 
@@ -112,5 +113,8 @@ door); both worlds' collision are in place while the group is loaded.
 - Whether the engine loads a group at map start by itself (taken as no: Spawn loads nothing).
 - m_flTimeoutInterval's use, entityfiltername, the engine's "may unload" answer, a group whose vpk the item lacks, a
   logic_auto inside a group.
-- The group's world to a trace: taken as the group's own worldspawn entity (not the map's, handle 0x8000).
+- The group's world to a trace: in CS2 the group's own worldspawn entity, not the map's world (handle 0x8000); how
+  traces treat it is unread.
+- A group whose vpk the workshop item lacks (prefabs/tree): what the engine does (taken as: stays loading, spawns
+  nothing).
 - A point_template inside a group (CPointTemplate's m_ownerSpawnGroupType).

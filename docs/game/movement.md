@@ -198,7 +198,7 @@ still to check in the disassembly where they decide bits.
 | 180c8cbc0 | (svc, &i) the pawn's entity index (1813aa290) |
 | 1801883f0 | CSkeletonInstance: the scene node's vfn 0x60 (180cad5d0's check) is the node itself; render offset +0x120 + 0xe8..0xf0 |
 | 180c86d00 / 180927cb0 | pawn identity +0x38 / curtime (globals+0x30) |
-| 1809209f0 | (out, tick, flag): the tick as is when the flag (180c86d00: pawn+0x10 -> +0x38) is set, else through the gamerules' 180de69a0 (paused ticks, global +0xc0, taken off) |
+| 1809209f0 | (out, tick, flag): the tick as is when the flag (180c86d00: pawn+0x10 -> +0x38, the identity's m_worldGroupId) is set, else (0) through the gamerules' 180de69a0 (paused ticks, global +0xc0, taken off) |
 | 180c629e0 | seconds = `tick x 1/64 + frac x 1/64` |
 | 180c51bc0 | GameTime from seconds: (int((s - fmodf(s, 1/64)) x 64 + 0.5), fmodf(s, 1/64) x 64) |
 | 1813b8ef0 / 1813b9ab0 | build a GameTime (tick, frac): a frac outside [0, 1) carries whole ticks (V_modff) |
@@ -259,7 +259,7 @@ still to check in the disassembly where they decide bits.
 | svc+0x48 | buttons cleared when frozen |
 | svc+0x50 / 0x70 / 0x78 / 0x190 / 0x198 | button state (180c70950) |
 | svc+0x58 | buttons (u64): bit 0 IN_ATTACK?, bit 1 IN_JUMP, bit 2 IN_DUCK, 8 IN_FORWARD, 0x10 IN_BACK, 0x200 IN_MOVELEFT, 0x400 IN_MOVERIGHT, 0x10000 IN_SPEED |
-| svc+0x188 | m_nLastCommandNumberProcessed (stored at 180c7ff17) |
+| svc+0x188 | m_nLastCommandNumberProcessed: the usercmd's number, stored at 180c7ff17 before the movement (that code also fills the pressed-button command numbers) |
 | svc+0x1a0 / 0x1a4 / 0x1a8 | usercmd forward / left / up (CBaseUserCmdPB cmd+0x40 +0x58 / +0x5c / +0x60; 180c7ff64..ff8f, also 180c7b39a) |
 | svc+0x1ac | m_flMaxspeed (260) |
 | svc+0x1b0 | four-slot list for apex times past the command |
@@ -366,7 +366,10 @@ field: 180ad9d00, 180ad85b0, 180ada0a0, 180ad8f60, 180ad9f70, 180ad8aa0, 180ad8b
 | weapon+0x12c9 | C4 arming flag (can't move) |
 | vdata+0x7dc | m_flAttackMovespeedFactor (vfn 0xc58, 1809be800) |
 | camera+0x48 / 0x54 / 0x58 | m_vecCsViewPunchAngle (QAngle) / tick / fraction |
-| collision+0x20 / 0x40 / 0x4c / 0x5e | interacts-with / OBBMins (180d04ee0) / OBBMaxs (180d04ed0) / m_CollisionGroup |
+| collision+0x20 | interacts-with (m_collisionAttribute.m_nInteractsWith: pawn+0x608 for a pawn) |
+| collision+0x40 | OBBMins (180d04ee0) |
+| collision+0x4c | OBBMaxs (180d04ed0) |
+| collision+0x5e | m_CollisionGroup |
 | trace +0 / +8 / +0x28 / +0x68 / +0x8c / +0x90 / +0x98 / +0xbb | surface record (+8 hash) / body / layers / 0x8000 world / end z / normal / normal z / start solid |
 | gpGlobals (PTR_DAT_181e328d0) +0x10 / +0x30 / +0x34 / +0x44 / +0x70 | player slots / curtime / frametime / tick / (frozen test) |
 | CCSGameRules (0x1821ba1c0, vtable 0x1818c5450) | m_bGamePaused +0xc8, m_bFreezePeriod +0xd8, m_bWarmupPeriod +0xd9, m_bTerroristTimeOutActive +0xe4, m_iFreezeTime +0xfc, m_iRoundTime +0x100, m_fRoundStartTime +0x108, m_bIsValveDS +0x13c, +0x1148 |
@@ -624,7 +627,8 @@ FL_ONGROUND ? 180aea7d0 : 180ae34a0 -> 180adcb90 -> Water.PlayerEnter / Exit whe
    static).
 5. Surface record +8 == 0x75de364e ("default"): a second trace (180abb5c7) from the same start, the movement's query
    but interacts-with 0x3001 (interacts-as 0x40000, exclude 0x40000, the pawn ignored, query flags 0x4b, iterating
-   entities); a hit replaces svc+0x428.
+   entities; 180ab55b0's arguments are only the start of the query: an interacts-as of 0 misses shapes this hits); a
+   hit replaces svc+0x428. svc+0x428 is untouched when the trace doesn't run (moving up).
 6. Start solid and pawn vfn 0x550: svc+0xfd4++ (> 31 -> 18021a120), else 0.
 7. 180ad2d00 false: 180ae5df0, still false: ground off; vz > 0 and not 7 / 8 -> friction 0.25. True: ground on
    (180ae1cf0(svc, mv, trace)); step down taken, not start solid, 0 < f < 1: origin = trace end.
@@ -637,7 +641,8 @@ FL_ONGROUND ? 180aea7d0 : 180ae34a0 -> 180adcb90 -> Water.PlayerEnter / Exit whe
 3. Not 7 / 8 (180abd0fa): k = svc+0x278 ? *180c00e80() (maxspeedfactor) : 1; FL_ONGROUND: k *= pawn+0x14e0; active
    weapon with buttons bit 0 and vfn 0xac0 (the clip; skipped while m_bInReload): k *= vfn 0xc58; maxspeed *= k.
    Stamina s > 0: `maxspeed = clamp(1 - s / 100, 0, 1)^2 x maxspeed`.
-4. Modern landing slowdown (180abd251..36d; sv_legacy_jump 0 and a ground): f = `clamp(svc+0x700 x 0.0005 + 1.0, 0.2,
+4. Modern landing slowdown (180abd251..36d; still inside step 3's not-7 / 8 block, after the stamina; sv_legacy_jump 0
+   and a ground (pawn vfn 0x668)): f = `clamp(svc+0x700 x 0.0005 + 1.0, 0.2,
    1.0)`, d = now - landed (1813b8fb0); `x = (float(d.tick) x 0.015625) x 1.1111894 + f x f` (cvtdq2ps: the fraction
    unused); `mv+0x120 = minss(x, 1.0) x mv+0x120`.
 5. Moves zeroed unless (not FL_FROZEN (bit 5, 180abd3a8) and 180cf7020 > 0), or the observer mode is 4.
@@ -774,7 +779,8 @@ AirMove 180ae34f8, WalkMove 180aeac90, PostMove 180adcbe3, AddGravity 180ab7403,
    - n[planes++] = normal.
    - planes == 1, WALK (180ae7654), no ground: n.z <= sv_walkable_normal -> blocked = 1, `d = -dot(n, v1) x ((1 - surface
      friction) x sv_bounce + 1)`; else `d = -dot(n, v1)`; `d = max(d, 0) + 0.03125`; v1 += n x d; v = v1 (dot here: `n.z
-     v.z + n.y v.y + v.x n.x`). Next.
+     v.z + n.y v.y + v.x n.x`). Next. (Not WALK, e.g. a ladder or noclip: the multi-plane clip below, with its
+     `dot(v, v_orig) <= 0` stop.)
    - More planes: for i: `v = v1 + n[i] x (max(0, -dot(n[i], v1)) + 0.03125)`; ok when dot(v, n[j]) >= 0 for every j !=
      i. None ok: two planes -> dir = normalize(n0 x n1) (`x = n1.z n0.y - n1.y n0.z`, `y = n1.x n0.z - n0.x n1.z`, `z = n0.x
      n1.y - n1.x n0.y`); `d = (vz dz + vy dy) + vx dx`; `v = (n1.x x 0 + n0.x x 0) + dx d` (same for y, z); then the test
@@ -834,8 +840,9 @@ Pawn bodies: SOLID_BBOX, mins (-16, -16, 0), maxs (16, 16, 72 / 54 ducked). Filt
   (0x180ae7d22..d43: movaps xmm6, z; addss mins; xmm0 = h.z + maxs; comiss / ja); `(h.z + OBBMins(h).z) > (z +
   OBBMaxs(m).z)` -> 1 (0x180ae7d50..d64); else 0.
 - 180ad2840(me, other): null -> false; 180fe1050(info, other) (+0 null?, +1 vfn 0x558, +2 vfn 0x570, +4 handle, +8
-  180b55410(other), +0xc 180ac5e00(other) (taken as the team: TODO), +0x10 m_iTeamNum); 180b55410(me) == info+8 ->
-  false; 18211a6d8 set -> true; me+0xc98 live -> 180a79ab0(controller) != info+0xc; else me+0x344 != info+0xc.
+  180b55410(other): the controller's entity index - 1, +0xc 180ac5e00(other) (taken as the team: TODO), +0x10
+  m_iTeamNum +0x344); 180b55410(me) == info+8 (the same player) -> false; the bool at 18211a6d8 set -> true (taken as
+  mp_teammates_are_enemies: TODO its name); me+0xc98 live -> 180a79ab0(controller) != info+0xc; else me+0x344 != info+0xc.
 - 180ac8970(pawn) (callers 0x180abc7c5, 0x180ae6882, 0x180ae7179): over the player list (181e22ee8, 180c86b40,
   180c84440: state 0 or 3, neither vfn 0x810 nor 0x818), the first live pawn whose ground (vfn 0x668) is this pawn.
   WalkMove's clear move never reaches TryPlayerMove's check, so the one under a head can walk out; the jump is refused.
@@ -1006,7 +1013,7 @@ below 1000. Nothing in server.dll sets bit 19 on an entity (no `or` / `bts` of 0
    trace+0x90).
 6. Up to 27 (0x1b) tries: i = m_StuckLast++, d = table[i % 54] (signed: imul 0x4bda12f7 / sar 4), at = `(o.x + d.x, o.y
    + d.y, d.z + o.z)` (o = origin at the first test); TestPlayerPosition(at) == -1 -> m_StuckLast = 0, mv+0xc8 = at,
-   return 0. All 27 hit -> return 1.
+   return 0. All 27 hit -> return 1 (m_StuckLast kept).
 
 TestPlayerPosition 180ae5650: svc+0x648 counted on entry and at its trace (180ae5818); hull by svc+0x408 (180cb7b90
 +0x24 / +0xc / +0x48 when 180b5d1b0); trace 180addc00 at -> at; a hit whose layers (+0x28) meet pawn+0x608 (| 0x20
@@ -1022,15 +1029,18 @@ duck's air check call TraceShape directly: not counted.
 
 - CheckWater 180abe290: ray from origin + (0, 0, hull max z) to origin; CTraceFilter (0x18178c240) interacts-with
   0x18000, group 5, query flags 0x4d. Hit (1802c35a0): m_flWaterLevel = clamp(1 - fraction, 0, 1), type from contents;
-  miss: 0. Entering (svc+0x654 0): svc+0x658 = curtime. Returns level > 1. Called from CategorizePosition, the ladder
-  tick, the water jump's flight, FullTossMove.
+  miss: 0. Entering (svc+0x654 0 and a level now): svc+0x658 = curtime. Returns level > 1. Called at CategorizePosition's
+  start (with a controller, pawn+0xc98), the ladder tick after the duck, the water jump's flight after its slide,
+  FullTossMove.
 - m_flWaterLevel setter 1803ebff0: CQuantizedFloatEncoder "m_flWaterLevel" (1803c1030(enc 0x181fb2138, 8 bits, flags 8
   = integers exact, 0, 1), made once under 0x181fb2156 bit 2): a 1/128 grid over [0, 1.9921875]; then pawn vfn 0x698
   (180b67370 -> water services vfn 0xb8). Level = int(v x 4 + 1) unclamped: 4 above 0.75, 5 at 1. Readers: >= 2
-  (Accelerate), > 2 (switch, CheckJumpButton), < 3 (FinishDuck), != 0, CheckWaterJump == 3 (180add42a).
+  (Accelerate), > 2 (switch, CheckJumpButton), < 3 (FinishDuck), != 0, CheckWaterJump == 3 (180add42a: levels 4 and
+  5 don't water-jump).
 - CFuncWater::Spawn (vfn 9, 180999c60): 180d0f2c0(collision, 3, 2, interacts-with) (SetCollisionGroup 180d0e200 to 2,
   trigger), shape attributes wiped (vfn 0x60 with a zeroed record), 180d0e5f0: interacts-as 0x8004 (water | trigger),
-  interacts-with 0x340001, exclude the entity's. Trigger (2) touches only player_movement (11).
+  interacts-with 0x340001, exclude the entity's. Trigger (2) touches only player_movement (11): the movement passes
+  through, CheckWater (its query flags with 4) hits.
 - Water move 180aeb880: `water friction = surface friction x ((speed x frametime) x sv_friction)`, `acceleration =
   (frametime x (wishspeed x sv_accelerate)) x surface friction`; mv+0x124 (180aeb9b1 / 180aeb9fd).
 - CheckWaterJump 180abe530: forward svc+0x65c; the wall's m_iEFlags bit 5 tested before the jump speed is stored (never
@@ -1042,12 +1052,13 @@ duck's air check call TraceShape directly: not counted.
 
 "Alive" = pawn vfn 0x550 (CCSPlayerPawn 0x1801541a0: m_lifeState == 0).
 
-1. svc+0x418: dead -> 0 (notify 180ad7f70); else Approach(0, it, `((((max.z - min.z) - (dmax.z - dmin.z)) x 0.5) / 0.1)
-   x frametime`). off = `0 + svc+0x418`.
+1. svc+0x418 (FinishDuck / FinishUnDuck's origin shift): dead -> 0 (notify 180ad7f70); else Approach(0, it, `((((max.z
+   - min.z) - (dmax.z - dmin.z)) x 0.5) / 0.1) x frametime`) (max.z hull +0x20, min.z +0x14, dmax.z +0x38, dmin.z +0x2c;
+   0.1 = 0x3dcccccd). off = `0 + svc+0x418`.
 2. svc+0x3f0 = 180a73870(svc+0x290) (notify 180ad7930); set -> off -= 180a7a830(svc+0x290). Changed -> svc+0x3f4 =
    (body +0x120 z +0xf0) - off (notify 180ad9310).
-3. svc+0x3f4: dead -> 0; else Approach(0, it, rate x frametime): !0x3f0 -> 1801783b0(`|vz x 0.5|` (1808ad470), sv_gravity
-   x 0.05); 0x3f0 and sv_legacy_jump off -> max(|svc+0x700|, 60) (180ae953f); else 150. off += 0x3f4; off = clamp(off,
+3. svc+0x3f4: dead -> 0; else Approach(0, it, rate x frametime): !0x3f0 -> 1801783b0(`|vz x 0.5|` (1808ad470; vz from
+   1803d6fb0 GetAbsVelocity: pawn+0x38c unless EFL_DIRTY_ABSVELOCITY), sv_gravity x 0.05); 0x3f0 and sv_legacy_jump off -> max(|svc+0x700|, 60) (180ae953f); else 150. off += 0x3f4; off = clamp(off,
    -32, 32).
 4. Body 180cb8770(body+0x120, (0, 0, off), 0): each axis clamped to [-128, 128] into +0xe8 / 0xec / 0xf0 (notifies
    1806e8780 / 88c0 / 8a00), vfn 0x70(0x80) on a change.
@@ -1064,7 +1075,8 @@ m_vecY 10 bits, flags 4, [-64, 64]; m_vecZ 12 bits, flags 2 (round up), [0, 64]:
 ### The stair estimator 180a73870(est = svc+0x290) -> bool
 
 est: +0 svc, +8 height cache (key the cell's (uint)floorf(x), (uint)floorf(y), value at +0xc of a 0x10 entry; +0x18
-count, +0x1c slots), +0x28..0x30 last floored origin, +0x34 result (constructor: FLT_MAX).
+count, +0x1c slots), +0x28..0x30 last floored origin, +0x34 result. The constructor (the svc constructor,
+180ab4e33..56) sets +0x28..0x34 to FLT_MAX; 180ab5b80 frees it.
 
 1. No svc or pawn -> false. Ground (pawn vfn 0x660 0x18014ec60 -> vfn 0x668 0x180e7c2a0) null or its vfn 0x570 false
    (CWorld 0x180cb1d50 true; CBaseEntity's and brush / door / physbox / train's 0x1801542c0 false) -> false.
@@ -1078,13 +1090,14 @@ count, +0x1c slots), +0x28..0x30 last floored origin, +0x34 result (constructor:
    from floorf(start) to floorf(end), CTraceFilter (0x18178c240) interacts-with 0x2011, group 11, entity / owner ids -1
    (180bf9270(null)), hierarchy 0 (180c048b0(null)), detail layers 0xffff, object set 0xf, flags `(stack byte & 0xc9) |
    0x49` (bit 7 never read), +0x40 = 0; DidHit, not start solid, normal z > sv_standable_normal (182175520, strictly) ->
-   h = `floorf(end z x 10) / 10`, cached. A miss: h FLT_MAX, the cell skipped. The probe runs before the area test.
+   h = `floorf(end z x 10) / 10`, cached (180a6af20). A miss: h FLT_MAX, the cell skipped. The probe runs before the
+   area test, so a cell outside the footprint is still cached.
    Area 180a7ec80(cmin (fx - 4, fy - 4), cmax (fx + 4, fy + 4), fmin, fmax): 0 unless fmin.x < cmax.x, fmin.y < cmax.y,
    cmin.x < fmax.x, cmin.y < fmax.y; else `(minss(cmax.y, fmax.y) - maxss(cmin.y, fmin.y)) x (minss(cmax.x, fmax.x) -
    maxss(cmin.x, fmin.x))`. Area > 0 -> record (0x1c: area, x, y, h, i x 5 + j, -1, 1.0), min / max of x, y, h (`h <=
    min`, `max <= h`).
 6. No record, or `z - max h >= s` (comiss / jae) -> +0x34 = 0. Else max h - min h >= s: the nearest by `((dy² + dx²) +
-   dz²)` (strictly nearer replaces) gets distance 0, weight maxss(0.01, area x 1/64); until a pass changes nothing: each
+   dz²)` (strictly nearer replaces: the first of equals) gets distance 0, weight maxss(0.01, area x 1/64); until a pass changes nothing: each
    record with distance >= 0, each direction (-1 when idx % 5 != 0, +1 when (idx + 1) % 5 != 0, -5 when idx > 4, +5 when
    idx < 20): idx + d at -1 with |h - its h| < s gets distance + 1, weight min(this, maxss(0.01, min(areas) x 1/64)),
    linked. Records still -1 removed (from the end, order kept).
@@ -1098,18 +1111,24 @@ count, +0x1c slots), +0x28..0x30 last floored origin, +0x34 result (constructor:
   view_punch_decay`; x > 0 -> out x= V_expf(-x) (import slot 0x18176ae78).
 - Setter 180c7e550: sv_suppress_viewpunch -> nothing. Each lane AngleNormalize'd (z, y, x), stored when any lane
   compares unequal (1801f9480; notes 180c7aac0); time given -> its tick / ratio (each stored when it differs); null ->
-  gpGlobals tick through 180c86d00 / 1809209f0, ratio 0.
+  gpGlobals tick (+0x44) through 180c86d00 / 1809209f0 (the pawn identity's m_worldGroupId (+0x38) 0 -> 180de69a0
+  takes the paused ticks (global +0xc0) off), ratio 0.
+- Writers: every caller of 180c7e550 and of the add (vfn 0xf8 180a9ef60 = decayed + delta, time null): the respawn
+  (zero), 180ade0a0 (TryPlayerMove's speed loss, CheckFalling's landing), CheckFalling's view punch, Recoil, the maps'.
 - 180ade0a0(svc, mv, scale): scale > 0 -> svc+0x258 = 400, svc vfn 0x1d0(svc, mv+0xc8, svc+0x428, max(scale, 0.1), 1,
   0), then the decayed punch with roll = `-(quantize(svc+0x25c)) x 0.013` (180ade296's encoder: 20 bits, flags 4,
-  [-16384, 16384]), pitch 8 when above 8, set at now; scale > 0.85 -> pawn vfn 0xbb0(0x12, 0, 0).
+  [-16384, 16384]), pitch 8 when above 8, set at now; scale > 0.85 (0x1817b2bfc) -> pawn vfn 0xbb0(0x12, 0, 0) (an
+  animation event).
 - Recoil 180a4c5d0: `yaw -= sinf(a) x (magnitude x 0.055)`, `pitch -= cosf(a) x (magnitude x 0.055)` (V_sinf / V_cosf
   0x18176af00 / 0x18176b118), set at the attack time (180a9bda0 -> 180c7e550).
 - Maps: env_viewpunch (CEnvViewPunch_API::ViewPunch 180d2a290 -> 180feca00: falloff 1 - d / r), trigger_impact
   (CTriggerImpact vfn 0x888, 180fdbcc0: pitch / roll from the push direction x m_flMagnitude x 0.1), env_physexplosion
   (CPhysExplosion vfn 0x68 -> 180ec6140 -> 180ec0960).
 - Nothing in the movement reads mv+0x44: every [r + 0x44..0x4c] read with the CMoveData register in 0x180ab0000..
-  0x180af0000 and 0x180c60000..0x180c90000 is CheckParameters' own; the moves take AngleVectors of mv+0x14. The punch
-  never moves a player (Source 1 the same).
+  0x180af0000 and 0x180c60000..0x180c90000 is CheckParameters' own; WalkMove, AirMove, WaterMove, LadderMove, noclip and
+  CheckWaterJump take AngleVectors of mv+0x14 (the prelude's 181472530 into svc+0x65c / 0x668 / 0x674), and the base
+  FinishMove's vfn 0x140 (180c70140) copies mv+0x14 into pawn+0xbc8 (v_angle; the old one to +0xbd4). The punch never
+  moves a player (Source 1 the same: m_vecAngles = view + punch, the moves read m_vecViewAngles).
 
 ## Step sounds
 
@@ -1122,7 +1141,8 @@ count, +0x1c slots), +0x28..0x30 last floored origin, +0x34 result (constructor:
    0xb90 (m_bIsWalking) or speed < 135 -> return; not ladder: FL_ONGROUND and horizontal > 0.0001; walking = 220 >
    speed. Ladder: vfn 0x1a0, 0.5, vfn 0x1c0(1). Level 3 (180a793f5 in client the same): "wade" 0.65, type 2. 1 / 2:
    wade 0.2 / 0.5, type 3. Else (0, 4, 5): the given surface (null -> return before the timer), type 0, 0.2 / 0.5.
-   Level >= 1: "CT_Water.StepLeft" too (EmitSound 180f69780, EmitSound_t +0 name, +8 origin, +0x14 volume). FL_DUCKING:
+   Level >= 1: "CT_Water.StepLeft" too, at the step's volume before the duck's scale (EmitSound 180f69780, EmitSound_t
+   +0 name, +8 origin, +0x14 volume; client.dll has no such splash). FL_DUCKING (+0x388 & 2, 0x18179be5c):
    volume x 0.65. vfn 0x1b0(svc, origin copy, surface, volume, 0).
 4. SetStepSoundTime 180ae2230(svc, type, walking, velocity): 0 / 3 -> 400 walking else 300; 1 -> `floorf(35 -
    min(max((|vz| - 150) / 100, 0), 1) x 10) x 10`; 2 -> 600; FL_DUCKING -> + 100.
@@ -1188,7 +1208,8 @@ SetViewOffset 180242350 (against the new value, the clamped one stored), m_flWat
   s+0x14 (base index) >= 0 -> 180beeb90 (entry[k] = entry[base] as it stands); map[k] >= 0 -> 180be8f60 parses over
   entry[k].
 - vphysics2 180073760 loads physprops from "surfaceproperties/surfaceproperties.vsurf" (csgo's 164 surfaces; game/core's
-  81-surface copy with "woodladder" behind it). In-order copy and a transitive resolve give the same table; four leave
+  81-surface copy with "woodladder" behind it). On CS2's data an in-order copy and a transitive resolve give the same
+  table (concrete's base no_decal comes after it: both are the defaults); four leave
   the defaults: slipperyslime / slipperyslide jump 0.7, ladder / wood_ladder climbable.
 
 ## Unread

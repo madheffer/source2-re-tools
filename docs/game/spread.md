@@ -96,6 +96,7 @@ a == b -> (v - b >= 0) ? d : c; else `t = (v - a) / (b - a)`, maxss 0, minss 1, 
 2. R8 in mode 1: `1 - r²`; Negev under recoil index 3: squares (3 - index) times and takes `1 - r`. Two debug flags (r14b: r = 1; r15b: θ = π/2) belong to the force / no-spread cvars. `r0 x= inaccuracy`.
 3. Spread (θ1, r1): with patterns 0x1809c0260; without, `r1` then `θ1` (the opposite order).
 4. `x = cos θ0 x r0 + cos θ1 x r1 x spread` (the second product first, then added); `y` the same with sin.
+5. The seed (0x1802a4e90) is taken from the attack time's tick ([usercmd.md](usercmd.md) 4).
 
 ## FireBullet's direction (0x180a78120)
 
@@ -104,7 +105,6 @@ a == b -> (v - b >= 0) ? d : c; else `t = (v - a) / (b - a)`, maxss 0, minss 1, 
 
 ## Unread
 
-- The seed's tick is the attack time's ([usercmd.md](usercmd.md) 4).
 - Where in the frame UpdateAccuracyPenalty runs against the commands.
 - The landing and deploy functions (not re-read).
 - 0x1809c0260's own fallback draws (taken as θ then r).

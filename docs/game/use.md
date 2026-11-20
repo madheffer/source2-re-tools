@@ -86,7 +86,7 @@ server_20261105.
 | entity +0x360 | m_spawnflags |
 | entity +0x2f3 | move type |
 | button +0x9b4 | (name unread) |
-| button +0x920 / +0x921 | spawnflag 0x800 / 2 (+0x921 the caps' disabled byte) |
+| button +0x920 / +0x921 | m_bLocked (spawnflag 0x800) / m_bDisabled (spawnflag 2; the caps' disabled byte) (schema: CBaseButton's adjacent entries) |
 | button +0x2b8 / +0x2b0 | use / touch function |
 
 ## Constants
@@ -236,11 +236,11 @@ The keyvalue is "enableuseoutput" (every prop and physbox on the four ZE maps ch
 
 A non-solid button keeps its body: queries with flag 2 (0x4b: movement and bullets) skip a shape without bit 0; +use's traces (0x49) and the sphere still find it.
 
-Other spawnflags: 0x1000 a think (0x1803ee6e0); 2 +0x921; 0x800 +0x920; 0x400 the use function at +0x2b8; 0x100 the touch at +0x2b0.
+Other spawnflags: 0x1000 a think (0x1803ee6e0); 2 +0x921 (m_bDisabled); 0x800 +0x920 (m_bLocked); 0x400 the use function at +0x2b8; 0x100 the touch at +0x2b0.
 
 ## Unread
 
-- The spatial query's group, object set and order (RadiusDamage's enumeration filter: group 3, object set 0xe).
+- The spatial query's group, object set and order (taken as RadiusDamage's enumeration filter: group 3, object set 0xe; the planted bomb taken as first in the list).
 - CanAcquire's results 2 and 3 (these pass).
 - m_vecMins / m_vecMaxs: from the model's physics bounds.
 - The pawn's own collision shape for the look trace (taken as origin + (0, 72), (0, 54) ducked).

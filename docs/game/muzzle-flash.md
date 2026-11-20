@@ -62,7 +62,11 @@ animation/anims/{viewmodel,world} have them.
 - Dual Berettas alternate configs (`primary(_fps)` / `alternate(_fps)`, `shell_eject` / `shell_eject2`); USP-S, M4A1-S
   clips carry a `silenced` and an `unsilenced` flash.
 - A *_fps flash sets m_nViewModelEffect INHERITABLE_BOOL_TRUE (drawn in the viewmodel's pass) and names the world system
-  as its child. Shells are world systems (C_OP_RenderModels of weapons/models/shared/shells/*, C_OP_WorldTraceConstraint).
+  as its child. Shells are world systems (C_OP_RenderModels of weapons/models/shared/shells/*, C_OP_WorldTraceConstraint:
+  they bounce on the world).
+- A casing vpcf's own numbers: emission delay, lifetime, C_INIT_CreateWithinSphereTransform's local speeds along CP0's
+  forward / left / up, C_OP_BasicMovement's gravity and drag (taken as a factor `(1 - drag)^(30 dt)`),
+  C_OP_RotateVector's rates, the stop speed, the radius x m_flRadiusScale, m_flMaxDrawDistance, the model.
 - A config is the system's m_controlPointConfigurations entry of that m_name: its m_drivers (ParticleControlPointDriver_t,
   defaults m_iControlPoint 0, m_iAttachType PATTACH_ABSORIGIN_FOLLOW): CP0 PATTACH_POINT_FOLLOW on `muzzle_flash` /
   `shell_eject`, the others PATTACH_WORLDORIGIN with m_vecOffset as constants (AK `game`: CP5 = (0.35, 1, 1) first

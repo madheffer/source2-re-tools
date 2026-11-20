@@ -14,7 +14,7 @@ ar_shoots_night, ar_baggage, ar_pool_day). gamemodes.txt's `weaponprogression_ct
 | 4 | 0x18094ea70 | Think |
 | 5 | 0x18094df20 | match (re)start: ladder (0x180956090), winner -1, every controller's score reset (0x180a71500) or a bot re-added |
 | 7 | 0x18094de40 | reset: leader -1, knife music handle cleared, winner -1 |
-| 8 | 0x18094d9c0 | player joining: the first starts the warmup; sets +0x155c (immunity colour) |
+| 8 | 0x18094d9c0 | player joining: the first starts the warmup; sets +0x155c by team (the old note called it "the controller's teammate colour"; schema.py: +0x155c is the pawn's m_GunGameImmunityColor) |
 | 9 | 0x18094ddf0 | spawn equip: tail-jumps to 0x18092c0f0 |
 | 10 | 0x180921c30 | player killed (base 0x180921c20 does nothing) |
 
@@ -139,7 +139,7 @@ ar_shoots_night, ar_baggage, ar_pool_day). gamemodes.txt's `weaponprogression_ct
 | pawn +0xdf1 | m_bHasMovedSinceSpawn |
 | pawn +0xe6a | m_bHasFemaleVoice |
 | pawn +0xf71 | m_bInBuyZone |
-| pawn +0x155c | m_GunGameImmunityColor |
+| pawn +0x155c | m_GunGameImmunityColor (schema.py checked, with +0x15a4 / +0x15a8 / +0xdf1 / +0xe6a / +0xf71 / +0xc7c / +0x334, controller m_iScore +0x91c, rules m_WeaponSequence +0x30) |
 | pawn +0x15a4 | m_fImmuneToGunGameDamageTime (GameTime) |
 | pawn +0x15a8 | m_bGunGameImmunity |
 | weapon services +0xdb | keep flag (don't switch to the given weapon) |
@@ -187,7 +187,7 @@ ar_shoots_night, ar_baggage, ar_pool_day). gamemodes.txt's `weaponprogression_ct
 | 0x180a7d798 | buy's jump table: 0 go on, 2 / 4 / 5 message, 1 / 3 / 6-10 4 |
 | sv_coaching_enabled 0 | 0x182119820 |
 | bot_allow_* types | rifles 3, shotguns 4, machine guns 6, snipers 5, SMGs 2 |
-| weapon_taser | m_nDamage 500, m_iMaxClip1 1, m_flCycleTime 0.15 / 0.3, m_flRange 120, m_flRangeModifier 0.99, m_flArmorRatio 2, GEAR_SLOT_KNIFE position 1, Weapon_Taser.Single, m_nPrice 200 |
+| weapon_taser | m_nDamage 500, m_iMaxClip1 1, m_flCycleTime 0.15 / 0.3, m_flRange 120, m_flRangeModifier 0.99, m_flArmorRatio 2, m_GearSlot GEAR_SLOT_KNIFE position 1, Weapon_Taser.Single, the taser tracer, m_nPrice 200 |
 
 ## The ladder (0x180929ca0)
 

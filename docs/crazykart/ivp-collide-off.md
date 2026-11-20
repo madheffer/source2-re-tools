@@ -38,7 +38,7 @@ func_wall_toggle / func_breakable going away, a parked dead kart and spawnflag 0
 | 0x100975f0 | vphysics | (core, rotation delta vector): axis, rate |
 | 0x1006ccb0 | vphysics | make the cache at the pose |
 | 0x10096400 | vphysics | recalc an exact synapse's mindist |
-| 0x10073a50 | vphysics | the object's invalid mindists (ivp-pileup.md 5) |
+| 0x10073a50 | vphysics | the object's invalid mindists (ivp-pileup.md "The invalid mindists' recheck") |
 | 0x100980e0 / 0x10094a70 | vphysics | recheck an invalid mindist / re-insert one |
 | 0x10093bb0 | vphysics | the 10 s hull reset |
 | 0x1001bfe0 | vphysics | EnableMotion -> 0x10072af0 (core's object, pinned), 0x10072c90 (object, was on) |
@@ -97,7 +97,8 @@ func_wall_toggle / func_breakable going away, a parked dead kart and spawnflag 0
 | IVP object +0x48 | hull manager: +0 time, +8 gradient, +0xc centre gradient, +0x10 hvl, +0x14 cvl, +0x18 next |
 | IVP object +0x80 | anchors |
 | IVP object +0x8c | OV element |
-| IVP object +0x98 | compared between a pair (unknown) |
+| IVP object +0x94 | core (its flags & 0x12 tested in the pair filter) |
+| IVP object +0x98 | a core pointer, compared between a pair (see Unread) |
 | IVP object +0x9c / +0x98 | cores (dtor: each handled when they differ) |
 | IVP object +0xa0 | back pointer to the CPhysicsObject |
 | IVP_OV_Element | vtable 0x100f2ad0, +0x20 -1.0, +0x24 the object, +0x2c a 16-entry vector |
@@ -119,7 +120,7 @@ func_wall_toggle / func_breakable going away, a parked dead kart and spawnflag 0
 | core +0x138 | 1/dt |
 | core +0x13c | 1/dt x \|d\| |
 | core +0x142 / +0x144 | controllers / listeners (count +0x142) |
-| core +0x14c | the unit's state byte |
+| core +0x14c | its unit (delete_and_check_vicinity reads the unit's state byte through it) |
 | core +0x150 / +0x158 | reference times |
 | core +0x1a4 | +8 x rate |
 | env +0x10 / +0x1c | object list / count |
@@ -133,7 +134,8 @@ func_wall_toggle / func_breakable going away, a parked dead kart and spawnflag 0
 | env +0x88 | sleep list (entry +0x1a its index) |
 | env +0x98 | list drained in CleanupDeleteList; also the material manager |
 | env +0x9c | count - 1 at the last Simulate's start |
-| env +0xa0 | quick-delete flag; its +0x10 the temporary-memory counter |
+| env +0xa0 | the quick-delete flag (env slot 79, 0x10017a20) |
+| env +0xa0 (in 0x100767c0) | its +0x10: the temporary-memory counter, held around the static walk |
 | env +0xa1 / +0xa2 | inside Simulate / delete queue on |
 | env +0xa8 / +0xac | dt / 1/dt |
 | env +0xd8 | revive queue (flag 4) |
@@ -201,8 +203,8 @@ Per element the OV collector found (other object o2), a pair is made when all ho
 3. not both cores static or pinned: own core flags & 0x12 == 0 or o2's & 0x12 == 0 (a pinned kart never pairs with the
    world or another pinned body);
 4. +0x44 bits 0x200 / 0x400: own 0x200 needs o2 without 0x200; (own 0x400 without 0x200 and o2 0x200) or (own 0x200 and
-   o2 0x400) skips the collision filter, else env +0x18 slot 0 (vphysics' -> the game's ShouldCollide, ivp-shadow.md 8)
-   must say yes (see ivp-pileup.md 7: a lift / pinned-kart pair made past a filter that said 0);
+   o2 0x400) skips the collision filter, else env +0x18 slot 0 (vphysics' -> the game's ShouldCollide, ivp-shadow.md "What collides with a mover")
+   must say yes (see ivp-pileup.md "ShouldCollide": a lift / pinned-kart pair made past a filter that said 0);
 5. no OO watcher for the pair yet (0x100964f0).
 
 ## Revivals in one PSI (0x10071ef0)
@@ -280,7 +282,7 @@ After the gibs and the break sound:
 4. No EnableCollisions.
 
 - A func_wall_toggle's Kill: plain UTIL_Remove, DestroyObject at once (on or off). Its Toggle: TurnOff / TurnOn
-  (ivp-pileup.md 7).
+  (ivp-pileup.md "ShouldCollide", "Buttons and walls").
 - A teleport: SetPosition with isTeleport.
 
 ## ze_crazykart_v4
@@ -292,7 +294,7 @@ func_rotating (4), func_wall_toggle (3), func_movelinear (2), func_brush and the
 
 - 0x10096400 / 0x10073a50's recheck (0x100980e0 / 0x10094a70) on a frozen object with collisions on (SetPosition
   without isTeleport); the hull budget's env +0x20 slot 4.
-- What IVP object +0x98 is (compared in the pair filter).
+- What IVP object +0x98 is exactly: a core pointer (the destructor deletes the +0x9c / +0x98 cores, ensure_in_simulation queues +0x98; the pair filter compares +0x98 at 0x10094fc9 and tests the +0x94 core's flags & 0x12 at 0x10094fdf, checked against the disassembly). IVP's field order physical_core, friction_core, original_core would make +0x94 / +0x98 / +0x9c those three: unconfirmed.
 - Who sets +0x44 bits 0x200 / 0x400.
 - The order a unit's cores revive in, 0x100775f0's part for the second core.
 - A static's 0x10082ce0 with a partner outside a friction system; a static-static contact.

@@ -110,7 +110,7 @@ then `mulss strength, channel`. `fogcolor 10 16 32` at strength 1 = (0.00304, 0.
 
 1. m_bIsEnabled = !m_bStartDisabled. m_bGradientFogNeedsTextures from a global's virtual (+0x4a8), unread.
 2. Enabled: world group 0 -> the global 0x182388590 = this; another group -> the hash table.
-3. +0x63c = 1; then, only for group 0, every `sky_camera` of group 0 with scale > 0 sets it to 1 / scale.
+3. +0x63c = 1; then, only for group 0, every `sky_camera` of group 0 with scale > 0 sets it to 1 / scale. A map's own fog has no sky_camera beside it (the 3D skybox is another world), so 1.
 4. Cooked values into +0x644 and +0x66c; +0x640 = -1.
 5. Ends with `0x180ae7d50(this, 0x18015c5fc, -1293.0, 0)`: the frame update as a think.
 

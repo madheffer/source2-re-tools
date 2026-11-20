@@ -98,6 +98,6 @@ m_flVelocityModifier = min(m_flVelocityModifier, (v - 1) x ratio + 1)           
 
 ## Unread
 
-- 180574fa0's queue: when in the victim's command it runs; the client's copy of the message (CS2's client predicts the slowdown at that tick). (damage-prediction.md may hold the queue.)
+- 180574fa0's queue: when in the victim's command it runs; the client's copy of the message (CS2's client predicts the slowdown at that tick).
 - The time 180c86d00 reads (services +0x38 -> +0x10 -> +0x38).
 - The two other classes in 180a7ab50; the inferno's ability; TakeDamageFlags_t bit 0x2's name; the Think's place in the frame.

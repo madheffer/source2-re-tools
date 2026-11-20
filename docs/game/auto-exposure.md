@@ -37,7 +37,7 @@ client_20261015, scenesystem_20261015, server_20261105, CS2's shaders_vulkan_dir
 | C_PostProcessingVolume +0x119c / +0x11a0 | m_flMinLogExposure / m_flMaxLogExposure |
 | +0x11a4 / +0x11a8 | m_flMinExposure / m_flMaxExposure |
 | +0x11ac | m_flExposureCompensation |
-| +0x11b0 / +0x11b4 | m_flExposureFadeSpeedUp / Down |
+| +0x11b0 / +0x11b4 | m_flExposureFadeSpeedUp / m_flExposureFadeSpeedDown |
 | +0x11b8 | m_flTonemapEVSmoothingRange |
 | +0x11bc / +0x11bd | m_bMaster / m_bExposureControl |
 | C_TonemapController2 +0x600 / +0x604 | m_flAutoExposureMin / Max |
@@ -127,7 +127,7 @@ log2 / exp2 are tier0's V_log2f / V_exp2f.
 - 0x18029c040 / 0x18029c500 pass { min exposure (<= 0: 2^ min log), max (<= 0: 2^ max log), 2^ compensation, speed up, speed down, smoothing range }. With 0x1823866c8 set: min = max = 0x1823866cc and vfn 0x28 with it.
 - A key the map leaves out stays 0 (min / max -1: 2^0 = 1; range 100).
 - C_TonemapController2 passes { +0x600 min, +0x604 max, 1.0, +0x608 up, +0x60c down, +0x610 range }.
-- csgo/postprocessing.fgd: min / max exposure (default 1.0), enableexposure, speed up / down (1). game/core's fgd: min 0.25, max 8.
+- csgo/postprocessing.fgd: min / max exposure (default 1.0), enableexposure, speed up / down (1); no map baked here sets compensation, log exposure or the smoothing range, and none has an env_tonemap_controller2. game/core's fgd: min 0.25, max 8.
 
 ## Unread
 

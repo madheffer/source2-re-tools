@@ -54,13 +54,13 @@ debugger UI), 0x1801c1e50.
 | _m0 | mat4 | world -> projection: p' = _m0 x (pos, 1), p'.xyz / p'.w; inside when x, y in (-1, 1), z in (0, 1) |
 | _m2 | vec4 | xyz position (w != 0) or direction to it (w == 0: directional); w the near radius² (`I x w / max(d^2, w)`) |
 | _m3 | vec4 | x, y distance fade smoothstep(0, 1, x + y d); z > 0 near fade smoothstep(0, 1, z' x z); w > 0 far fade smoothstep(0, 1, (1 - z') x w) |
-| _m4 | vec4 | xyz colour (linear); w: 0 no cookie (shape term), < 0 cube cookie slice -w, > 0 2D cookie slice w, in PerViewLighting._m29's 3D texture |
-| _m5 | vec4 | orientation quaternion; forward = (1 - 2(y^2 + z^2), 2(xy + wz), 2(xz - wy)) |
+| _m4 | vec4 | xyz colour (x intensity, linear); w: 0 no cookie (shape term), < 0 cube cookie slice -w (_m5's quaternion turns the direction into lat-long UVs), > 0 2D cookie slice w (the projected xy), in PerViewLighting._m29's 3D texture |
+| _m5 | vec4 | orientation quaternion (x, y, z, w); forward = (1 - 2(y^2 + z^2), 2(xy + wz), 2(xz - wy)), dotted with the direction to the luminaire's closest point (area lights) |
 | _m6 | vec4 | x, y facing term saturate(x + y x dot(forward, dir)); z half the luminaire's length (segment p +- forward x z) |
 | _m8 | vec4 | shadow atlas rect (xy offset, zw scale); z > 0 gates the dynamic shadow |
-| _m9 | vec4 | shape (_m4.w == 0): z == 0 rectangle smoothstep(1, x, \|p'.x\|) x smoothstep(1, y, \|p'.y\|) (x, y = 1 - softness); z != 0 superellipse of exponent 2 / z; with a cookie: UV offset xy, scale zw |
+| _m9 | vec4 | shape (_m4.w == 0): z == 0 rectangle smoothstep(1, x, \|p'.x\|) x smoothstep(1, y, \|p'.y\|) (x, y = 1 - softness); z != 0 superellipse of exponent 2 / z (roundness) with the same softness; with a cookie: UV offset xy, scale zw |
 | _m10 | vec4 | baked shadow channel mask: colour x (1 - dot(texel, _m10)) (one-hot) |
-| _m11 | float | min roughness |
+| _m11 | float | min roughness as the BRDF reads it (`r = max(rough.x, _m11)`; the packer's 0x100); its other combos' uses unread |
 | _m12 | float | dynamic shadow strength: mix(1, shadow, _m12) |
 | _m13 | uint | flags: 4 = shadow map xy swapped (p'.yx x (1, -1)) |
 | _m15 | mat4x3 | clip box (world -> [-1, 1]^3): outside, nothing |

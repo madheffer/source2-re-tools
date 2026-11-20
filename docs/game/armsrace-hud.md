@@ -46,7 +46,7 @@ client_20261015, server_20261105, panorama.dll (install of 2026-11-12). pak01 hu
 | 180c9d440 | client | pawn's per-frame scene-object attributes |
 | 18021a2c0 | client | entity list: the pawn, then 18021a140 (scene node children) |
 | 18021a140 | client | scene node children (+0x40 first child / +0x48 next sibling, recursive) |
-| 180c7ede0 | client | adds the active weapon (1808cc9c0 -> 180a7f360), its +0x1990 and m_hHudModelArms when vfn 0xac8 |
+| 180c7ede0 | client | adds the active weapon (1808cc9c0: m_pWeaponServices -> 180a7f360), then, only when vfn 0xac8 is true, that weapon's handle +0x1990 and the pawn's arms model handle (pawn +0x1da4) |
 | 0x180ca1b40 | client | vfn 0xac8 `xor al, al` (C_CSPlayerPawn (vtable 0x181c8a138), C_CSPlayerPawnBase, C_CSObserverPawn) |
 | 0x180cbf200 | client | vfn 0xac8 `mov al, 1` (C_CSGO_PreviewPlayer only) |
 | 18021bca0 | client | model keyvalue lookup (`spawn_invuln_effect_override`, hash 0x8ad232bc) |
@@ -86,7 +86,7 @@ client_20261015, server_20261105, panorama.dll (install of 2026-11-12). pak01 hu
 | controller +0x6f4 | m_iConnected |
 | controller +0x934 | m_bPawnIsAlive |
 | controller +999 | team |
-| inventory services +0x30 | its controller |
+| inventory services (CCSPlayerController_InventoryServices) +0x30 | its controller |
 | inventory services +0x58 / +0x5c | m_unMusicID / m_rank |
 | +0x74 .. +0x84 | m_nPersonaDataPublicLevel .. m_nPersonaDataXpTrailLevel |
 | +0x88 | m_vecServerAuthoritativeWeaponSlots (count > 0: loadout arrived) |
@@ -162,7 +162,7 @@ client_20261015, server_20261105, panorama.dll (install of 2026-11-12). pak01 hu
 - Images: origin (100%, 50%), pre-transform-scale2d -1 1, padding 7, scale .7, bottom, transition .2s; outline wash black, hidden on --future / --current / --done; filled hidden except --current (.additive), --selected scale .9 brightness 1.5.
 - #armsrace-pips: top, x -30, right, flow up, opacity .5 (1 on --current), margin-top -4, margin-right 5; carries hud-colorize-wash--hsv (earned pips draw the washed team colour, others stay black).
 - .armsrace-pip: 10 x 10, margin-bottom 20, #000000c0, round; --earned white additive.
-- `.weapon-selection--armsrace .gear-slot--0 / --1 .weapon-selection-item-icon-main { opacity: 0 }`.
+- `.weapon-selection--armsrace .gear-slot--0 / --1 .weapon-selection-item-icon-main { opacity: 0 }` (the classic list's gun and pistol icons).
 - WEAPONSELECTION_UNSELECTED_HSV_TRANSFORM on ct-color rgb(150, 200, 250) -> rgb(148, 193, 238); on t-color #eabe54 -> rgb(223, 183, 91).
 
 ## The top bar in game_type 1 (CCSGO_HudTeamCounter)
@@ -170,14 +170,14 @@ client_20261015, server_20261105, panorama.dll (install of 2026-11-12). pak01 hu
 - **Layout (180ec6730)**: 1 when 180769d30 and not 180769e60; +0x127c = layout; GameModeGunGame on the panel for layout 1; layout 1: 20 avatars into TeamAll, TeamAll and GameTime shown, BombStatus / GameScore / PlayerCount / team rows hidden; else 10 + 10 into the team rows.
 - **Avatars (180ecec30)**: every controller with m_iConnected 0 / 3 (or 1808865b0) on team 2 / 3; layout 1: all into one array, sorted by 180eabc80 (m_iScore down, then player slot up), the first 20 drawn; Arms Race: the avatar's weapon = the ladder's entry at `min(score / 2, count - 1)` (item def by name, econ schema 0x148), else the best weapon (slot 0, 1, 2).
 - **Scale** (180ecf883..180ecfc49, when T or CT count changed): layout 1: `s = Remap(T + CT, 10.0, 20.0, 1.0, 0.7)` on #TeamAll; else `Remap(max(T, CT), 5.0, 10.0, 1.0, 0.7)` on #TeamLargeCT / T; applied via 180dc75e0, from #TeamAll's transform-origin 50% 0%.
-- **Avatar data (180eba820)**: Arms Race: health passed 0 (#HealthBarContainer hides: 180ecc1f0 line 391 shows it only for health > 0), the second value 0 too; the number = m_iScore / 2 in Arms Race, m_iScore in Deathmatch (180769d50 and not 180769e60), else 0; weapon icon `file://{images}/icons/equipment/%s.svg`.
+- **Avatar data (180eba820)**: Arms Race: health passed 0 (#HealthBarContainer hides: 180ecc1f0 line 391 shows it only for health > 0), the second value 0 too; the number = m_iScore / 2 in Arms Race, m_iScore in Deathmatch (180769d50 and not 180769e60), else 0; weapon icon `file://{images}/icons/equipment/%s.svg` of the item's name less "weapon_" (18076a470).
 - **180ecc1f0**: kill flags (killattribute HTC__Avatar__*) only when layout isn't 1; #ArsenalProgress shown when the number != 0 or Arms Race: label the number (V_Int32ToString), class `gglevel-%d` = count - number - 1 (0 = knife level, -1 = won); AvatarL__GGText--Player for the local controller, else AvatarL__GGText--Bot; the weapon panel with the icon when there is one.
 - vcss: .GameModeGunGame #TeamCounter flow down, .team__large_container--left / --right collapsed; #ArsenalProgress centred, 100% wide, padding 0 2, z -1, flow down, ignore-parent-flow, y 54; .gglevel-0 / --1 wash gold + gg-last-level (brightness 1 -> 1.5, .5 s, infinite, alternate), its Image gg-last-level--image (img-shadow 0 0 4px 1 gold at 100%); .AvatarL__GGTextBG 100% x 32, #0000006f, bluedots .03; .AvatarL__GGText bold 22, centred, bottom; --Player #fff, --Bot #ffffff50; .AvatarL__GGIconBG 54 wide, margin-top 4, padding 2; .AvatarL__GGIcon centred, img-shadow 1px 1px 1px #00000090; .endofmatch hides it. hudteamcounter-equipmentinfo.vcss: .deathmatch / .gungameprogressive .equipinfo--score-time__bg mask masks/score-time-dm-mask.vsvg.
 
 ## Spawn immunity's look
 
 - **Amount (180c67c40)**: 0 unless the pawn is alive and m_bGunGameImmunity and (mp_respawn_immunitytime > 0 or the warmup); then `clamp(m_fImmuneToGunGameDamageTime - now, 0, 1)`: 1 while more than a second is left, down to 0 over the last.
-- **180c9d440** (`if (pawn+0x338 == 0) return`): entities = 18021a2c0(pawn) (the pawn and its scene node's children: held weapons, attached models) plus 180c7ede0(pawn) (the active weapon, its +0x1990 and m_hHudModelArms only when vfn 0xac8: in game the first-person arms and viewmodel never get it; the menu's preview agents do). For every scene object, unless the model keyvalues have `spawn_invuln_effect_override`: g_flSpawnInvulnerability = the amount, g_cInvulnerabilityColor = m_GunGameImmunityColor r, g, b / 255.0 (no gamma: a linear colour in the shader's linear HDR). No CS2 model carries the override (pak01 weapons/models/ and characters/models/: 224 m_keyValueText blocks, the agents' empty).
+- **180c9d440** (`if (pawn+0x338 == 0) return`): entities = 18021a2c0(pawn) (the pawn and its scene node's children: held weapons, attached models) plus 180c7ede0(pawn) (the active weapon, its +0x1990 and m_hHudModelArms only when vfn 0xac8: in game the first-person arms and viewmodel never get it; the menu's preview agents do). For every scene object, unless the model keyvalues have `spawn_invuln_effect_override`: g_flSpawnInvulnerability = the amount, g_cInvulnerabilityColor = m_GunGameImmunityColor r, g, b / 255.0 (no gamma: a linear colour in the shader's linear HDR). No CS2 model carries the override (pak01 weapons/models/ and characters/models/: 224 m_keyValueText blocks, the agents' empty, none with `spawn_invuln`), so every pawn and held weapon takes the look.
 - **Other writers**: 180828340 returns at once while the weapon has an owner; an unowned (dropped) weapon gets 0 and colour (1, 1, 1). 180e6cf50: the UI's own blink.
 - **m_GunGameImmunityColor** (server pawn +0x155c): constructor white; the only other writer is Arms Race's slot 8 (18094d9c0) on a team join (T / CT / -1 above). Deathmatch, the base rules and every warmup draw it white.
 
@@ -199,7 +199,7 @@ if (g_flSpawnInvulnerability > 0) {
 ```
 
 - **BlueNoise** (PerViewConstantBufferCsgo_t._m4 / ._m15): 1811fef80: CB +0x40 = the bindless index (render device vfn 0x650) of texture global 0x1825f5ef0; CB +0xb0 / +0xb4 = width - 1 / height - 1 (vfn 0x2d0). _m4 is c4 (0x40), _m15 c11 (0xb0, also the smoke trace's mask): core's blue_noise_256 (256 x 256 RGBA8888), its green channel, mask (255, 255), rows from the top.
-- **g_flGameTime** (PerViewConstantBuffer_t._m1): the view-constants dump prints g_flRealTime from +0x9e8 and g_flGameTime from +0x9ec: _m0 / _m1, the game time (the curtime the decal burn's g_flLastDecalTime is compared with).
+- **g_flGameTime** (PerViewConstantBuffer_t._m1): scenesystem's view-constants dump (1800c8490) prints m_viewConstantBufferData.g_flRealTime from +0x9e8 and g_flGameTime from +0x9ec: _m0 / _m1, the game time (the curtime the decal burn's g_flLastDecalTime is compared with).
 
 ## The money panel (CSGOMoneyPanel)
 
@@ -214,7 +214,7 @@ if (g_flSpawnInvulnerability > 0) {
 
 - **Parser (18014b780)**: `#rgb[a]` / `#rrggbb[aa]`, rgb() / rgba(), names, `hsv-transform(<colour>, dh, s, v)` (inner colour recursive, floats by 18014ca80; rejected when |dh| > 360, s < 0 or v < 0); next `opacity-transform(...)`.
 - hsv-transform: each channel / 255 -> 1803a2430 (`x <= 0.04045 ? x / 12.92 : V_powf((x + 0.055) / 1.055, 2.4)`, x clamped 0..1) -> 1803a27e0 (max, min, `s = (max - min) / max`, `h = 60 x ((g - b) / d, (b - r) / d + 2, (r - g) / d + 4)`, +360 when negative) -> `h = V_fmodf(h + dh, 360)` (+360 when negative), `s *= s`, `v *= v` (each clamped to 1) -> 1803a2680 (`i = (int)(h / 60)`, f, p, q, t, the six cases; h == 360 -> 0) -> 1803a2500 (`x <= 0.0031308 ? 12.92 x : 1.055 V_powf(x, 1/2.4) - 0.055`) -> x 255 truncated (cvttss2si); alpha kept.
-- **wash-color**: getter returns 0xffffffff when unset (a multiply's identity); both UI shaders draw texel x vertex colour (panorama.vfx D_TEXTURETYPE `Texture0.Sample * input_1`; panorama_fancyquad: layer texel x input_3), so the wash multiplies the panel's colours (alpha kept). Help: "blended over the panel and all its children at composition time, tinting them; the alpha value determines the intensity". A wash makes the panel a composition layer (1800f1970). The function folding the wash into the vertex colour isn't located (slot 0x180's 8 callers are other interfaces).
+- **wash-color**: getter returns 0xffffffff when unset (a multiply's identity); both UI shaders draw texel x vertex colour (panorama.vfx D_TEXTURETYPE `Texture0.Sample * input_1`; panorama_fancyquad: layer texel x input_3), so the wash multiplies the panel's colours (alpha kept). Help: "blended over the panel and all its children at composition time, tinting them; the alpha value determines the intensity". A wash makes the panel a composition layer (1800f1970). The function folding the wash into the vertex colour isn't located (slot 0x180's 8 callers are other interfaces); every wash this HUD uses is opaque, where the multiply is exact.
 - **brightness / saturation / hue**: panorama_fancyquad D_COLORCORRECTION: the layer's texel (sRGB-read: linear) to HSV, h + m0 (frac), s x m1, v x m2, then the contrast lerp toward 0.5 (m3), back to RGB, x the vertex colour. Brightness b is linear(c) x b for a flat colour; the target clamps.
 - **-s2-mix-blend-mode** (names: normal, multiply, screen, additive, opaque): `additive` adds the source (CSS plus-lighter). panorama.vfx D_DSTCOLOR_BLENDMODE converts the vertex colour to gamma, blends with the destination copy (Texture4), converts back: the UI target is sRGB (blending in linear light).
 - **svg attributes** (index): 0 fill, 1 fillopacity, 2 stroke, 3 strokewidth, 4 linecap (butt / round / square), 5 linejoin (miter / round / bevel), 6 strokeopacity, 7 svgopacity, 8 fillrule; each sets a value and its bit in a "set" mask, opacities clamped 0..1: the rasteriser's style overrides. The equipment icons' paths set only fill, so overrides on the root are what every path draws with.

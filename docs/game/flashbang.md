@@ -40,9 +40,9 @@ _psrs.vcs); animation/graphs/worldmodel/worldmodel.vnmgraph; dsp_core.vdsp; game
 | LAB_180c61df4 | client | OnFlashDurationChanged: `jmp [vfn 0xae8]` |
 | 180c8eb30 -> 180c8eb70 | client | C_CSPlayerPawn (0x181c8a138) slot 0xae8: the duration change |
 | 180c8ed50 | client | OnFlashMaxAlphaChanged (stores it) |
-| 180c666f0 | client | restarts the +0x1e18 timer (also 180c75890) |
+| 180c666f0 | client | restarts the +0x1e18 timer (an animation's; also called from 180c75890) |
 | 180ca1830 | client | view camera within a cvar's distance of the pawn's eye (first person) |
-| 1808538e0 / 180853840 | client | observer mode / target |
+| 1808538e0 / 180853840 | client | observer target / observer mode (in-eye: mode 2) |
 | 18094dc30 | client | demo check |
 | 180c686f0 | client | flash think |
 | 1808cf060 | client | alphas (start, now, duration, buildUp, maxAlpha, &overlay, &screenshot) |
@@ -69,7 +69,7 @@ _psrs.vcs); animation/graphs/worldmodel/worldmodel.vnmgraph; dsp_core.vdsp; game
 | thrower +0x1bc | stats |
 | pawn +0xd38 | m_blindUntilTime |
 | pawn +0xd3c | m_blindStartTime |
-| pawn +0xd40 | state (8: not flashed) |
+| pawn +0xd40 | a state: 8 -> PercentageOfFlashForPlayer returns 0 (the state's name unread) |
 | pawn +0xe04 | m_flFlashDuration |
 | pawn +0xe08 | m_flFlashMaxAlpha |
 | pawn +0xe48 | services: +0x220 the flash attacker's handle |
@@ -179,7 +179,7 @@ flat distance curve to 2800, a time-volume curve (Long ends 4.18 s, Medium 3.0, 
   every pawn's flash runs full; from a third-person view all are halved. A no-op when 18094dc30 holds and the value is
   unchanged. Old duration <= 0 or m_flFlashBangTime <= curtime -> both alphas 1, build-up on, grabbed off; duration =
   new; m_flFlashBangTime = duration + curtime. new == 0: alphas 0, build-up / grabbed off, duration 0, time 0. Then
-  DSP-cleared off. 180c8eb30 then restarts the +0x1e18 timer (RandomFloat(0.28, 0.34) when the last finished: its
+  DSP-cleared off (on the local pawn too). 180c8eb30 then restarts the +0x1e18 timer (RandomFloat(0.28, 0.34) when the last finished: its
   fraction outside (0, 1)).
 - Think 180c686f0: m_flFlashBangTime < curtime or maxAlpha <= 0 -> alphas 0; else 1808cf060(start = m_flFlashBangTime -
   duration, ...). Build-up ends when `max(curtime - (m_flFlashBangTime - duration), 0) >= 0.094444446`.

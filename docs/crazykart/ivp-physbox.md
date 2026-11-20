@@ -99,7 +99,7 @@ buttons are parented physboxes that follow their parent: no body.
 
 1. Cvar-scaled health fields, 0x1028b440, the model (slot 0x68), +0x22c from +0x230.
 2. Spawnflags 0x4000 -> SetCollisionGroup(1); 0x40000 -> +0xd4 |= 0x200000. SetSolid(6). `notsolid` -> FSOLID_NOT_SOLID. CreateVPhysics (slot 154).
-3. Every item is group 1: the game rules never let it collide with a kart (group 2) or another item (ivp-pileup.md 8).
+3. Every item is group 1: the game rules never let it collide with a kart (group 2) or another item (ivp-pileup.md "The game rules' groups").
 
 ## CPhysBox::CreateVPhysics 0x1031ce60
 
@@ -116,12 +116,12 @@ buttons are parented physboxes that follow their parent: no body.
 
 A shell carries a forward phys_thruster (spawnflags 50: 0x2 linear, 0x10 force x mass, 0x20 no local origin; force
 2500), a down one (50, force 1000, angles 90 0 0) and a phys_keepupright (limit 1000), attached to its physbox. Start:
-1. Down thruster: its force, Activate, 0.01 s on.
+1. Down thruster: its force, then an Activate 0.01 s later.
 2. EnableMotion on the physbox (spawned pinned by 0x8000).
-3. Forward thruster aimed (SetForwardVector), its force, Activate 0.01 s on.
+3. Forward thruster aimed (SetForwardVector), its force, then an Activate 0.01 s later.
 
 Its 0.05 s Tick toggles the down thruster (pressDown's trace); a bounce re-aims the forward one: Deactivate, a new
-forward, Activate 0.01 s on.
+forward, then an Activate 0.01 s later.
 
 ## Thruster frame
 
@@ -144,7 +144,7 @@ forward, Activate 0.01 s on.
 
 ## Template placement (CPointTemplate)
 
-VMatrix (4x4) code, not section "Thruster frame"'s matrix3x4.
+VMatrix (4x4) code, not "Thruster frame"'s matrix3x4. Both sections' leaves (AngleMatrix, MatrixInvert, ConcatTransforms, MatrixAngles, VectorAngles, the OnActivate frame, SetupMatrixOrgAngles, MatrixMultiply, the InverseTR block, AddTemplate then CreateInstance) were checked bit-identical against the mapped server.dll called natively, the arctangents from its own x87.
 
 AddTemplate 0x10347270:
 1. Templates_Add 0x103a8e60.

@@ -135,7 +135,7 @@ Built node (0x90 bytes):
 |---|---|
 | `mp_team_intro_type` | string, flags 0x282000, default "auto": "none, normal, wingman, rush, or auto (implies normal if mp_halftime is set, none otherwise)" |
 | `mp_team_intro_time` | float 0x40d00000 = 6.5, flags 0x282100, "How many seconds for team intro" |
-| `sv_force_team_intro_variant`, `sv_force_team_intro_random` (182120c90) | int; off at <= 0 / not one of the map's |
+| `sv_force_team_intro_variant`, `sv_force_team_intro_random` (182120c90) | int; read as off at <= 0 / not one of the map's |
 | 4.0 (0x18179be70) | the VO's lead before the intro's end |
 | -1293.0 (0xc4a1a000) | the path's first think time |
 | r_dof2_maxblursize | handle 0x1825f5ed0, default 5, flags 2 |

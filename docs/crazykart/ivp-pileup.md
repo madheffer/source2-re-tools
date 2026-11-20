@@ -15,7 +15,7 @@ mindists' recheck, a revival's contacts, and the server's ShouldCollide with its
 | 0x10089a50 | vphysics | impact; its frozen branch 0x1008a0aa..0x1008a240, after 1008a2c0 (its 1008a4d0 path) wrote the speeds back |
 | 0x1008b590 | vphysics | the impact system's round: the only reader of the freeze bits |
 | 0x1008a990 | vphysics | impact response (tests only pinned 0x10) |
-| 0x1008b060 | vphysics | do_impact: revives a frozen object's unit first (0x10071ef0 at 0x10071f11), each revived core runs 0x10082ce0 |
+| 0x1008b060 | vphysics | in do_impact 0x1008b020: the call that revives a frozen object's unit first (0x10071ef0, which calls 0x10086b70 at 0x10071f11; 0x10086b70 calls 0x10082ce0 at 0x10086c8d) |
 | 0x10072540 | vphysics | stage 2, per unit; at 0x100727a8 (after the sleep check, before the 0x300 split) 0x10073a50 per object |
 | 0x10072850 | vphysics | stage 2's unit walk |
 | 0x10087370 | vphysics | stage 1 |
@@ -172,7 +172,7 @@ partner (a mover's shadow, 50000 kg) crushes it; two karts never.
 1. Same entity on both sides: neither gameflags (object slot 0x4c) has 0x8000: 0x10ba2a8c slot 0x3c's entry (by model,
    slot 0x18) for the two objects' indices (slot 0x54), or 1 with no entry; either has 0x8000: 0.
 2. Both gameflags & 2 (FVPHYSICS_CONSTRAINT_STATIC): 0. Callback flags 0x40 (player controller) either side:
-   0x102f6a40. ForceVPhysicsCollide (entity slot 0x26c): 1. Both have an edict and one owns the other: 0.
+   0x102f6a40. ForceVPhysicsCollide (entity slot 0x26c) either way: 1 (checked against the disassembly, 0x102f6c08 / 0x102f6c1d). Both have an edict and one owns the other: 0.
 3. Hierarchy (0x102f6c57..0x102f6c84): either has a move parent: both roots; equal -> 0; then the pair table
    (0x10ba2a90 slot 0xc) on the roots and on their +0x158.
 4. isStatic per side: movetype NONE (0) or PUSH (7); MOVETYPE_CUSTOM (11) with a shadow controller (object slot 0x11c,

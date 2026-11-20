@@ -10,7 +10,7 @@ client_20261105 (disassembly), client_20261015 (decompiled).
 | 180c15b50 | client | MainViewOrigin (engine client vfn 0x310): the listener |
 | 180c2eaf0 | client | Ray_t init: start, delta = end - start, a non-zero-delta flag |
 | 18175d680 (10-15 181758c80) | client | IntersectRayWithRay |
-| 181748760 | client | 1 / length helper (0 outside 1e-17 .. 1e17) |
+| 181748760 | client | 1 / length helper used by IntersectRayWithRay's normalize (1 / length, 0 for a zero length; 181748760 applies outside 1e-17 .. 1e17) |
 | 18015a360 | client | clamp |
 | 181742b20 (10-15 18173e120) | client | CalcClosestPointOnLineSegment |
 | 180c1ce10 | client | the sound's parameters |

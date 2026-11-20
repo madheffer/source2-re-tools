@@ -77,4 +77,4 @@ velocity curve x surf ambient volume x suppression multiplier.
   snd_roundend_volume / snd_mvp_volume and their four mode variants exist: 0.16 each ([winpanel.md](winpanel.md)
   "Round end sounds").
 - The snd_vol_per_game_mode layers; the window-focus flag behind `volume`'s x 0; FUN_180016d10's use of `volume`.
-- A GFL ZE server's game_type / game_mode.
+- A GFL ZE server's game_type / game_mode (taken as casual 0/0).

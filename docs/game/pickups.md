@@ -14,15 +14,15 @@ hudreticle.xml / .vcss. The drop and its delays: [drops.md](drops.md).
 | 180b062d0 | server | (svc, weapon): plain item pickup, returns 1 |
 | 180aeb7c0 | server | (pawn+0xb38, weapon, cvar 182178790): gate when weapon+0xefa set |
 | 180b54f20 | server | thunk: weapon's owner |
-| 180c30c10 | server | refused path returning 2 (for a 180093e040 game mode) |
-| 180093e040 | server | game mode test |
+| 180c30c10 | server | UTIL_Remove: on the refused path in deathmatch (18093e040), then BumpWeapon returns 2 |
+| 18093e040 | server | deathmatch test: game_type == 1 && game_mode == 2 |
 | 180a50140 | server | (...+0xe48): C4 refusal test |
 | 180c86620 | server | Weapon_GetSlot (svc, slot, -1) |
 | 180b23f00 | server | pre-equip test (svc, weapon): reach / line of sight (unread) |
 | 180b23a70 | server | Weapon_Equip (svc, weapon) (unread: slot, owner, m_OnPlayerPickup, item_pickup) |
 | 180a7cf90 | server | CCSPlayer_ItemServices::BuyItem (item_kevlar / item_assaultsuit / item_defuser, "Cannot carry anymore") |
 | 180ac77d0 | server | GiveDefaultItems (mp_ct_default_* / mp_t_default_*, the taser, the knife) |
-| 180ac8330 / 180a6ee50 / 180a6f6f0 | server | fire item_pickup (BumpWeapon's callees) |
+| 180ac8330 / 180a6ee50 / 180a6f6f0 | server | fire item_pickup (as do 180b1c290's callees) |
 | 0x180a259f0 | server | CCSWeaponBase::Touch -> 0x1803eeac0 |
 | 0x1803eeac0 | server | CBasePlayerWeapon::Touch: the entity's touch pointer (+0x2b0) and the parent's touch |
 | 0x1809f5b4c | server | the weapon's touch function: thunk to weapon vfn 0xd60 |
@@ -74,7 +74,7 @@ hudreticle.xml / .vcss. The drop and its delays: [drops.md](drops.md).
 | pawn +0xfb0 | with cvar 182178778: previous-owner-only pickup |
 | pawn +0x388 | flags (FL_ 0x1000000 -> vfn 0x4b0 first) |
 | pawn +0xf71 | in buy zone |
-| pawn +0x36f8 (client) | m_iIDEntIndex |
+| pawn +0x36f8 (client) | m_iIDEntIndex: the offset 180c9ec60 writes (client_20261015, checked against the disassembly); the schema lists m_iIDEntIndex at 0x36dc in client_20261015..20261105, so the name on +0x36f8 is unconfirmed |
 | svc +0xd8 / +0xdc | allow non-previous-owner; +0xdc clear runs 180b23f00 |
 | svc +0xd9 | 1 during the +use swap's Touch |
 | svc +0xda | = 1 after equip |
@@ -120,7 +120,7 @@ hudreticle.xml / .vcss. The drop and its delays: [drops.md](drops.md).
 | cppTargetIDDuration | 0 |
 | desc_default #ded6cc | items_game colour without an econ item |
 
-CSWeaponType: 0 knife, 1 pistol, 2 SMG, 3 rifle, 4 shotgun, 5 sniper, 6 machine gun, 7 C4, 8 taser, 9 grenade (BumpWeapon also tests 11 for a grenade).
+CSWeaponType (server enum table at 0x1818d0d60, checked): 0 knife, 1 pistol, 2 SMG, 3 rifle, 4 shotgun, 5 sniper, 6 machine gun, 7 C4, 8 taser, 9 WEAPONTYPE_GRENADE, 10 WEAPONTYPE_EQUIPMENT, 11 WEAPONTYPE_STACKABLEITEM, 12 WEAPONTYPE_UNKNOWN. (The old notes called type 11 "a grenade"; the enum says stackable item.)
 
 Strings: `m_OnPlayerPickup` (the weapon's output), `pickup_groundweapon`, `item_pickup`, `item_pickup_failed`, "Player.PickupWeapon".
 
@@ -146,11 +146,11 @@ Touches are dispatched after the step.
 1. Bot (pawn vfn 0xc20): 180b01690 first.
 2. Not a CCSWeaponBase: 180cee2e0(weapon+0x5e8) and 180b062d0(svc, weapon), returns 1.
 3. +0xefa set: 180aeb7c0(pawn+0xb38, weapon, cvar 182178790) must pass.
-4. An owner already (180b54f20) or svc vfn 0xd8 (CanUse) false: refused (2 when 180c30c10 runs for a 180093e040 mode).
+4. An owner already (180b54f20) or svc vfn 0xd8 (CanUse) false: refused: in deathmatch (18093e040) the weapon is removed (180c30c10, UTIL_Remove) and BumpWeapon returns 2, else 0 (180b1cc67).
 5. Cvar 182178778 with pawn+0xfb0: only the previous owner (+0x100c) unless svc+0xd8 / +0xdc.
 6. Weapon type (vfn 0xc60): 7 (C4) refused while carrying weapon_c4 or 180a50140(...+0xe48); taser (+0x1fe0) refused
    when one is carried; a knife refused when one of the same definition (+0x700 / +0x704) is carried.
-7. Unless C4 (7), grenade (11), type 9, taser or knife: refused when the gear slot (vfn 0xa70) is taken
+7. Unless C4 (7), type 11 (stackable item; the old notes said "a grenade"), type 9 (grenade), taser or knife: refused when the gear slot (vfn 0xa70) is taken
    (180c86620(svc, slot, -1) != 0): **a touch pickup needs the slot empty**.
 8. svc+0xdc clear: 180b23f00(svc, weapon) must pass.
 9. Weapon_Equip 180b23a70(svc, weapon) (or the owner branch), svc+0xda = 1.
@@ -161,7 +161,7 @@ Touches are dispatched after the step.
    180adebd0(svc, w) -> 180aea0a0(svc, w, 0). Otherwise E may open the buy menu ("buymenu").
 2. 180aea0a0: pawn passes vfn 0x550; the slot's weapon: rifle (180a0ecf0) gear slot 0, pistol (180a0ee90) slot 1,
    taser the carried weapon_taser, weapon_knife the carried knife.
-3. Ammo extraction (sv_extract_ammo_from_dropped_weapons on, not type 11 or 9, gear slot 0 / 1, same item definition
+3. Ammo extraction (sv_extract_ammo_from_dropped_weapons on, not type 11 (stackable item; old notes: "a grenade") or 9, gear slot 0 / 1, same item definition
    in hand and w's vfn 0xa98): clip then reserve from w into yours up to your maximums (vfns 0xaf0, 0xb18, 0xac0,
    0xb20, 0xad8); w teleported to the player (180c8cba0); its body kicked by (RandomFloat(-10, 10), RandomFloat(-10,
    10), 0) (vfn 0x208); "Player.PickupWeapon"; hint #SFUI_AmmoExtracted / _AmmoExtract_OwnFull / _Empty / _Fail.

@@ -14,7 +14,7 @@ server_20261105, client_20261015 (Ghidra). huddeathnotice.vxml / .vcss. CS2Fixes
 | 180931910 | server | (other callers unread) |
 | 180ac5e00 | server | team number |
 | 180ad2a20 | server | squads override |
-| 180b0b500 | server | (controller +0x7f8 action tracking, 1): m_iAssists |
+| 180b0b500 | server | (controller +0x7f8 m_pActionTrackingServices, 1): m_iAssists (schema: +0x38 in its own class, not +0x7f8) |
 | 1801fc0c0 | server | (pawn, contributionscore_*): score |
 | 180e8bed0 | server | noreplay test (fails: noreplay) |
 | 180b08a20 | server | priority term |
@@ -57,10 +57,10 @@ server_20261105, client_20261015 (Ghidra). huddeathnotice.vxml / .vcss. CS2Fixes
 | info +0x4c | flags (bit 19 headshot; 0x80000 priority) |
 | info +0x28 | damage position |
 | info +0x7c | penetrated (solids passed; [shots.md](shots.md) 6b) |
-| controller +0x7f8 | action tracking |
+| controller +0x7f8 | m_pActionTrackingServices (schema, checked) |
 | controller +0x800 | damage services (records) |
-| controller +0x6f4 | 3 or 4: disconnecting (client) |
-| pawn +0xa44 | noreplay |
+| victim +0x6f4 (client) | 3 or 4: disconnecting |
+| +0xa44 | set: noreplay (its object not recorded) |
 | pawn +0x1530 | bits: 1 dominated, 2 revenge, 4 wipe, 8 thrusmoke |
 | pawn +0xd38 / +0xd3c | m_blindUntilTime / m_blindStartTime |
 | pawn +0xe04 / +0xe08 | m_flFlashDuration / m_flFlashMaxAlpha |

@@ -80,12 +80,12 @@ server_20261105. CInferno vtable 0x1817be778. The client's drawing: [inferno-cli
 |---|---|
 | 0x88 | fire record size |
 | 64 (0x40) | fires per inferno cap |
-| PTR_DAT_181e328d8 | global uniform random stream (seeded by the think) |
+| PTR_DAT_181e328d8 | global uniform random stream (tier0's; seeded by the think) |
 
 ## CreateFire (180345dc0)
 
 1. count >= min(max flames, 64) -> 1. 18034cf40 -> 2; 18034cc30 -> 3; 18034cd60 -> 5.
-2. Life timer: vfn 0x898 less the inferno's elapsed time (1802ca490) when that timer runs, else the whole lifetime: every flame dies at the inferno's start + the lifetime.
+2. Life timer: vfn 0x898 less the inferno's elapsed time (1802ca490) when that timer runs, else the whole lifetime: every flame dies at the inferno's start + the lifetime (no per-flame spread).
 3. No parent: spawn duration = inferno_per_flame_spawn_duration, interval = inferno_initial_spawn_interval. Child: duration = 180348690(parent +0x38), interval = min(remaining(parent +0x50) x inferno_child_spawn_interval_multiplier, inferno_max_child_spawn_interval).
 4. Networked fields set, the count; 180350120; `Inferno.Fire.Ignite` at the position (only while +0x1194 is 0 or 1).
 

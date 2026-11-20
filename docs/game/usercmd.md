@@ -69,7 +69,7 @@ engine2_20261015 / 20261029, networksystem_20261015. cs_usercmd.proto (decoded f
 | 180b4ad90 | server | notes the head's number ("catchup") |
 | 180edcb20, 180b75cf0 | server | after a run |
 | 180ee1010 | server | cq_logging stats |
-| 180ec7240 | server | queue vfn 6: warm-up to 0 (through 180b50b20 for every controller by RestartRound 180953c00, before round_poststart) |
+| 180ec7240 | server | queue vfn 6: warm-up to 0 (through 180b50b20 for every controller by CCSGameRules::RestartRound 180953c00, before round_poststart) |
 | 180c60a80 | server | (mv, cmd, tick, force): move span setup |
 | 180c6f2a0 | server | the subtick loop |
 | 180c80540 | server | a step's button change |
@@ -221,8 +221,8 @@ CCLCMsg_Move: only fields 3 data and 4 last_command_number (tools/re/game/protom
 | weapon services +0xe0 | shoot position history CFixedSizeCircularBuffer<ShootPositionHistoryEntry_t, 32, int>: records +0xe8 (0x14: tick, fraction, x, y, z), head +0x368, count +0x36c |
 | weapon services +0x370 | input history CFixedSizeCircularBuffer<CSGOInputHistoryEntryPB, 32, int> (RTTI 0x181f164e0): records 0x78 from +0x378 (+0x18 view angles, +0x40 shoot position, +0x60 / +0x64 render tick / fraction, +0x68 / +0x6c player tick / fraction; read by the attack-time walk also as +0x18.. a position, +0x48 a vector, +0x70 / +0x74 player tick), head +0x1278, count +0x127c (relative +0xf08 / +0xf0c); never cleared |
 | pawn +0xb58 / component +0x40 | PreThink component list head / next |
-| pawn +0xbc8 | m_angEyeAngles |
-| pawn +0xbd4 | last command's eye angles (copied at 180c7b537, after PostThink vfn 0xb18 and before vfn 0xb20 ItemPostFrame) |
+| pawn +0xbc8 | v_angle (schema; not m_angEyeAngles, which schema.py puts at +0x15b4 on CCSPlayerPawn: checked against the schema and the disassembly at 180c7b529..55b) |
+| pawn +0xbd4 | v_anglePrevious: v_angle copied there at 180c7b537 (after PostThink vfn 0xb18 and before vfn 0xb20 ItemPostFrame), then v_angle = the movement services' +0x228 / +0x230: at the shot, the eye angles before this command's |
 | pawn +0xff0 | PreThink runs the list only while 0 (unnamed) |
 | pawn +0x414 bit 8 | frozen (a bot's buttons zero) |
 | attack info +0 | attack time |
@@ -262,7 +262,7 @@ CCLCMsg_Move: only fields 3 data and 4 last_command_number (tools/re/game/protom
 | 1.0 (0x181acb084) | 180d04300's param_4 |
 | 0x3eb0c6f7a0b5ed8d | 1e-6 (double) |
 | d in [-5000, 100000] µs (d + 5000 <= 105000 unsigned) | margin window |
-| [0x1802a3998] | socket clock - Plat_FloatTime x 1e6 |
+| [0x1802a3998] | socket clock - Plat_FloatTime x 1e6 (set in 1800f7e00) |
 | [0x1802a59f0] vfn 0x60 | socket clock (µs) |
 | 201 ms | rewind candidate window |
 | 1.0 (0x3f800000) / 0.4 (0x3ecccccd) | knife delay: stab / else |

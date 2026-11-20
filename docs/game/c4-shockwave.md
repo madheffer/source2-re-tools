@@ -203,7 +203,7 @@ RemapVal, the clamp, the byte and Bias (and the player steps composed from them)
    the hit, the entity leaves the list.
 4. CPhysicsPropMultiplayer cap: a counter from 0 each tick (1809fee06), incremented on an entity due a hit of that
    class (or derived); past 4 (`cmp ebx, 4; jg`) skipped and kept in the list: **at most 4 a tick**. RadiusDamage
-   tests the same class.
+   (1809550b0) tests the same class (skipped under its own condition).
 5. The end (1809f5770): the table's bounds (+0x90 / +0x9c) all inside the wave (each of the 8 corners'
    `((y y) + x x) + z z` <= r^2): no next think (else SetNextThink now); no table: false. The list emptying doesn't end it.
 

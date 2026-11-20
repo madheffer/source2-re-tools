@@ -10,7 +10,7 @@ events.cpp:236-241. End-of-match screen: winpanel.md "End of match".
 | 1809288a0 | server | GetMapRemainingTime |
 | 1809654b0 | server | TerminateRound (its end 1809666b0..18096682c) |
 | 18094e5f0 | server | the round's end processing |
-| 18095a7ff | server | RestartRound (clears m_iRoundWinStatus) |
+| 180957e50 | server | RestartRound: clears m_iRoundWinStatus at 18095a7ff (`mov [r13 + 0xa44], r14d`, r14d = 0; checked against the disassembly) |
 | 1809669f0 | server | CCSGameRules Think (its game phase switch) |
 | 180914b60 | server | end-of-match think (returns 1 while the intermission runs: DAT_1821170e5) |
 | 180913da0 | server | kill limit check (mp_fraglimit) |

@@ -66,28 +66,58 @@ server_20261105, client_20261015. CS2Fixes' leader layer: leader.cpp:360-435.
 
 ## Command order (180ab7ec0)
 
-1. Gates: pawn vfn 0x558, 0xca8, 0x550 true; bool cvar 18211a6d8 (+0x58) off.
-2. `urgent = ping+0x4ac != 0 && now - ping+0x4ac < 0.5`.
-3. Refused by the spam filter or out of tokens: allowed only if `urgent && !ping+0x4bc`; else radio text `#Chatwheel_ping_on_cooldown`.
-4. Trace from EyePosition (vfn 0x5e8) along the forward. Miss: time and urgent still set, no event.
-5. Hit: into smoke, the smoke point; else when the hit's rank < 3, the highest-ranked (> 1), nearest entity within the snap.
-6. 180adb580.
+1. Gates: pawn vfn 0x558, 0xca8, 0x550 all true (taken as: a live player pawn in play; TODO each name), and the bool
+   cvar at 18211a6d8 (+0x58) off (taken as mp_teammates_are_enemies, as movement.md reads it: TODO its name). Else
+   nothing.
+2. `urgent = !(ping+0x4ac == 0) && now - ping+0x4ac < 0.5` (now: 180927cb0).
+3. Spam filter 180a9be60: the same command within 0.3 s of its last pass returns 0; the first use passes. Tokens
+   180abf930: none free, refused.
+4. Controller present and the filter refuses, or no token: allowed only if `urgent && !ping+0x4bc` (the last ping
+   wasn't urgent: a fast double tap is a free urgent ping). Else the pinger gets the radio text
+   `#Chatwheel_ping_on_cooldown` ("Cannot ping. Ping is on cooldown.", with #Game_radio_location) and nothing else.
+5. Trace: dir = the eye angles' forward (180b4faf0), start = EyePosition (vfn 0x5e8), end = start + dir x
+   (g_flConfigMaxCoord + g_flConfigMaxCoord) x 1.7320508; 180250e50(start, end, ignore the pawn, 0x1c1003, group 4).
+   A miss (fraction 1): no position; the ping entity's time and urgent still change, the event isn't fired.
+6. A hit: smoke density along eye..end >= 1.0 (180211b00): the ping lands on the smoke (its out point). Else the entity
+   snap: the hit entity's rank (180ac6b50); under 3, a partition query of a 46-unit sphere round the end: each entity
+   of rank > 1 and >= the best so far, its vfn 0x2c8 point within 36 units of the end, the nearest at the highest
+   rank, is pinged.
+7. 180adb580(services, ping, urgent, 0, pinged entity, the end point).
 
 ## Placing (180adb580)
 
-- m_iType: special 24, urgent 13, else 0; pinged entity: CPlantedC4 25 (point 1803d6f50), CCSWeaponBase 1, CItemDefuser 27, CChicken 26.
-- m_bUrgent = urgent && !special. Entity teleported (vfn 0x528), yaw + 180.
-- Event `player_ping` { userid, entityid, x, y, z, urgent }, then OnPlayerPing; think at +6 s.
+- m_hPlayer (ping+0x4b0) = the pawn; services m_hPlayerPing (+0x5c) = the ping.
+- m_iType: special ? 24 : urgent ? 13 : 0; then by the pinged entity: CPlantedC4 25 (its point 1803d6f50),
+  CCSWeaponBase 1, CItemDefuser 27, CChicken 26; the entity's point (vfn 0x2c8) is the position.
+- ping+0x4ac = now; m_bUrgent = urgent && !special; m_hPingedEntity = the entity.
+- m_szPlaceName: the nav place under the point (1814bb3f0); empty without one.
+- The entity teleported to the point (vfn 0x528), angles the pawn's with 180 deg added to the yaw.
+- Event `player_ping` { userid, entityid (the ping), x, y, z, urgent }, then 180233820: OnPlayerPing.
+- Think 180ae0fc0 (`player_ping_stop`) at now + 6.0 s (special: 30 s). A chicken pinged while gamerules +0xd8 is set
+  and 180343fd0(chicken): 180345830 makes it follow the pinger, 1 s.
+- Other caller: 180962c50 pings an entity (special 0) without the command's gates (TODO what it is).
 
 ## Client
 
-- Icon: particles/overhead_icon_fx/player_ping.vpcf; shown for the local team (or m_iType 24), not muted, cl_player_ping_mute != 2.
-- Sound: `UI.PlayerPingUrgent` / `UI.PlayerPing` at (x, y, z) as ints (truncated), only when cl_player_ping_mute == 0.
+- Icon (1808dda40, from the entity, not the event): particles/overhead_icon_fx/player_ping.vpcf at the entity when it
+  moves, shown only if the pinger's team (pawn+999) is the local player's (180a7fd40) or m_iType is 24, the pinger
+  isn't muted (180c12010) and cl_player_ping_mute != 2. CP1 = the team colour as bytes (a float vector 0..255; or the
+  player's teammate colour when 180769bb0 is set: TODO which mode), CP2 = (1, 1, 1): a particle tint CP takes colour
+  bytes, not 0..1.
+- Sound (180c76830, "player_ping"): the pinger's pawn on the local player's team (1808e5720), not muted,
+  cl_player_ping_mute == 0: `UI.PlayerPingUrgent` if urgent, else `UI.PlayerPing`, at (x, y, z) read as integers
+  (GetInt: truncated), from the local player's entity.
+- So teammates only: CTs see and hear CT pings, Ts T pings; a spectator (team 1) neither (TODO 180a7fd40 while
+  spectating: whether it is the observed player's team).
+- The HUD's off-screen markers (PlayerPing / PlayerPingOffMap panels, VisiblePlayerPings) are not read.
 
 ## CS2Fixes (leader.cpp:360-435)
 
-Edits the event's recipients only (muted: no sound, icon still shown); with !disablepings and a human leader, a non-leader CT's ping entity is removed. A CT leader's ping clears their five tokens.
+Edits the event's recipients only (`*clients = 0` mutes it: no sound), so a muted ping's icon still shows to the
+pinger's team; only with !disablepings and a human leader is a non-leader CT's ping entity removed (no icon either). A
+CT leader's ping is heard, gets the leader's mark and clears their five tokens.
 
 ## Unread
 
-Pawn vfns 0x558 / 0xca8 / 0x550; cvar 18211a6d8's name; 180962c50; the caller of the special ping (m_iType 24); the HUD's ping panels; cl_ping_fade_distance / cl_ping_fade_deadzone; 180769bb0 (teammate colour mode).
+Pawn vfns 0x558 / 0xca8 / 0x550; cvar 18211a6d8's name; 180962c50; the caller of the special ping (m_iType 24); the
+HUD's ping panels; cl_ping_fade_distance / cl_ping_fade_deadzone (the icon's fade); 180769bb0 (teammate colour mode).

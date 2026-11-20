@@ -1,6 +1,6 @@
 # Sun shadows: cascaded shadow maps (CSM)
 
-scenesystem_20261015, client_20261015, csgo_environment shaders (shaders_vulkan_dir.vpk, GLSL via VRF's SPIR-V
+scenesystem_20261015, client_20261015, csgo_environment shaders (shaders_vulkan_dir.vpk, 1664 programs, GLSL via VRF's SPIR-V
 reflection), game/core/lights_base.fgd, game/csgo/csgo.fgd, pak01 cfg/video_defaults_N.txt.
 
 ## Functions
@@ -29,8 +29,8 @@ reflection), game/core/lights_base.fgd, game/csgo/csgo.fgd, pak01 cfg/video_defa
 
 | Offset | Field |
 |---|---|
-| light +0x3e (char) | m_nCascades |
-| light +0x48 .. | m_flShadowCascadeDistance0.. |
+| light +0x3e (char) | m_nCascades (scenesystem's light object, not the entity's schema offset) |
+| light +0x48 .. | m_flShadowCascadeDistance0.. (the same light object) |
 | light +0xebf0 / +0xebf4 | cross fade / distance fade |
 | + 0xebec | D in the distance fade (writer unread) |
 | view +0x20 / +0x24 | read as the camera's near / far (unnamed) |
@@ -115,11 +115,11 @@ Value at the object + 8 -> + 0x58. A registration's type code at [rsp + 0x30] ..
 | csm_max_dist_between_caster_and_receiver | 15000 | 180012b30 | 180890f50 |
 | csm_cascade0..3_override_dist | -1.0 | 1800127c0 / 180012870 / 180012920 / 1800129d0 | 180890e80 / 180890f10 / 180890f90 / 180890f70 |
 | csm_bias_override_0..3 | 1.0 (used only when <= 0) | 180012500 / 1800125b0 / 180012660 / 180012710 | 180890f60 / 180890e90 / 180890f20 / 180890ee0 |
-| csm_res_override_0..3 | 0 | 180012df0 / 180012ea0 / 180012f50 / 13000 | 180890fc0 / 180890fb0 / e60 / ea0 |
+| csm_res_override_0..3 | 0 | 180012df0 / 180012ea0 / 180012f50 / 180013000 | 180890fc0 / 180890fb0 / 180890e60 / 180890ea0 |
 | csm_viewdir_shadow_bias | 0 | 180013580 | 180890ec0 |
 | csm_cascade_viewdir_shadow_bias_scale | 2.0 | 180012a80 | 180890e50 |
 | csm_viewmodel_shadows | 0 | 180013840 | 180890ed0 |
-| csm_viewmodel_max_shadow_dist / nearz / max_visible_dist | 21 / 0.5 / 1000 | 180013630 / 790 / 6e0 | |
+| csm_viewmodel_max_shadow_dist / nearz / max_visible_dist | 21 / 0.5 / 1000 | 180013630 / 180013790 / 1800136e0 | |
 | csm_sst_max_visible_dist / pushback_distance | 2000 / 1500 | 180013210 / 1800132c0 | 180890f80 / 180890fe0 |
 | csm_sst_shadow_focus_region_minz / maxz | -2000 / 2000 | 180013420 / 180013370 | |
 | csm_sst_vertical_depth_shear_enable | 1 | 1800134d0 | 180890eb0 |
@@ -129,9 +129,9 @@ Value at the object + 8 -> + 0x58. A registration's type code at [rsp + 0x30] ..
 | sc_shadow_depth_bias_clamp | 0 | 180006e00 | 18091fa60 |
 | lb_csm_receiver_plane_depth_bias | 1.5e-5 (0x3780029a) | 18000fc70 | 1809239f0 |
 | lb_csm_receiver_plane_depth_bias_transmissive_backface | 1.5e-4 | 18000fd20 | 180923a00 |
-| lb_csm_draw_alpha_tested / draw_translucent | 1 / 1 | 18000fdd0 / fe70 | 180923a10 / 180923a20 |
+| lb_csm_draw_alpha_tested / draw_translucent | 1 / 1 | 18000fdd0 / 18000fe70 | 180923a10 / 180923a20 |
 | lb_csm_cascade_size_override | -1 | 18000fbc0 | 1809239e0 |
-| lb_csm_cross_fade_override / distance_fade_override | -1 / -1 | 18000ffc0 / 10070 | 180923a40 / 180923a50 |
+| lb_csm_cross_fade_override / distance_fade_override | -1 / -1 | 18000ffc0 / 180010070 | 180923a40 / 180923a50 |
 | lb_csm_override_staticgeo_cascades / _value / _animated_verts | 0 / -1 / 1 | 180010120 / 1800101d0 / 180010280 | 180923a60 / 180923a70 / 180923a80 |
 | lb_sun_csm_size_cull_threshold_texels | 10 | 180010330 | 180923a90 |
 | lb_csm_override_bulb_radius / fov_override | -1 / -1 | 1800103e0 / 18000ff10 | 180923aa0 / 180923a30 |
@@ -158,7 +158,7 @@ Value at the object + 8 -> + 0x58. A registration's type code at [rsp + 0x30] ..
    - 1804969e0(d0, d1): the 8 frustum corners between planar depths d0 and d1; W = the largest distance between two corners (the cascade's width: independent of view rotation); corners to world space.
    - Corners in light space: x / y min and max, depth min and max; again with each corner pushed E along the light direction; a later cascade's far depth at least the one before's.
    - Texel snap: `pad = (W - (max - min)) x 0.5` per axis, `texel = W / res`, `left = floor((min - pad) / texel) x texel`, `right = floor((max + pad) / texel) x texel` (both floored), same for y; depth `near = floor(0) = 0`, `far = ceil(zmax - zmin)`; light view translated by -zmin; 180498af0.
-   - Culling: up to 12 planes from 180495df0, plus from the second cascade on the previous cascade's box shrunk 15 % a side as 6 exclude planes (a caster inside it is the higher-resolution cascade's alone).
+   - Culling: up to 12 planes from 180495df0, plus from the second cascade on the previous cascade's box shrunk 15 % a side as 6 exclude planes (a caster inside it is the higher-resolution cascade's alone; exact, since the shader picks the first cascade that holds a point and the cross fade is 10 % at most).
 
 ## Lookup (csgo_environment pixel shader, every combo)
 
@@ -180,7 +180,7 @@ sun = m10 x v x bakedVis (x N.L, the BRDF)
 ```
 
 - On lightmapped geometry the cascades multiply the baked shadow mask (`_24154 = _11313 x _14808`); past the cascades' 560 units the bake alone. Non-lightmapped combos (probe / vertex-stream lit): the cascades x their own baked sun visibility.
-- One hardware comparison tap: the sampler's linear filter is a 2 x 2 PCF (no wider kernel for the sun).
+- One hardware comparison tap: the sampler's linear filter is a 2 x 2 PCF (no wider kernel for the sun; the barn lights' taps in the same shader are their own).
 - The smoke (smoke_volume_cs, [smoke.md](smoke.md)) uses the same factor at `lerp(1, x, 0.75)` on its sun term.
 
 Constants (1801af7b0):

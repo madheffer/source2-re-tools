@@ -39,7 +39,7 @@ server_20261105, client_20261015 (the 2026-11-05 client has the same readers 8 b
 | 180dde830 | client | CCSGO_HudRadar's per-player update |
 | 1808d9290 | client | IsOtherEnemy: another team (controller +999), or anyone with mp_teammates_are_enemies |
 | 1809f6b30 | client | observer-target branch (not read) |
-| 1813ce910 | client | reads m_bSpotted (pawn +0x3d1) |
+| 1813ce910 | client | a stub (edx 0x18, r9d 4 -> 1813ceda0) called on &m_entitySpottedState (pawn +0x1e80) before m_bSpotted is read at pawn +0x1e88 (the decompiler shows it as qword index 0x3d1 of the pawn: 0x3d1 x 8 = 0x1e88; checked against the disassembly, 180ddec36..42) |
 | 180dd8b00 | client | seen by a teammate |
 | 180c8a7d0 | client | a trace's fraction >= 1.0 |
 

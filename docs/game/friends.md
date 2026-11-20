@@ -72,7 +72,7 @@ CBufferString::AppendFormatV stubbed inline at +4 bit 30 / +8) over 514 account 
 
 - playercard.xml card, a separator, then the entries whose `AvailableForItem(xuid)` holds, five a row: an IconButton with `icons/ui/<icon>.svg`, label `#tooltip_short_<name>`, tooltip `#tooltip_<name>` (or `#tooltip_disabled_<name>` when IsDisabled).
 - Order: invite, join, watch, steamprofile, changeclantag, petbook, kick_from_lobby, leave_lobby, message, trade, friendaccept, friendignore, cancelinvite, removefriend, request, editprofile, changecolor, mute, report, commend, borrowmusickit, stopborrowmusickit, copycrosshair, viewaddon, kick_player.
-- friendaccept / friendignore when the bucket is AwaitingLocalAccept, cancelinvite when AwaitingRemoteAccept (`SteamOverlayAPI.InteractWithUser(id, 'friendrequestaccept' | 'friendrequestignore' | 'friendremove')`); removefriend only on the Perfect World launcher (not self, no request either way); request ('friendadd') when not a friend, not self, no request.
+- friendaccept / friendignore when the bucket is AwaitingLocalAccept, cancelinvite when AwaitingRemoteAccept (`SteamOverlayAPI.InteractWithUser(id, 'friendrequestaccept' | 'friendrequestignore' | 'friendremove')`); removefriend only on the Perfect World launcher (not self, no request either way; Steam's own UI unfriends otherwise); request ('friendadd') when not a friend, not self, no request.
 - context_menu_playercard.vcss: contextMenuBackground #262626, radius 3px, shadowOffset; info 384px; separator 1px rgba(124,124,124,.15); buttons on rgba(0,0,0,.466), IconButton margin 8px, label 12px Stratum2 TF 64px wide.
 
 ## Add Friend popup (popup_add_friend.xml / .ts)
@@ -86,7 +86,7 @@ CBufferString::AppendFormatV stubbed inline at +4 bit 30 / +8) over 514 account 
 - The list comes from the GC (`k_EMsgGCCStrike15_v2_Account_RequestCoPlays`, CMsgGCCStrike15_v2_Account_RequestCoPlays_Player).
 - Strings: SFUI_Date_Format_JustNow "Just Now", _Today, _Yesterday.
 
-## Statuses (GetFriendStatus / GetFriendStatusBucket)
+## Statuses (FriendsListAPI.GetFriendStatus / GetFriendStatusBucket)
 
 - Buckets the scripts compare: PlayingCSGO, AwaitingLocalAccept, AwaitingRemoteAccept, Offline (and Steam's online / away / snooze).
 - Strings: SFUI_Lobby_StatusOnline / Away / Snooze / Offline / InLobby / AwaitingLocalAccept "Wants to be Your Friend" / AwaitingRemoteAccept "Friend Request Sent"; rich presence `SFUI_Lobby_StatusRichPresence_<mode>_<lobby|game|community|watch|review>` (casual_game "Playing Casual", casual_community "Community Casual", deathmatch_game "Playing Deathmatch", competitive_game "Competitive", competitive_lobby "In Competitive Lobby", ...).

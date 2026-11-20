@@ -73,7 +73,9 @@ stencil reference (passed with the state to vfn 0x158).
 ## The passes
 
 - **FirstpersonLegsPass1**: mode FirstpersonLegsPrepass (`csgo_legs_prepass.vfx`). Depth test, write, LEQUAL; stencil
-  ALWAYS (both faces), fail REPLACE, depth fail KEEP, pass REPLACE, read / write mask 3, ref 3.
+  ALWAYS (both faces), fail REPLACE, depth fail KEEP, pass REPLACE, read / write mask 3, ref 3: every fragment surviving the discard and the depth test writes stencil 3.
+  What the stencil held before pass 1 does not change the result (pass 2 needs depth EQUAL to a pass 1 fragment, so
+  other values matter only where pass 2's depth happens to equal the world's).
 - **FirstpersonLegsPass2** ("Firstperson Legs"): mode CsgoForward. Depth test + write, EQUAL; stencil EQUAL (both
   faces), ops KEEP, read mask 3, write mask 0, ref 3: shades only where pass 1 left depth and stencil.
 - "Not Depth Pre-passed" (1811d10e0): NOT_EQUAL, ref 3, read mask 1, write mask 2, pass REPLACE.
@@ -104,13 +106,14 @@ skinned model-space position.
 
 mask = size - 1; fragCoord rows from the top; worldPos the skinned position before the warp (VS passes it relative to
 the per-view origin, PS adds it back). Nearer than fade - 35, or outside the 37-degree cone under (0, 0, 55): never
-drawn (chest, shoulders, head, upper arms).
+drawn: no depth written, so pass 2 never shades them (chest, shoulders, head, upper arms). Between fade - 35 and fade the
+blue noise dithers the edge.
 
 ## The hands
 
 Nothing takes them out of the passes; the pose's last tasks are Aim IK (aim-ik.md) and Snap Weapon (wpn back on
 hand_R, hand_L back on wpnHand_L). Standing at 85 degrees: P90 hand_R 22.1, hand_L 26.9 units from the eye; AK-47
-17.2 / 29.1; Deagle 24.9 / 25.4. Fade 50: no fragment kept under 21.2 units, all past 26.4.
+17.2 / 29.1; Deagle 24.9 / 25.4. Fade 50: no fragment kept under 21.2 units, all past 26.4 (`6 smoothstep - 1.5 + noise >= 0`): a hand in that band shows dithered. The aim input: aim_angle_pitch / _yaw (180ae02f0), the eye angles relative to the body yaw.
 
 ## Unread
 

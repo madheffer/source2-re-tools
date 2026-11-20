@@ -46,7 +46,7 @@ client_20261015 (image base 0x180000000) unless said; server_20261105. Timing (h
 | 180c7c160 | client | local pawn |
 | 18094dc60 | client | `mov al, 1; ret` |
 | 180aca8d0 | client | low-violence (CommandLine token 0xcdbd1292) |
-| 1804ffb20 | client | hltv replay active |
+| 1804ffb20 | client | gates the hltv_replay weight |
 | 18089c6f0 | client | (controller, team): the last of the team to die |
 | 180acac70 | client | controller by index |
 | 1801befe0 | client | float compare |
@@ -68,7 +68,8 @@ client_20261015 (image base 0x180000000) unless said; server_20261105. Timing (h
 | +0x2b0 | m_flDeathCamTilt |
 | +0x2b4 | m_hDeathCamBounds |
 | +0x2b8 | m_bDeathCamBoundsSearched |
-| pawn +0x38 / +0x1308 | (controller) pawn / observer services |
+| camera services +0x38 | the pawn (read by 180882530) |
+| pawn +0x1308 | observer services |
 | client pawn +0x1458 | m_flDeathTime |
 | client pawn +0x1da8 | m_qDeathEyeAngles (roll +0x1db0) |
 | client pawn +0x520 | m_hOwnerEntity |
@@ -119,7 +120,7 @@ client_20261015 (image base 0x180000000) unless said; server_20261105. Timing (h
 | Field | Overlay | Weight |
 |---|---|---|
 | +0x118 | effects/in_buy_menu | 1 when the local pawn is alive (vfn 0xab8) and m_bIsBuyMenuOpen |
-| +0x11c | effects/round_end_via_bombing | 0 every frame: the 1/64 step toward 1 needs +0x9c == 3, an observed pawn and 18094dc60 false, which is always true |
+| +0x11c | effects/round_end_via_bombing | 0 every frame: the 1/64 step toward 1 needs +0x9c == 3, an observed pawn and 18094dc60 false, but 18094dc60 is `mov al, 1; ret` (post-layers.md 4) |
 | +0x120 | effects/death_cam_phase1 | below |
 | +0x124 | effects/death_cam_phase1_low_violence | the same, under low violence |
 | +0x128 | effects/death_cam_phase2 | below |
@@ -180,7 +181,7 @@ cc_freeze_ct / cc_freeze_t lead the table (set elsewhere). All 0 under cl_disabl
 - 180208400: m_flDeathTime = curtime, m_qDeathEyeAngles = vfn 0x5f0 (180b4f890).
 - 180912130 sets m_bKilledByHeadshot from the kill's headshot; Spawn 180249530 clears it.
 
-## Overlay weights 180d0d540
+## Overlay weights 180d0d540 (ClientModeCSNormal::Update)
 
 1. Dead pawn 180c7ae00: the local controller, connected (vfn 0x4f0): its pawn, or when observing (vfn 0xac0) in the eye
    (mode 2) the observed pawn; returned only when dead.

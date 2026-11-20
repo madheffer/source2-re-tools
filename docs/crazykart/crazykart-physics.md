@@ -141,7 +141,7 @@ Conventions:
 | 0x10071ef0 | vphysics | revive a unit |
 | 0x10071f70 | vphysics | the unit's references' times = now |
 | 0x100782a0 | vphysics | a core's movement state |
-| 0x10073a50 | vphysics | an object's invalid mindists rechecked ([ivp-pileup.md](ivp-pileup.md) 5) |
+| 0x10073a50 | vphysics | an object's invalid mindists rechecked ([ivp-pileup.md](ivp-pileup.md) "The invalid mindists' recheck") |
 | 0x10071800 / 0x100713b0 / 0x10071710 / 0x100715c0 | vphysics | the unit's split / merge |
 | 0x10071e40 / 0x10071dc0 / 0x10018430 | vphysics | controller list sort / unit removal / core removal |
 | 0x10077820 / 0x10077750 | vphysics | freeze / the speeds zero |
@@ -237,7 +237,7 @@ Conventions:
 | core +0x100 / +0x110..+0x11c | q_last / q_next |
 | core +0x120 | (1, 0, 0) at rest |
 | core +0x130 | t_psi |
-| core +0x138 / +0x13c | 1/dt / `|speed|^2` |
+| core +0x138 / +0x13c | 1/dt / `|speed|` = `sqrtf((vx^2 + vy^2) + vz^2)` of +0xd0 (0x10097227, checked against the disassembly; an older reading had `|speed|^2`) |
 | core +0x140 | controller list |
 | core +0x150 / +0x160 / +0x180 | reference 1: t / q / pos |
 | core +0x158 / +0x170 / +0x190 | reference 2: t / q / pos |
@@ -249,7 +249,7 @@ Conventions:
 | sim units manager (env+8) +0x18 / +0x1a8 | active / sleeping list heads |
 | env+0 | gravity controller (with the damping) |
 | env+4 | the time manager (its +4 object's slot 0) |
-| env+0x10 | object list (+8, next +0x74) |
+| env+0x10 | the mindist manager: +8 its exact mindists (next +0x74) ([ivp-mindist.md](ivp-mindist.md)) |
 | env+0x1c | the application environment (+0x20 / +0xc) |
 | env+0x20 | anomaly manager (vphysics' CCollisionSolver part, vtable 0x100e1c50) |
 | env+0x24 | settings: +8 max speed, +0xc, +0x10 max angular per PSI, +0x14 (manager budget), +0x18 / +0x1c clamped [1, 50000] |
@@ -266,7 +266,7 @@ Conventions:
 | env+0x108 | time events counted |
 | env+0x110 | countdown (u16, starts 10) |
 | env+0x114 | PSI stage |
-| env+0x118 | `expf(dt * -0.105360545)` |
+| env+0x118 | `expf(dt * -0.105360545)` (0.9^dt): read by the friction energy damping 0x100820b0 ([ivp-contacts.md](ivp-contacts.md) "Priority 2000") |
 | env+0x11e / +0x120 | global object listeners: count / list |
 | IVP_Compact_Surface +0 / +0xc / +0x18 / +0x1c / +0x20 | mass centre / rotation inertia per unit mass / upper_limit_radius / byte radius deviation / ledge tree root |
 | vcollide_t | 16 bytes: solids at +4, text at +8 |
@@ -532,7 +532,7 @@ Each PSI adds (case 1, `rot += (A*RAD)*dt`) exactly r deg/s (damping 1: the spin
 | 0x2000 | Spawn 0x10357113 | +0x4d4 vslot 100 (2): meaning unread |
 | 0x200000 | CreateVPhysics | clears a byte of the solid before creation (kart: off) |
 
-Open: with 0x8 the body is created pinned. Nothing in the kart's I/O or scripts sends EnableMotion (only the shell items do); InputWake only Wakes; ActivateForce and CKeepUpright::Activate don't enable motion. What re-enables it in-game is not found (candidates: CPhysicsProp's touch / damage paths for 0x400 / physdamagescale, the "material" keyvalue, point_template spawning of i_kart). Group 2's ShouldCollide: [ivp-pileup.md](ivp-pileup.md) 8.
+Open: with 0x8 the body is created pinned. Nothing in the kart's I/O or scripts sends EnableMotion (only the shell items do); InputWake only Wakes; ActivateForce and CKeepUpright::Activate don't enable motion. What re-enables it in-game is not found (candidates: CPhysicsProp's touch / damage paths for 0x400 / physdamagescale, the "material" keyvalue, point_template spawning of i_kart). Group 2's ShouldCollide: [ivp-pileup.md](ivp-pileup.md) "The game rules' groups".
 
 ## 6. VScript TraceLine and game_ui
 
@@ -580,10 +580,10 @@ Simulate -> (0x1001447e) 0x10084c80: lock (env+0x28 slot 0), the time manager's 
 
 1. env+0xda != 0: 0x10087370 (delayed rechecks: a ShouldCollide comes from here); env+0x2c: 0x100868f0; the env+0x94 object's slot 0x28; every PSI listener (last to first); 0x100951f0(env+0x10).
 2. 0x10072850: every unit through 0x10072540 with {dt, 1/dt, env} (section 10, 12). The gravity / damping controller, the motion controllers (thrusters, upright) and the friction system (0x10080e4c is on that path) run here.
-3. 0x10097d00: each moved core through 0x100970f0 with {dt, 1/dt (1e10 if dt <= 1e-10), env}: the limit hooks (section 12); core+0x13c = |speed|^2, +0x138 = 1/dt; 0x10096940 the rotation; `core+0xe0 += core+0xf0 * (t_env - core+0x130)`, +0x130 = t_env, +0xf0 = speed; q_last = the old q_next, the new one q x dq (the Hamilton product written out mid-0x100970f0), renormalised (section 10); 0x100975f0; each object's hull manager gets its moved radius and next check time and is queued when due.
+3. 0x10097d00: each moved core through 0x100970f0 with {dt, 1/dt (1e10 if dt <= 1e-10), env}: the limit hooks (section 12); core+0x13c = |speed| (sqrtf, 0x1009722c), +0x138 = 1/dt; 0x10096940 the rotation; `core+0xe0 += core+0xf0 * (t_env - core+0x130)`, +0x130 = t_env, +0xf0 = speed; q_last = the old q_next, the new one q x dq (the Hamilton product written out mid-0x100970f0), renormalised (section 10); 0x100975f0; each object's hull manager gets its moved radius and next check time and is queued when due.
 4. 0x10097db0: every queued hull manager runs its due synapse events until none is due, at most the manager's budget (env+0x24 +0x14, more from env+0x20 slot 4); 0x10093bb0 every 10 s. The collision checks (the OV tree, ShouldCollide, the mindists' creation: 0x100850b6 -> 0x10097f8c -> ... -> 0x1009501e) come from here.
 5. 0x100952d0(env+0x10).
-6. Every object of env+0x10's list: 0x10095310(obj, 1, 1).
+6. Every exact mindist of env+0x10's list (+8, next +0x74): 0x10095310(md, 1, 1) (update_exact_mindist_events; an older reading said "every object"; ivp-mindist.md "Time and the PSI's collision stages").
 
 Source files by their "IVP Failed at %s %d" calls: ivp_friction.cxx (0x10083110, 0x100816a0), ivp_mindist_friction.cxx (0x1008d230), ivp_friction_gaps.cxx (0x100a0580), ivp_mindist.cxx (0x10094150), ivp_mindist_minimize.cxx (0x100980e0, 0x100982d0, 0x100984c0, 0x10099a60..0x10099c50), ivp_mindist_recursive.cxx (0x100b14f0), ivp_mindist_event.cxx (0x100a51b0, 0x100a53e0), ivp_compact_ledge_solver.cxx (0x1007ac30), ivp_object.cxx (0x10073680, 0x10073c40, 0x10074750), ivp_physic_private.cxx (0x10086fb0). Impacts and contacts: [ivp-contacts.md](ivp-contacts.md).
 
@@ -620,7 +620,7 @@ Per unit, a free core:
 - GetPositionMatrix maps IVP rows to Source: `[r00, r02, -r01, px K; r20, r22, -r21, pz K; -r10, -r12, r11, -(py K)]`. GetPosition's angles: three x87 fpatan stored as float x 57.29578 (section 7). The transforms (0x1001c3e0 / 0x1001c580 / 0x1001c640) run on GetPositionMatrix's result.
 - The game side runs the real x87 `fsincos` / `fpatan`.
 
-server.dll's mathlib (AngleMatrix, MatrixInvert, ConcatTransforms, MatrixAngles, VectorAngles, OnActivate's thruster frame, SetupMatrixOrgAngles, MatrixMultiply, AddTemplate's inline InverseTR, a template's placement): [ivp-physbox.md](ivp-physbox.md) 7 and 8.
+server.dll's mathlib (AngleMatrix, MatrixInvert, ConcatTransforms, MatrixAngles, VectorAngles, OnActivate's thruster frame, SetupMatrixOrgAngles, MatrixMultiply, AddTemplate's inline InverseTR, a template's placement): [ivp-physbox.md](ivp-physbox.md) "Thruster frame" and "Template placement".
 
 ## 11. The body's creation from the .phy
 
@@ -731,7 +731,7 @@ The BSP's PHYSCOLLIDE lump (29): per model a dphysmodel_t {modelIndex, dataSize,
 2. physcollision slot 38 VPhysicsKeyParserCreate (the push at 0x1031abe9 is EBX); while not slot 2 (Finished), slot 1's block name by stricmp:
    - "solid" / "staticsolid": a solid_t over g_PhysDefaultObjectParams ("DEFAULT"), parser slot 3 ParseSolid (handler g_SolidSetup), then pName "world", the game data, enableCollisions 1, the "default" surface; index 0 skipped (made above); an index past the solids or a null solid sets the flag below; else CreatePolyObjectStatic as above, callback flags | 0x200, object slot 41 (SetContents) the contents, slot 84 (2) when contents & 1.
    - "fluid": ParseFluid (slot 4), a static object of its solid with "fluid" and its surfaceprop, then physenv slot 11 (CreateFluidController). The map has none.
-   - "materialtable": int[128] zeroed, ParseSurfaceTable (slot 6), physprops slot 8 SetWorldMaterialIndexTable(table, 128): the material manager's slot 1 (0x10019d00) maps a triangle's material index below 0x80 through it ([ivp-contacts.md](ivp-contacts.md) 7). ze_crazykart_v4: 1 -> 102, 2 -> 71 ("sand": elasticity 0.01), 5 -> 42, 6 -> 8, 7 -> 2, the rest 0.
+   - "materialtable": int[128] zeroed, ParseSurfaceTable (slot 6), physprops slot 8 SetWorldMaterialIndexTable(table, 128): the material manager's slot 1 (0x10019d00) maps a triangle's material index below 0x80 through it ([ivp-contacts.md](ivp-contacts.md) "Materials"). ze_crazykart_v4: 1 -> 102, 2 -> 71 ("sand": elasticity 0.01), 5 -> 42, 6 -> 8, 7 -> 2, the rest 0.
    - "virtualterrain": the flag, SkipBlock (slot 9). Anything else: SkipBlock.
 3. Collision slot 40 frees the parser; with the flag and slot 48 (SupportsVirtualMesh) 0x1031aa20: for i < 0x8000 the engine's slot 0xa4 / 4 = 41 GetCollideForVirtualTerrain(i); each a static object `vdisp_%04d` with "DEFAULT"'s numbers, callback flags | 0x200, slot 84 (2). The 56 displacements: [ivp-virtualmesh.md](ivp-virtualmesh.md).
 
@@ -745,8 +745,9 @@ func_door / func_movelinear / func_rotating / func_button / func_brush are VPhys
 - The "material 1001" keyvalue on a CPhysicsProp (not a surfaceprop index change as far as read).
 - Spawnflags 0x2 / 0x400 / 0x2000; what re-enables motion despite spawnflag 0x8 (section 5).
 - The fields behind 0x1008e020 / 0x1008e050.
+- How minFrictionMass / maxFrictionMass (10 / 2500: settings +0x18 / +0x1c, clamped to [1, 50000]) enter the friction solve beyond the energy allowance 0x100a0d70 (ivp-contacts.md "Normal pressures" step 4).
 - What core byte 1 means beyond the movement state (the extra 0.1 damping at >= 2).
-- env+0x118's reader (0.9^dt).
+- Readers of env+0x118 other than the friction energy damping 0x100820b0.
 - CTraceFilterSimple's ShouldHitEntity body (0x108dce68 slot 0).
 - The frame order of ServiceEventQueue vs entity thinks vs PhysFrame (the scripts' 0.00 / 0.01 delays: a 0.01 s delay fires next tick, so Deactivate(0) + Activate(0.01) leaves a thruster off one PSI if the queue runs before PhysFrame).
 - CalculateForceOffset 0x1001c8a0.

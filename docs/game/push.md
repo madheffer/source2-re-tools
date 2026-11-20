@@ -52,7 +52,7 @@ server_20261105 (classes named by MSVC RTTI; sum orders from the disassembly). S
 | 180abcd00 | server | CheckMovingGround (CCSPlayer_MovementServices vfn 0x168) |
 | 1803c5cd0 | server | ApplyAbsVelocityImpulse |
 | 180fe8de0 | server | CTriggerPush Touch (vfn 0x4b8) |
-| 180c30c10 | server | disable the trigger |
+| 180c30c10 | server | UTIL_Remove (push-once removes the trigger) |
 
 ## Fields
 
@@ -112,13 +112,13 @@ server_20261105 (classes named by MSVC RTTI; sum orders from the disassembly). S
 
 Each moved entity, last first: a player (vfn 0x558) with a root answering vfn 0x5b0 true -> 180225330; anything else -> 180e99960(info, push, rotational 0).
 
-## SpeculativelyCheckPush (180e99960)
+## SpeculativelyCheckPush (180e99960; Source's, unchanged in shape)
 
 1. Every pusher's collision off; trace from abs origin to origin + push (x: `push.x + o.x`, y: `o.y + push.y`, z: `o.z + push.z`) with its own hull (UTIL_TraceEntity), filter 1819c7d60, interacts-with collision +0x20, group +0x5e; pushers back on.
 2. pusher-is-ground = its ground entity's root move parent is the root.
 3. Unblockable and (player or NPC): abs origin = destination. Else: root vfn 0x6e8(entity) false -> blocked (+0xe0 = 1), return false; fraction non-zero -> abs origin = trace end; point-sized / not solid -> true; not rotational and fraction 1 -> true ("Interpenetrating entities!" when the place isn't valid).
 4. blocked = !IsPushedPositionValid. Valid -> true. Invalid and not unblockable -> false.
-5. Unblockable: four nudges along the root's abs rotation's x then y axis, +0.5 then -0.5 each: valid -> true. None -> the destination again, true.
+5. Unblockable: four nudges along the root's abs rotation's x then y axis (the quaternion at 1803d5f70 +0x10 turning (1, 0, 0) and (0, 1, 0)), +0.5 then -0.5 each: valid -> true. None -> the destination again, true.
 
 ## The tracktrain player push (180225330 linear, 18024c740 rotational)
 
@@ -166,7 +166,7 @@ CategorizePosition (180abb1d0): moving up = vz > 140, and with a ground entity `
 
 ## CheckMovingGround (180abcd00)
 
-Per usercmd before the move (frametime a double, cast to float):
+Source's CPlayerMove::CheckMovingGround, per usercmd before the move (frametime a double, cast to float):
 
 ```
 on the ground (flags bit 0), its ground entity FL_CONVEYOR (0x1000000):
@@ -178,12 +178,12 @@ FL_BASEVELOCITY clear:
 clear FL_BASEVELOCITY
 ```
 
-A mover's ground speed added to base velocity on leaving it becomes the player's velocity at the next command, x (1 + frametime / 2). A base velocity set with FL_BASEVELOCITY lasts while the flag is renewed, then turns into momentum the command after.
+A mover's ground speed added to base velocity on leaving it becomes the player's velocity at the next command, x (1 + frametime / 2). A base velocity set with FL_BASEVELOCITY (CS2Fixes' old trigger_push) lasts while the flag is renewed, then turns into momentum the command after.
 
 ## CTriggerPush Touch (180fe8de0)
 
 - Not push-once (spawnflag 0x80 clear), a walking entity: ApplyAbsVelocityImpulse(dir x speed) on every touch (not a base velocity); pushing up (the world direction's dot test) on the ground -> ground off, origin.z += 1 (vfn 0x528).
-- Push-once: the impulse once, ground off when up, trigger disabled (180c30c10).
+- Push-once: the impulse once, ground off when up, then the trigger removed: 180c30c10(this) at 180fe8fdd is UTIL_Remove (a null check, then the entity system's 18138a3e0; checked against the disassembly: an older reading said "disabled").
 - VPhysics: dir x speed x 100 x frametime (x mass / 100 per object without spawnflag 0x1000).
 
 ## Unread

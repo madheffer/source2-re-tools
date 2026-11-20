@@ -23,7 +23,7 @@ prop_door_rotating is CPropDoorRotatingBreakable: CPropDoorRotatingBreakable > C
 | 180bc5d40 / 180ba23f0 | server | CBreakableProp / CDynamicProp spawn parts (prop data; unread) |
 | 180f22e80 | server | latch y edge: min or max y (unread) |
 | 180ceaad0 | server | turn by the node's transform |
-| 180b746f0 / 180b522b0 | server | set bodygroup / find bodygroup (this, 1) |
+| 180b746f0 / 180b522b0 | server | the hardware bodygroup: 180b746f0(180b522b0(this, 1), m_nHardwareType) (unread) |
 | 180b49710 | server | (this, +0xa40 == 0) (unread) |
 | 180f18210 | server | vfn 0xa68: the start position |
 | 18146bb60 / 181475ab0 / 18146fe70 / 181473410 | server | the ajar quaternion blend (unread) |
@@ -166,7 +166,7 @@ prop_door_rotating is CPropDoorRotatingBreakable: CPropDoorRotatingBreakable > C
 | +0xea4 | m_eOpenDirection (0 both, 1 forward only, 2 backward only) |
 | +0xea8 / +0xeac | m_eCurrentOpenDirection / m_eDefaultCheckDirection |
 | +0xeb0 / +0xeb4 | m_flAjarAngle / m_vecAjarAngles ("ajarangles") |
-| +0xec0 / +0xecc / +0xed8 | m_angRotationClosed / OpenForward / OpenBack |
+| +0xec0 / +0xecc / +0xed8 | m_angRotationClosed / m_angRotationOpenForward / m_angRotationOpenBack |
 | +0xee4 | m_angGoal |
 | +0xef0 / +0xefc | m_vecForwardBoundsMin / Max |
 | +0xf08 / +0xf14 | m_vecBackBoundsMin / Max |
@@ -191,11 +191,11 @@ prop_door_rotating is CPropDoorRotatingBreakable: CPropDoorRotatingBreakable > C
 | +0x270 -> +0x68 -> +0x200 | the physics object |
 | +0xc71 | CreateVPhysics gate (unread) |
 | collision +0x18 | flags \|= 0x8000401 |
-| trace +0x5d | hit entity |
+| trace +0x5d | the hit (tested for the path sweep) |
 | filter +0x180 / +0x178 | interacts-with 0xc3001 / 0xc0000 |
 | CBreakableProp +0xb50 | invulnerable timer |
-| +0xaa8 | flags (bit 13 club immunity with DMG 0x84; bit 9 explosive delayed break) |
-| +0xa88 / +0xa8c / +0xa90 / +0xa94 | m_flDmgModBullet / club / blast / burn |
+| +0xaa8 | flags (bit 13: no damage from DMG 0x84; bit 9: the explosive delayed break) |
+| +0xa88 / +0xa8c / +0xa90 / +0xa94 | the bullet / club (0x80) / blast (0x40) / burn (8) multipliers: m_flDmgModBullet / Club / Explosive / Fire (a nested struct's +0x10..+0x1c) |
 | +0xb24 | m_iMinHealthDmg |
 | +0xb80 | explosive delayed break |
 | +0xad0 | OnBreak |
@@ -210,7 +210,7 @@ prop_door_rotating is CPropDoorRotatingBreakable: CPropDoorRotatingBreakable > C
 | 0x800 | start locked |
 | 0x1000 | silent |
 | 0x2000 | use closes |
-| 0x8000 | ignore +use |
+| 0x8000 | ignore +use (ObjectCaps 180d04fc0) |
 | 0x80000 | start unbreakable |
 | 0x182337ef0 / 0x182337f10 / 0x182337f40 | basis (1,0,0) / (0,-1,0) / (0,0,1) (taken) |
 | 0.0027777778 | 1/360 in AngleNormalize |
@@ -236,7 +236,7 @@ Group 17 meets only NPC groups (vphysics2's table: Stripe(17, 0), then 17 x 20, 
 
 ## Maps
 
-- de_nuke 4 (metal_door_001_br, `[PR#]door_02` the master of `[PR#]door_01`, two unnamed), de_eldorado 2 (the statue's eyes, spawnflag 0x8000: opened by the map's logic_case), de_inferno 1 (break_wooden_door_01), de_cache 1 (logic_auto sends SetUnbreakable 1), de_overpass 1; ZE: ze_atix_panic_2017_p, ze_resident_evil_3.
+- de_nuke 4 (metal_door_001_br, `[PR#]door_02` the master of `[PR#]door_01`, two unnamed), de_eldorado 2 (the statue's eyes, spawnflag 0x8000: no +use, opened by the map's logic_case), de_inferno 1 (break_wooden_door_01), de_cache 1 (logic_auto sends SetUnbreakable 1), de_overpass 1; ZE: ze_atix_panic_2017_p, ze_resident_evil_3.
 - All: spawnflags 0x2000, opendir 0, returndelay -1, distance 89-90, speed 160-200, hardware 1.
 - The eldorado eye models (models/eldorado_statue_eye_01a/b.vmdl) are in neither pak01 nor de_eldorado.vpk (CS2 loads the error model).
 - prop_data: GenericGameData "prop_data" base Door.Standard (health 1000, dmg.bullets 1, dmg.club 1.25, dmg.explosive 1.5) for nuke's / overpass' / inferno's doors, Metal.Medium (health 0) for cache's.
@@ -366,5 +366,6 @@ PerformPush keeps the blocker in +0x490: a new one -> EndBlocked on the old, Sta
 - m_eDefaultCheckDirection's keyvalue.
 - PlayerOpen / PlayerClose (180cfd6c0 / 180cfd5a0); the hardware bodygroup; 1803eb9e0.
 - 180f17fb0's slave side argument.
+- The path sweep's filter object (vtable 0x1819de460): what it lets through.
 - +0xc71 and what 180cee2e0 leaves after CreateVPhysics.
 - CBreakableProp's health rule (prop_data over the keyvalue health, 180bc5d40 / 180ba23f0) and break pieces (BreakPieceList).

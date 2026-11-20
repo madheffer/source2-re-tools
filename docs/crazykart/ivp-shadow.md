@@ -102,14 +102,14 @@ Source -> IVP units: `(x k, -(z k), y k)`, k = 0.0254 (0x10106930, 0x3cd013a9); 
 | CBaseEntity +0xf4 | collision property (slot 11 solid type, slot 12 solid flags) |
 | CBaseEntity +0x158 / +0x15c | physics object / set to -1.0 |
 | CBaseEntity +0x1dc / +0x1e8 | abs origin / abs angles |
-| CBaseEntity slots | 154 (+0x268) CreateVPhysics, 0x270 VPhysicsDestroyObject, 0x1b4, 0x26c own collide refusal, 0x2a0 mask |
+| CBaseEntity slots | 154 (+0x268) CreateVPhysics, 0x270 VPhysicsDestroyObject, 0x1b4, 0x26c ForceVPhysicsCollide, 0x2a0 mask |
 | gpGlobals +0x14 | frametime |
 | CPhysicsObject +8 | IVP object (its +0x94 the core) |
 | CPhysicsObject +0x10 | shadow controller |
 | CPhysicsObject +0x14 | & 0x1f temp gravity disable; SetShadow &= 0xe0 |
 | CPhysicsObject +0x18 | u16 material index |
 | CPhysicsObject +0x1c | callback flags (& 2 CALLBACK_GLOBAL_FRICTION; held with \| 0x800) |
-| CPhysicsObject +0x3c / +0x40 | drag input / drag coefficient |
+| CPhysicsObject +0x3c / +0x40 | SetMass's drag numbers: +0x3c (v = maxss(+0x3c, 5.0)) / +0x40 (1.0 when +0x3c is 0.0) |
 | IVP object +0x30..+0x38 | offset from the core |
 | IVP object +0x44 | movement byte (0x10 static), & 0x100 collisions on, & 0x800 no offset |
 | IVP object +0x88 / +0x8c | material / (+0x8c slot 4 on teleport) |
@@ -155,7 +155,7 @@ CShadowController (0xb0 bytes; IVP_Controller vtable 0x100e2b80 at +0, IPhysicsS
 | vtable 0x100e2878 | CPhysicsObject |
 | 0xf000 | $MATERIAL_INDEX_SHADOW |
 | 0x10116078 +0x2c / +0x10 | material manager slot 11 / density |
-| 0.8 (0x3f4ccccd) / 0.001 (0x3a83126f) | shadow material friction (data +0x10) / elasticity (+0x14), index 8 |
+| 0.8 (0x3f4ccccd) / 0.001 (0x3a83126f) | shadow material friction (data +0x10) / elasticity (+0x14) |
 | 100.0 (0x42c80000) | core rot damping +0x20..+0x28 (+0x2c a stack lane) |
 | 1e15 (0x58635fa9) | inertia without allowRotation |
 | 50000 (0x47435000, 0x100f3ff0) | SetMass without allowTranslation; SetMass's cap |
@@ -236,11 +236,11 @@ Controller vtable 0x100e2b80: 0 0x10004450, 1 0x10007e10, 2 0x10007ca0, 3 0x1000
 ShouldCollide 0x102f6b10 (obj0, obj1, game0, game1), counter +0x158 around it:
 1. Either game data null -> 1.
 2. Same entity: the objects' game flags (slot 19) through the model's collision filter.
-3. Past game flags 0x2 on both and callback flags 0x40 (0x102f6a40): slot 0x26c either way -> 0; both with edicts and one the other's owner (0x1014a4e0) -> 0; same move parent, or listed by the pair table -> 0.
+3. Both game flags & 0x2 -> 0; callback flags 0x40 either side: 0x102f6a40; slot 0x26c (ForceVPhysicsCollide) either way -> **1** (checked against the disassembly: 0x102f6c08 / 0x102f6c1d jump to the return-1 exit 0x102f6f62; an earlier reading had 0); both with edicts and one the other's owner (0x1014a4e0) -> 0; same move parent, or listed by the pair table -> 0.
 4. Fixed: movetype 7 (PUSH) or 0 (NONE), 11 (CUSTOM) with a shadow controller (object slot 71), or a move parent (0x1016c7a0) and not VPHYSICS under a VPHYSICS parent. A fixed one collides only with a moveable object (slot 10); two fixed never; two shadows never.
 5. Both solid types non-zero; solid flags (slot 12: 4 FSOLID_VOLUME_CONTENTS ... 8); game rules ShouldCollide(groups); contents (object slot 40) against the other's mask (slot 0x2a0) both ways; the pair table for the objects -> 0; else 1.
 
-So the world (NONE) never collides with a mover (PUSH).
+So the world (NONE) never collides with a mover (PUSH): without that the lift would rest on the shaft's walls.
 
 - **Friction listener 0x10011eb0** clears a contact's integrated energy (+0x48) only between two objects with CALLBACK_GLOBAL_FRICTION (+0x1c & 2), which the attach clears: a kart's contacts on a mover keep theirs.
 - **Shadow material**: the surfaceproperties parser's fallback entry, made on its first run (0x10019ba1, +0x17c marks it): zeroed, vtable 0x100e2154, named by slot 0x3c (0xf000), 0x10019130's defaults, then friction 0.8, elasticity 0.001, inserted by 0x10019d30, index at +0x180. Mixed per side with the kart's.

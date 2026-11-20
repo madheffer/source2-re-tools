@@ -12,10 +12,10 @@ ValveResourceFormat 20.1.7467 + Vortice.SpirvCross 1.6.0, net10.0; `shaderdump d
 |---|---|---|
 | 1802c1310 | particles | packs each layer's channels / blend / type into +0x2d10 / +0x2d14 (1802c0450's loop) |
 | 1802c9f00 / 1802c2470 | particles | build the renderer's scene-object layer mask |
-| 1802ca022 | particles | vertex controls: picks 0x180534228 vs 0x1805341d0 for bloom-only renderers (unread) |
+| 1802ca022 | particles | in the vertex controls: picks 0x180534228 vs 0x1805341d0 for bloom-only renderers (unread) |
 | 1802c3250 | particles | evaluates m_flMotionVectorScaleU / V (1802c359b / 1802c35c3) |
 | 1802bdf60 | particles | input evaluator |
-| 1802c4a4a | particles | writes PC c3.xy (else stays 0 at 1802c49af) |
+| 1802c4a4a | particles | in 1802c3250: writes PC c3.xy (else both stay 0, 1802c49af) |
 | 1802bfc80 | particles | (this, .., 6): the ANIMMOTIONVEC group's texture (+0x2c68) |
 | 1802bfd40 | particles | sets +0x2c68 (at 1802c05aa) |
 | 1802d74d0 | particles | trail renderer: m_bClampV read at 1802d767d, `or [flags + 8], 0x4000` at 1802d769c; trail bit 1 of the combo word at 1802d7675 |
@@ -47,7 +47,7 @@ ValveResourceFormat 20.1.7467 + Vortice.SpirvCross 1.6.0, net10.0; `shaderdump d
 | +0x2c68 | motion texture |
 | +0x2c70 | base texture when layer 0 has none (unread) |
 | texture desc +0x18 | vtex METADATA int16 at byte 6 (MotionVectorsMaxDistance, signed texels) |
-| texture desc +0 / +2 | int16 width / height |
+| texture desc +0 / +2 | int16s dividing scaleU / scaleV (the base texture's; taken as its width / height, not named in the code) |
 | CBaseTrailRenderer +0x3350 | m_bClampV (schema entry 0x1805c5a10) |
 | C_OP_RenderRopes +0x34ec | m_bClampV (entry 0x1805c66b0) |
 | particle 4-wide record +0x88 | the vertex time |
@@ -90,6 +90,8 @@ spritecard_vulkan_50_ps.vcs id=1056 = S_MOTION_VECTORS=1 S_TEXTURE_LAYERS=1 ("PS
 No motion combo with 3 extra layers (sprite or trail). Ropes and trails both use S_DRAW_AS_TRAIL.
 
 ## Channel mixes (SpriteCardTextureChannel_t)
+
+Read for CS2's layered explosion sprites (the C4's explosion_c4_500, the HE's explosion_basic).
 
 0 RGB, 1 RGBA, 2 A, 3 RGB_A ("RGB with Alpha Passthrough"), 4 RGB_ALPHAMASK, 5 RGB_RGBMASK, 6 RGBA_RGBALPHA, 7 A_RGBALPHA,
 8 RGB_A_RGBALPHA ("RGB with RGB as Alpha Passthrough"), 9 R, 10 G, 11 B, 12 RALPHA, 13 GALPHA, 14 BALPHA. The C++ copies
@@ -184,7 +186,7 @@ The PS (ps_s1024:870 sprite, ps_s1536:984 trail, identical) reads the gradient a
 
 18032a2c0's templates write the particle's time at +0x88: FIXED_RATE the age, FIT_LIFETIME age / lifetime (0 where
 lifetime <= 0), MANUAL_FRAMES attribute 38 unchanged. The VS treats all three alike at VC_c1.w (1 for MANUAL_FRAMES), so
-a manual value is a sequence position, fraction and all (not a frame index): every MANUAL_FRAMES renderer in the game's
+a manual value is a sequence position, fraction and all (not a frame index): every MANUAL_FRAMES renderer in the baked
 effects (106, none with m_bAnimateInFPS) sets it from a curve over the normalized age, 0..1 a whole run. Unchecked:
 cosmo's hp_bar.vpcf (driven 0..16 by its script).
 

@@ -38,7 +38,7 @@ server_20261105, client_20261015. Client: fx_cs_blood.cpp. Decal groups Blood / 
 | pawn +0x15a8 | m_bGunGameImmunity |
 | trace +0x84 / +0x78 / +0x90 | end / start / angles |
 | damage result +0x20 | damage dealt |
-| pawn vfn 0x538 / 0x530 | set / get blood level |
+| pawn vfn 0x538 / 0x530 | blood level: 0x538 called with the level (step 4), 0x530 read by TraceBleed |
 | pawn vfn 0x5c8 | dead pawn's count (taken as never empty) |
 | CEffectData (client) +0x14, +8, +0x38, +0x20, +0x44 | start, origin, entity, normal, magnitude |
 | entity +0x30 | flags (bit 7: no blood) |

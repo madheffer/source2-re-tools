@@ -1,7 +1,8 @@
 # CS2's smoke volume
 
 server_20261105, client_20261015, tier0_20261103, rendersystemvulkan_20261015; shaders from shaders_vulkan_dir.vpk
-(read as HLSL / GLSL with VRF 20.1.7467's VfxShaderFile.GetDecompiledFile, SPIRV-Cross); assets from pak01 / core pak01.
+(read as HLSL / GLSL with VRF 20.1.7467's VfxShaderFile.GetDecompiledFile, SPIRV-Cross; shader line numbers are the
+dumped files' `<name>_PixelShader_s<static>_d<dynamic>.glsl`); assets from pak01 / core pak01.
 
 The smoke grenade's cloud: a voxel volume the server builds by a flood fill over the world from where the grenade
 stopped, sends to the clients (m_VoxelFrameData) and answers line-of-sight questions with (bots, spotting). The clients
@@ -30,7 +31,9 @@ throw / flight / detonation timing: grenades.md "Smoke".
   cl_use_prompt_smoke_density, smoke_volume_lod_ratio_change.
 - sv_explode_smokegrenade_at_crosshair and sv_throw_smokegrenade are FCVAR_DEVELOPMENTONLY | CHEAT (0x4002: "Unknown
   command" in retail); `ent_create smokegrenade_projectile` needs a player's view (nothing on a dedicated server) and
-  would not get Create's think.
+  would not get Create's think. No console command prints a networked vector (ent_text overlays, ent_info; no
+  ent_dump-like command): reading m_VoxelFrameData off a real server needs a demo (tv_record) of a thrown smoke and a
+  decoder for the field.
 
 ## Functions (server)
 
@@ -349,7 +352,11 @@ Client cvars (registration stubs: float default in xmm2, handle in rcx; value at
 | r_csgo_upscale_depth_threshold | 3 | | handle 1825f66e0 | 1811e0360 |
 | r_csgo_joint_upscale_sigma | 0.002 | | handle 1825f66d0 | 1811e0360 |
 | r_csgo_smoke_fullres_pass | 1 | | 1801266f0..1801269a0 | |
-| r_csgo_smoke_fullres_enhance / _shadow / _upscale_discard_pixels_behind / _avoid_flat / _clip_sniper | 0 / 1 / 0 / 1 / 1 | | same stubs | |
+| r_csgo_smoke_fullres_enhance | 0 | | same stubs | |
+| r_csgo_smoke_shadow | 1 | | same stubs | |
+| r_csgo_smoke_upscale_discard_pixels_behind | 0 | | same stubs | |
+| r_csgo_smoke_avoid_flat | 1 | | same stubs | |
+| r_csgo_smoke_clip_sniper | 1 | | same stubs | |
 
 ## The build (server)
 
@@ -378,8 +385,9 @@ Client cvars (registration stubs: float default in xmm2, handle in rcx; value at
 
 ### The job (1809b2390)
 
-1. The trail newest to oldest (index `(start + i) & 15`, i from count - 1 down): each a fresh search (queue and seen set
-   cleared, records 0; the emitter counts are not reset between searches).
+1. The trail newest to oldest (index `(start + i) & 15`, i from count - 1 down; in the job's struct the positions are a
+   ring at +0x10 + 12 i, the start at +0xd0): each a fresh search (queue and seen set cleared, records 0; the emitter
+   counts are not reset between searches).
 2. 1809bd920 at the point; for the oldest (i == 0) with nothing queued, 1809bd150.
 3. Something queued: column tables 0xff, the fill 1809bb050, then (owner still there) 1809d0110 and 1809bc190.
 4. Records > 39: 1809b2ec0, done; else the most records so far kept (swapped into the trail slot).
@@ -391,7 +399,8 @@ Client cvars (registration stubs: float default in xmm2, handle in rcx; value at
 The point's voxel (> 0x8000: none); its brick loaded; solid: 1809d58d0 from the point (solid neighbours to a local list);
 queued something: done; else a line (180250e50, 0x3001, group 5, grenade ignored) up 20 u: clear -> the voxel there
 (> 0x8000: done), its brick, solid -> 1809d58d0 from there; then the current voxel queued (and seen) when clear and
-unseen; nothing queued: each solid neighbour in the list gets 1809d58d0 from the grenade's origin (no list).
+unseen; nothing queued: each solid neighbour in the list gets 1809d58d0 from the grenade's origin (no list). The seen
+set is at out+0x18 (hash 1809aedc0), the push 1809b39c0.
 
 ### A step (1809d58d0)
 
@@ -399,7 +408,7 @@ Six neighbours (0x1818e4200), unseen ones; a TraceShape line from `from` to the 
 0x3001, group 5, flags 0x49, object set 0xf, grenade and owner ignored, no iteration); fraction >= 1 and not start
 solid: brick loaded; solid and a list -> the list; clear -> queued and seen. A neighbour outside the grid (coordinate 32
 or wrapped -1) reads its "solid" bit past the bitset (work +0x1008.. during the build: zero; past the block on -z) and is
-queued.
+queued. (The first read had the owner and the owner's owner ignored; the second, exact read: the grenade and its owner.)
 
 ### Fallback (1809bd150)
 
@@ -493,7 +502,9 @@ m_nVoxelFrameDataSize +0xba8, record count m_nVoxelUpdate +0xbac): every update 
 trims, so a late joiner replays the whole log. A record carries only what the client cannot recompute: the emitters, the
 world's solid voxels (bricks as the server voxelizes them) and the dissipation flag. The client runs the same step itself,
 one record at a time (1807e0d70 -> 1807c70f0: find the record whose seq is the next expected, apply it 1807c8990, step
-1807c5ed0, rebuild the texture 1807dff70, seq + 1; an older record is skipped; a record ahead stops the walk, return 2).
+1807c5ed0, rebuild the texture 1807dff70, seq + 1; an older record is skipped; a record ahead stops the walk, return 2;
+the expected seq is the client volume's u16 at +0xd0). A voxel's value is a float32 density (0 .. ~50+; drawn as
+clamp(d / 50, 0, 1)) that only the simulation produces: the wire never carries densities.
 Size: ~2.5 KB a smoke over its 22 s (de_dust2: a first record of ~0.7 KB with the bricks, then ~5-10 B a record).
 
 A record (1809b9ba0 writes, 1807c8990 reads), little-endian:
@@ -672,7 +683,7 @@ object o:
 | c64[i] | +0x400 | o + 0xd0 tint (multiplies the light), w: (now - o + 0xdc) x 0.5 when o + 0xdc != 0 else 0 (unread use) |
 | c80[i] | +0x500 | x: smoothstep((age - 22) / (17 - 22)) (1807cd420 22, 1807cd410 17: the fade); y: smoothstep((age - 0.1) / 1.4); z: smoothstep((age - 4) / 14); w: smoothstep((age - 0.1) / 1.9) |
 | c96 / c97 | +0x600 / +0x610 | union of the boxes (1801bcf20) |
-| c98 | +0x620 | the C4: when 1 < now - t < 11: (origin, now - t - 1) |
+| c98 | +0x620 | the C4: when 1 < now - t < 11: (origin, now - t - 1) (the second read; the first had < 10) |
 | c99[k] | +0x630 | bullet k: start.xyz, age (0 <= now - time < 1); then .z += age x 10 |
 | c115[k] | +0x730 | lerp(start, end, age x 10) (not clamped), tracer byte 0 / 1; then .z += age x 10 |
 | c131[k] | +0x830 | strength, 0, 0, 0 |
@@ -783,7 +794,8 @@ slot + voxel x. For the voxel's centre `p = (v - 16) * 20 + 10 + centre`:
 
 ## The client: upsample (mboit_mixed_upsample)
 
-A full-resolution pixel from its four half-resolution texels: bilinear weights (the 8 x 8 group's 6 x 6 shared tile), x
+mboit_mixed_upsample brings the half / quarter resolution moments, colour and smoke depth up. A full-resolution
+pixel from its four half-resolution texels: bilinear weights (the 8 x 8 group's 6 x 6 shared tile), x
 `exp(-rel² / (2 σ²))` per texel when any relative depth difference `|z - z_i| / z` >= the threshold (`DepthThreshold`
 hash 0x0b8dbc49 = r_csgo_upscale_depth_threshold, `JoinedSigma` 0x5f83a799 = r_csgo_joint_upscale_sigma; attribute names
 are CUtlStringToken MurmurHash2, seed 0x31415926, of the lowercased name). Before that, with the smoke's depth range
@@ -803,11 +815,13 @@ S_OPAQUE and D_PANORAMA_PARTICLE; csgo_effects: the same plus D_MBOIT_4_MOMENTS;
   when all its colour < 0.001 and takes alpha 0.0005 when not black (s0_d8 803-815, 946-958).
 - Pass 2 (s0_d8 84-189): the six moments / b0 lerped toward the bias vector (0, 0.48, 0, 0.451, 0, 0.45) by c37.y, the
   Hankel / Cholesky solve, three roots by the trigonometric cubic, `T = sat(exp(-b0 * dot(...)))` at the surface's z with
-  the overestimation c37.x; discard T < 1e-4; out `(rgb * a, clamp(a, 1e-5, 0.9999)) * T`; blend One / One colour and
-  alpha (states: static 0 dynamic 8).
+  the overestimation c37.x; discard T < 1e-4; out `(rgb, clamp(a, 1e-5, 0.9999)) * T` (s0_d8 84-189; the first reading,
+  of csgo_effects / spritecard pass 2 in general, had `(rgb * a, clamp(a, 1e-5, 0.9999)) * T`: not settled which
+  variants premultiply); blend One / One colour and alpha (states: static 0 dynamic 8).
 - The smoke: PASS1 (s0_d198 2591-2607) one surface per pixel: alpha = the march's (`a + sat(ao - 0.2 a)` when
   g_flAOEffectStrength != 0), skipped below 1e-5, at the depth where the march stopped (`_13193`: the step past 0.991 or
-  the ray's end), added into the three moment UAVs; PASS2 (s0_d199) the colour x T at that depth (`_9769`). OPTIM (cs
+  the ray's end), added into the three moment UAVs; PASS2 (s0_d199) the colour x T at that depth (`_9769`). CS2 marches
+  twice (PASS1, then PASS2) with the same inputs. OPTIM (cs
   variant 4) resolves the colour at 4 depths between its optim depth range's x and y, adding each `colour * T`.
 - mboit_mixed_combine (blend: D_HI_LOW and D_LOW_HI One / Zero, D_LOW_HI_OUTPUT and D_UPSCALE_SMOKE_DEPTH One / One;
   variants D_UPSCALE_SMOKE_DEPTH, D_HI_LOW, D_MBOIT_4_MOMENTS): D_HI_LOW (s0_d0) hi moments bilinear at the low pixel;
